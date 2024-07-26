@@ -1,0 +1,8 @@
+# generated at BSP build time
+/application.out
+/application.map
+
+# generated at VEE port build time
+/set_project_env.sh
+/project_options.cmake
+/toolchain.cmake

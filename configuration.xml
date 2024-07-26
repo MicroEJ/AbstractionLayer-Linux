@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+	ANT
+
+	Copyright 2024 MicroEJ Corp. All rights reserved.
+	Use of this source code is governed by a BSD-style license that can be found with this software.
+
+-->
+<project name="configuration-bsp">
+
+	<!--
+		Script imported by MicroEJ Configuration project's own configuration.xml.
+	-->
+	
+	<!-- Copy toolchain settings files to BSP. -->
+	<target name="install_settings" extensionOf="platform/customization">
+		<property name="linux.scripts.dir" value="${configuration.dir}/bsp/scripts"/>
+		<property name="bsp.scripts.dir" value="${bsp.root.dir}/${bsp.microejscript.relative.dir}"/>
+		<echo message="Copying BSP settings files"/>
+		<copy
+			file="${linux.scripts.dir}/project_options.cmake"
+			todir="${bsp.scripts.dir}"
+			overwrite="true"/>
+		<copy
+			file="${linux.scripts.dir}/toolchain.cmake"
+			todir="${bsp.scripts.dir}"
+			overwrite="true"/>
+		<copy
+			file="${linux.scripts.dir}/set_project_env.sh"
+			todir="${bsp.scripts.dir}"
+			overwrite="true"/>
+ 	</target>
+
+</project>
