@@ -1,7 +1,7 @@
 /*
  * C
  *
- * Copyright 2008-2022 MicroEJ Corp. All rights reserved.
+ * Copyright 2008-2023 MicroEJ Corp. All rights reserved.
  * This library is provided in source code for use, modification and test, subject to license terms.
  * Any modification of the source code will break MicroEJ Corp. warranties on the whole library.
  */
@@ -382,9 +382,13 @@ int32_t SNI_flushArrayElements(jbyte* java_array, jint java_start, jint java_len
 // Pointer to the function to use for the SNI callback.
 typedef void (*SNI_callback)(void);
 
-/*
+/**
  * Creates and initializes a virtual machine.
  * This function MUST be called once before a call to <code>SNI_startVM()</code>.
+ *
+ * Only one instance of the virtual machine can be created in the system,
+ * and both <code>SNI_createVM()</code> and <code>SNI_destroyVM()</code> should only
+ * be called once.
  *
  * @return <code>null</code> if an error occurred, otherwise returns a virtual machine
  * instance.
@@ -396,8 +400,11 @@ void* SNI_createVM(void);
  * Java application with the given String arguments.
  * This function returns when the Java application ends. 
  *
- * The Java application ends when there are no more Java threads to run or when the Java
- * method <code>System.exit(int)</code> is called.
+ * The Java application ends when all the non-daemon threads are terminated or
+ * when the Java method <code>System.exit(int)</code> is called.
+ *
+ * To restart the application, call again the <code>SNI_startVM()</code> function without
+ * calling <code>SNI_createVM()</code> or <code>SNI_destroyVM()</code> before.
  *
  * @param vm a pointer returned by the <code>SNI_createVM()</code> function.
  *
@@ -411,7 +418,7 @@ void* SNI_createVM(void);
  */
 int32_t SNI_startVM(void* vm, int32_t argc, char** argv);
 
-/*
+/**
  * Call this function after virtual machine execution to get the Java application exit
  * code.
  *
@@ -423,8 +430,12 @@ int32_t SNI_startVM(void* vm, int32_t argc, char** argv);
 int32_t SNI_getExitCode(void* vm);
 
 /**
- * Releases all the virtual machine resources. This function must be called after the end
- * of the execution of the virtual machine. The vm pointer is no longer valid after this call.
+ * Releases all the virtual machine resources. This function must be called after the return
+ * of the function <code>SNI_startVM()</code>. The vm pointer is no longer valid after this call.
+ *
+ * Only one instance of the virtual machine can be created in the system,
+ * and both <code>SNI_createVM()</code> and <code>SNI_destroyVM()</code> should only
+ * be called once.
  *
  * @param vm a pointer returned by the <code>SNI_createVM()</code> function.
  */

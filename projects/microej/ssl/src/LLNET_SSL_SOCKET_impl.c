@@ -8,7 +8,6 @@
 #include <LLNET_SSL_SOCKET_impl.h>
 #include <LLNET_SSL_CONSTANTS.h>
 #include <LLNET_SSL_util.h>
-#include <LLNET_CONSTANTS.h>
 #include <LLNET_CHANNEL_impl.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
@@ -19,277 +18,258 @@
 #include <LLNET_CHANNEL_impl.h>
 #include <LLNET_SSL_verifyCallback.h>
 #include <LLNET_Common.h>
+#include <LLSEC_ERRORS.h>
 
 /**
  * @file
  * @brief LLNET_SSL_SOCKET implementation over OpenSSL.
- * @author @CCO_AUTHOR@
- * @version @CCO_VERSION@
- * @date @CCO_DATE@
+ * @author MicroEJ Developer Team
+ * @version 2.0.0
+ * @date 25 July 2024
  */
 
 #ifdef __cplusplus
 	extern "C" {
 #endif
 
-/* external functions */
-extern int32_t LLNET_SSL_TranslateReturnCode(SSL* ssl, int32_t openSSL_error);
+/**
+ * Static functions
+*/
+static void LLNET_SSL_SOCKET_IMPL_initial_handshake(int32_t ssl, int32_t fd, int64_t absolute_java_start_time, int32_t relative_timeout, bool is_client);
 
-static int32_t ssl_asyncOperation(int32_t fd, int32_t operation, uint8_t retry);
-
-int32_t LLNET_SSL_SOCKET_IMPL_initialize(){
-	LLNET_SSL_DEBUG_TRACE("%s()\n", __func__);
-	SSL_library_init();
+void LLNET_SSL_SOCKET_IMPL_initialize(void) {
+	LLNET_SSL_DEBUG_TRACE("\n");
+	(void)SSL_library_init();
 #ifdef LLNET_SSL_DEBUG
 	SSL_load_error_strings();
 #endif
-	return J_SSL_NO_ERROR;
+	return;
 }
 
-int32_t LLNET_SSL_SOCKET_IMPL_create(int32_t context, int32_t fd, uint8_t* hostName, int32_t hostnameLen, uint8_t autoclose, uint8_t isClientMode, uint8_t needClientAuth, uint8_t retry){
-	LLNET_SSL_DEBUG_TRACE("%s\n", __func__);
+int32_t LLNET_SSL_SOCKET_IMPL_create(int32_t context, int32_t fd, uint8_t* host_name, int32_t hostname_len, bool auto_close, uint8_t is_client_mode, uint8_t need_client_auth){
+	(void)auto_close;
+	int32_t ret = SNI_IGNORED_RETURNED_VALUE;
 	SSL* ssl;
 	SSL_CTX* ctx = (SSL_CTX*)context;
 
-	LLNET_SSL_DEBUG_TRACE("%s(context=%d, fd=%d)\n", __func__, context, fd);
+	LLNET_SSL_DEBUG_TRACE("(context=%d, fd=%d)\n", context, fd);
 
-    /* create new SSL session */
+	/* create new SSL session */
 	ssl = SSL_new(ctx);
-	if(ssl != NULL){
-		if(SSL_set_fd(ssl, fd) != 1){
+	if (ssl != NULL) {
+		if (SSL_set_fd(ssl, fd) != 1) {
 			SSL_free(ssl);
-			return J_CREATE_SSL_ERROR; //error
-		}else{
-			// TODO update to use isClientMode and needClientAuth
+			(void)SNI_throwNativeIOException(J_UNKNOWN_ERROR, "Error setting file descriptor");
+		} else {
 			//enable peer verification
-			if (isClientMode || needClientAuth) {
+			if (is_client_mode || need_client_auth) {
 				SSL_set_verify(ssl, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, LLNET_SSL_VERIFY_verifyCallback);
 			} else {
 				SSL_set_verify(ssl, SSL_VERIFY_NONE, NULL);
 			}
 
-			if ((NULL != hostName) && (hostnameLen > 0)) {
-				SSL_set_tlsext_host_name(ssl, (char*)hostName);
+			if ((NULL != host_name) && (hostname_len > 0)) {
+				(void)SSL_set_tlsext_host_name(ssl, (char*)host_name);
 			}
+			ret = (int32_t)ssl;
 		}
-	}else{
-		return J_CREATE_SSL_ERROR; //error
+	} else {
+		(void)SNI_throwNativeIOException(J_UNKNOWN_ERROR, "Could not create SSL session");
 	}
 
-	return (int32_t)ssl;
-}
-
-int32_t LLNET_SSL_SOCKET_IMPL_close(int32_t jssl, int32_t fd, uint8_t autoclose, uint8_t retry){
-	LLNET_SSL_DEBUG_TRACE("%s(ssl=%d, fd=%d, autoclose=%d, retry=%d)\n", __func__, jssl, fd, autoclose, retry);
-	SSL* ssl = (SSL*)jssl;
-
-	if(!retry){
-		//set non-blocking mode
-		if(LLNET_CHANNEL_IMPL_setBlocking(fd, 0, retry) < 0){
-			return J_SOCKET_ERROR;
-		}
-
-		//shutdown to try sending a close notify alert
-		SSL_shutdown(ssl);
-
-		//reset non-blocking mode
-		if(LLNET_CHANNEL_IMPL_setBlocking(fd, 1, retry) < 0){
-			return J_SOCKET_ERROR;
-		}
-
-	}
-
-	if(!autoclose){
-		//the close of the underlying socket is not requested
-		//read close_notify alert to clear input stream
-		int8_t buffer[1];
-		int32_t res = LLNET_SSL_SOCKET_IMPL_read(jssl, fd, buffer, 0, 1, retry);
-
-		if(res == J_NATIVE_CODE_BLOCKED_WITHOUT_RESULT || (res >= 0 && !(SSL_get_shutdown(ssl) & SSL_RECEIVED_SHUTDOWN))){
-			//read operation does not failed and the close notify alert is not yet received
-			return J_NATIVE_CODE_BLOCKED_WITHOUT_RESULT;
-		}
-	}
-
-	return J_SSL_NO_ERROR;
-}
-
-int32_t LLNET_SSL_SOCKET_IMPL_initialServerHandShake(int32_t ssl, int32_t fd, uint8_t retry) {
-	int32_t ret;
-	LLNET_SSL_DEBUG_TRACE("%s(ssl=%d, fd=%d, retry=%d)\n", __func__, ssl, fd, retry);
-
-	//set non-blocking mode
-	if(LLNET_CHANNEL_IMPL_setBlocking(fd, 0, retry) < 0){
-		return J_SOCKET_ERROR;
-	}
-
-	//initiates handshake in non-blocking mode
-	ret = SSL_accept((SSL*)ssl);
-
-	//reset non-blocking mode
-	if(LLNET_CHANNEL_IMPL_setBlocking(fd, 1, retry) < 0){
-		return J_SOCKET_ERROR;
-	}
-
-	if(ret != 1){
-		int32_t err = SSL_get_error((SSL*)ssl, ret);
-
-		if(err == SSL_ERROR_WANT_READ){
-			return ssl_asyncOperation(fd, SELECT_READ, retry);
-		}
-		else if(err == SSL_ERROR_WANT_WRITE){
-			return ssl_asyncOperation(fd, SELECT_WRITE, retry);
-		}
-		return LLNET_SSL_TranslateReturnCode((SSL*)ssl, ret);
-	}
-	return J_SSL_NO_ERROR;
-}
-
-int32_t LLNET_SSL_SOCKET_IMPL_freeSSL(int32_t jssl, uint8_t retry){
-	LLNET_SSL_DEBUG_TRACE("%s\n", __func__);
-	SSL* ssl = (SSL*)jssl;
-
-	SSL_free(ssl);
-	return J_SSL_NO_ERROR;
-}
-
-
-static int32_t ssl_asyncOperation(int32_t fd, int32_t operation, uint8_t retry){
-
-
-	int32_t res = asyncOperation(fd, operation, retry);
-	if(J_NET_NATIVE_CODE_BLOCKED_WITHOUT_RESULT == res){
-		// request added in the queue
-		return J_NATIVE_CODE_BLOCKED_WITHOUT_RESULT;
-	}
-	// requests queue limit reached
-	return J_BLOCKING_QUEUE_LIMIT_REACHED;
-}
-
-
-int32_t LLNET_SSL_SOCKET_IMPL_initialClientHandShake(int32_t ssl, int32_t fd, uint8_t retry){
-	uint32_t err;
-	int ret;
-	LLNET_SSL_DEBUG_TRACE("%s(ssl=%d, fd=%d, retry=%d)\n", __func__, ssl, fd, retry);
-
-	//set non-blocking mode
-	if(LLNET_CHANNEL_IMPL_setBlocking(fd, 0, retry) < 0){
-		return J_SOCKET_ERROR;
-	}
-
-	//initiates handshake in non-blocking mode
-	ret = SSL_connect((SSL*)ssl);
-
-	if(1 != ret) {
-		LLNET_SSL_DEBUG_PRINT_ERR();
-	}
-	//reset non-blocking mode
-	if(LLNET_CHANNEL_IMPL_setBlocking(fd, 1, retry) < 0){
-		return J_SOCKET_ERROR;
-	}
-
-	if(ret != 1){
-		err = SSL_get_error((SSL*)ssl, ret);
-
-		if(err == SSL_ERROR_WANT_READ){
-			return ssl_asyncOperation(fd, SELECT_READ, retry);
-		}
-		else if(err == SSL_ERROR_WANT_WRITE){
-			return ssl_asyncOperation(fd, SELECT_WRITE, retry);
-		}
-		return LLNET_SSL_TranslateReturnCode((SSL*)ssl, ret);
-	}
-	return J_SSL_NO_ERROR;
-}
-
-int32_t LLNET_SSL_SOCKET_IMPL_read(int32_t ssl, int32_t fd, int8_t* buffer, int32_t offset, int32_t length, uint8_t retry){
-	int ret;
-	LLNET_SSL_DEBUG_TRACE("%s(ssl=%d, fd=%d, offset=%d, length=%d, retry=%d)\n", __func__, ssl, fd, offset, length, retry);
-	//set non-blocking mode
-	if(LLNET_CHANNEL_IMPL_setBlocking(fd, 0, retry) < 0){
-		return J_SOCKET_ERROR;
-	}
-
-	//non-blocking read
-	ret = SSL_read((SSL*)ssl, buffer+offset, length);
-
-	//reset non-blocking mode
-	if(LLNET_CHANNEL_IMPL_setBlocking(fd, 1, retry) < 0){
-		return J_SOCKET_ERROR;
-	}
-
-	if(ret < 0){
-		int32_t err = SSL_get_error((SSL*)ssl, ret);
-		if(err == SSL_ERROR_WANT_READ){
-			 return ssl_asyncOperation(fd, SELECT_READ, retry);
-		}
-		else if(err == SSL_ERROR_WANT_WRITE){
-			//read operation can also cause write operation when the peer requests a re-negotiation
-			return ssl_asyncOperation(fd, SELECT_WRITE, retry);
-		}
-		return LLNET_SSL_TranslateReturnCode((SSL*)ssl, ret);
-	}
-	
-	if(ret == 0){
-		//end-of-file
-		return J_EOF;
-	}
-	
 	return ret;
 }
 
+void LLNET_SSL_SOCKET_IMPL_initialServerHandShake(int32_t ssl, int32_t fd, int64_t absolute_java_start_time, int32_t relative_timeout) {
+	LLNET_SSL_SOCKET_IMPL_initial_handshake(ssl, fd, absolute_java_start_time, relative_timeout, false);
+}
 
-int32_t LLNET_SSL_SOCKET_IMPL_write(int32_t ssl, int32_t fd, int8_t* buffer, int32_t offset, int32_t length, uint8_t retry){
-	int ret;
-	LLNET_SSL_DEBUG_TRACE("%s(ssl=%d, fd=%d, offset=%d, length=%d, retry=%d)\n", __func__, ssl, fd, offset, length, retry);
+void LLNET_SSL_SOCKET_IMPL_initialClientHandShake(int32_t ssl, int32_t fd, int64_t absolute_java_start_time, int32_t relative_timeout) {
+	LLNET_SSL_SOCKET_IMPL_initial_handshake(ssl, fd, absolute_java_start_time, relative_timeout, true);
+}
+
+static void LLNET_SSL_SOCKET_IMPL_initial_handshake(int32_t ssl, int32_t fd, int64_t absolute_java_start_time, int32_t relative_timeout, bool is_client) {
+	int32_t ret;
+	SNI_callback callback = NULL;
+	LLNET_SSL_DEBUG_TRACE("(ssl=%d, fd=%d, is_client=%d)\n", ssl, fd, is_client);
 
 	//set non-blocking mode
-	if(LLNET_CHANNEL_IMPL_setBlocking(fd, 0, retry) < 0){
-		return J_SOCKET_ERROR;
+	if (LLNET_set_non_blocking(fd) < 0) {
+		(void)SNI_throwNativeIOException(J_SOCKET_ERROR, "Could not set socket non blocking");
+	}
+
+	//initiates handshake in non-blocking mode
+	if (is_client) {
+		callback = (SNI_callback)LLNET_SSL_SOCKET_IMPL_initialClientHandShake;
+		ret = SSL_connect((SSL*)ssl);
+	} else {
+		callback = (SNI_callback)LLNET_SSL_SOCKET_IMPL_initialServerHandShake;
+		ret = SSL_accept((SSL*)ssl);
+	}
+
+	//reset non-blocking mode
+	if (LLNET_set_non_blocking(fd) < 0) {
+		(void)SNI_throwNativeIOException(J_SOCKET_ERROR, "Could not set socket non blocking");
+	}
+
+	if (ret != 1) {
+		int32_t ssl_error = SSL_get_error((SSL*)ssl, ret);
+		int64_t absolute_timeout_ms = 0;
+		if (0 != relative_timeout) {
+			absolute_timeout_ms = absolute_java_start_time + (int64_t) relative_timeout;
+		}
+
+		if (ssl_error == SSL_ERROR_WANT_READ) {
+			LLNET_handle_blocking_operation_error(fd, llnet_errno(fd), SELECT_READ, absolute_timeout_ms, callback, NULL);
+		} else if (ssl_error == SSL_ERROR_WANT_WRITE) {
+			LLNET_handle_blocking_operation_error(fd, llnet_errno(fd), SELECT_WRITE, absolute_timeout_ms, callback, NULL);
+		} else {
+			LLNET_SSL_DEBUG_PRINT_ERR();
+			(void)SNI_throwNativeIOException(LLNET_SSL_TranslateReturnCode((SSL*)ssl, ssl_error), "Initial handshake error");
+		}
+	}
+}
+
+int32_t LLNET_SSL_SOCKET_IMPL_read(int32_t ssl, int32_t fd, int8_t *buffer, int32_t offset, int32_t length,
+                                   int64_t absolute_java_start_time, int32_t relative_timeout) {
+	int ret = J_SSL_NO_ERROR;
+	LLNET_SSL_DEBUG_TRACE("(ssl=0x%x, fd=%d, offset=%d, length=%d)\n", ssl, fd, offset, length);
+	//set non-blocking mode
+	if (LLNET_set_non_blocking(fd) < 0) {
+		(void)SNI_throwNativeIOException(LLNET_SSL_TranslateReturnCode((SSL *)ssl, ret), "Could not set blocking mode");
+		ret = J_SOCKET_ERROR;
+	}
+
+	// Check the shutdown status.
+	int shutdown_status = SSL_get_shutdown((SSL *)ssl);
+	//non-blocking read
+	if (((SSL *)ssl != NULL) && (shutdown_status == 0)) {
+		ret = SSL_read((SSL *)ssl, buffer + offset, length);
+	}
+
+	//reset non-blocking mode
+	if (LLNET_set_non_blocking(fd) < 0) {
+		(void)SNI_throwNativeIOException(LLNET_SSL_TranslateReturnCode((SSL *)ssl, ret), "Could not set blocking mode");
+		ret = J_SOCKET_ERROR;
+	}
+
+	if ((ret <= 0) && (J_SOCKET_ERROR != ret)) {
+		int32_t ssl_error = SSL_get_error((SSL *)ssl, ret);
+		int64_t absolute_timeout_ms = 0;
+		if (0 != relative_timeout) {
+			absolute_timeout_ms = absolute_java_start_time + (int64_t)relative_timeout;
+		}
+
+		if (ssl_error == SSL_ERROR_WANT_READ) {
+			LLNET_SSL_handle_blocking_operation_error(fd, llnet_errno(fd), SELECT_READ, absolute_timeout_ms,
+			                                          (SNI_callback)LLNET_SSL_SOCKET_IMPL_read, NULL);
+		} else if (ssl_error == SSL_ERROR_WANT_WRITE) {
+			//read operation can also cause write operation when the peer requests a re-negotiation
+			LLNET_SSL_handle_blocking_operation_error(fd, llnet_errno(fd), SELECT_WRITE, absolute_timeout_ms,
+			                                          (SNI_callback)LLNET_SSL_SOCKET_IMPL_read, NULL);
+		} else if ((ssl_error == SSL_ERROR_ZERO_RETURN) || (ssl_error == SSL_ERROR_SSL)) {
+			ret = J_EOF;
+		} else {
+			(void)SNI_throwNativeIOException(LLNET_SSL_TranslateReturnCode((SSL *)ssl, ssl_error), "Read error");
+			ret = SNI_IGNORED_RETURNED_VALUE;
+		}
+	}
+
+	return ret;
+}
+
+int32_t LLNET_SSL_SOCKET_IMPL_write(int32_t ssl, int32_t fd, int8_t* buffer, int32_t offset, int32_t length, int64_t absolute_java_start_time, int32_t relative_timeout){
+	int ret = SNI_IGNORED_RETURNED_VALUE;
+	LLNET_SSL_DEBUG_TRACE("(ssl=0x%x, fd=%d, offset=%d, length=%d)\n", ssl, fd, offset, length);
+
+	//set non-blocking mode
+	if (LLNET_set_non_blocking(fd) < 0) {
+		(void)SNI_throwNativeIOException(J_SOCKET_ERROR, "Could not set socket non blocking");
 	}
 
 	//non-blocking read
 	ret = SSL_write((SSL*)ssl, buffer+offset, length);
 
 	//reset non-blocking mode
-	if(LLNET_CHANNEL_IMPL_setBlocking(fd, 1, retry) < 0){
-		return J_SOCKET_ERROR;
+	if (LLNET_set_non_blocking(fd) < 0) {
+		(void)SNI_throwNativeIOException(J_SOCKET_ERROR, "Could not set socket non blocking");
+		ret = SNI_IGNORED_RETURNED_VALUE;
 	}
 
-	if(ret < 0){
-		int32_t err = SSL_get_error((SSL*)ssl, ret);
-		if(err == SSL_ERROR_WANT_READ){
+	if (ret <= 0) {
+		int32_t ssl_error = SSL_get_error((SSL*)ssl, ret);
+		int64_t absolute_timeout_ms = 0;
+		if (0 != relative_timeout) {
+			absolute_timeout_ms = absolute_java_start_time + (int64_t) relative_timeout;
+		}
+
+		if (ssl_error == SSL_ERROR_WANT_READ) {
 			//write operation can also cause read operation when the peer requests a re-negotiation
-			 return ssl_asyncOperation(fd, SELECT_READ, retry);
+			 LLNET_handle_blocking_operation_error(fd, llnet_errno(fd), SELECT_READ, absolute_timeout_ms, (SNI_callback)LLNET_SSL_SOCKET_IMPL_write, NULL);
+		} else if (ssl_error == SSL_ERROR_WANT_WRITE) {
+			LLNET_handle_blocking_operation_error(fd, llnet_errno(fd), SELECT_WRITE, absolute_timeout_ms, (SNI_callback)LLNET_SSL_SOCKET_IMPL_write, NULL);
+		} else if((llnet_errno(fd) == ECONNRESET) || (llnet_errno(fd) == EPIPE)){
+			//check if connection reset
+			//treat epipe as reset
+			(void)SNI_throwNativeIOException(J_CONNECTION_RESET, "Connection reset");
+			ret = SNI_IGNORED_RETURNED_VALUE;
+		} else {
+			(void)SNI_throwNativeIOException(LLNET_SSL_TranslateReturnCode((SSL *)ssl, ssl_error), "Write error");
+			ret = SNI_IGNORED_RETURNED_VALUE;
 		}
-		else if(err == SSL_ERROR_WANT_WRITE){
-			 return ssl_asyncOperation(fd, SELECT_WRITE, retry);
-		}
-		//check if connection reset
-		//treat epipe as reset
-		if(errno == ECONNRESET || errno == EPIPE){
-			return J_CONNECTION_RESET;
-		}
-		return LLNET_SSL_TranslateReturnCode((SSL*)ssl, ret);
-	}
-
-	if(ret == 0){
-		return J_CONNECTION_RESET;
 	}
 
 	return ret;
 }
 
-int32_t LLNET_SSL_SOCKET_IMPL_available(int32_t ssl, uint8_t retry){
-	int ret;
-	LLNET_SSL_DEBUG_TRACE("%s(ssl=%d)\n", __func__, ssl);
-
-	if((ret = SSL_pending((SSL*)ssl)) < 0) {
-		return J_UNKNOWN_ERROR;
+int32_t LLNET_SSL_SOCKET_IMPL_available(int32_t ssl){
+	LLNET_SSL_DEBUG_TRACE("(ssl=%d)\n", ssl);
+	int ret = SSL_pending((SSL*)ssl);
+	if(ret < 0) {
+		ret = J_UNKNOWN_ERROR;
 	}
 	return ret;
+}
+
+void LLNET_SSL_SOCKET_IMPL_freeSSL(int32_t ssl_id) {
+	LLNET_SSL_DEBUG_TRACE("(ssl=0x%x)\n", ssl_id);
+	SSL* ssl = (SSL*)ssl_id;
+	(void)SSL_free(ssl);
+	return;
+}
+
+void LLNET_SSL_SOCKET_IMPL_shutdown(int32_t ssl_id, int32_t fd, bool autoclose, int64_t absolute_java_start_time,
+                                    int32_t relative_timeout) {
+	LLNET_SSL_DEBUG_TRACE(" ssl=0x%x, fd=%d, autoclose=%s, java_start=%lld, timeout=%d\n", ssl_id, fd,
+	                      autoclose ? "true" : "false", absolute_java_start_time, relative_timeout);
+	SSL *ssl = (SSL *)ssl_id;
+
+	// Send close notify
+	int ret = SSL_shutdown(ssl);
+
+	// Wait for peer close notify
+	if ((0 == ret) && !autoclose) {
+		ret = SSL_shutdown(ssl);
+		if (1 != ret) {
+			int ssl_error = SSL_get_error(ssl, ret);
+			if (SSL_ERROR_WANT_READ == ssl_error) {
+				int64_t absolute_timeout_ms = 0;
+				if (0 != relative_timeout) {
+					absolute_timeout_ms = absolute_java_start_time + (int64_t)relative_timeout;
+				}
+				LLNET_handle_blocking_operation_error(fd, llnet_errno(fd), SELECT_READ, absolute_timeout_ms,
+				                                      (SNI_callback)LLNET_SSL_SOCKET_IMPL_shutdown, NULL);
+			} else {
+				(void)SNI_throwNativeIOException(LLNET_SSL_TranslateReturnCode(ssl, ret), "Error during shutdown");
+			}
+		} else {
+			LLNET_SSL_DEBUG_TRACE("Shutdown successful\n");
+		}
+	} else {
+		LLNET_SSL_DEBUG_TRACE("Shutdown successful\n");
+	}
 }
 
 #ifdef __cplusplus
-	}
+}
 #endif

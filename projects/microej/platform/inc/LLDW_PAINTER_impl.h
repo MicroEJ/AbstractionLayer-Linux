@@ -1,5 +1,5 @@
-/* 
- * Copyright 2020-2022 MicroEJ Corp. All rights reserved.
+/*
+ * Copyright 2020-2024 MicroEJ Corp. All rights reserved.
  * This library is provided in source code for use, modification and test, subject to license terms.
  * Any modification of the source code will break MicroEJ Corp. warranties on the whole library.
  */
@@ -21,10 +21,7 @@ extern "C" {
 // Includes
 // --------------------------------------------------------------------------------
 
-/*
- * @brief Used LLUI_PAINTER_impl.h typedefs.
- */
-#include "LLUI_PAINTER_impl.h"
+#include <LLUI_DISPLAY_types.h>
 
 // --------------------------------------------------------------------------------
 // Macros and Defines
@@ -43,9 +40,11 @@ extern "C" {
 #define LLDW_PAINTER_IMPL_drawThickEllipse Java_ej_drawing_DrawingPainterNatives_drawThickEllipse
 #define LLDW_PAINTER_IMPL_drawThickCircleArc Java_ej_drawing_DrawingPainterNatives_drawThickCircleArc
 #define LLDW_PAINTER_IMPL_drawFlippedImage Java_ej_drawing_DrawingPainterNatives_drawFlippedImage
-#define LLDW_PAINTER_IMPL_drawRotatedImageNearestNeighbor Java_ej_drawing_DrawingPainterNatives_drawRotatedImageNearestNeighbor
+#define LLDW_PAINTER_IMPL_drawRotatedImageNearestNeighbor \
+		Java_ej_drawing_DrawingPainterNatives_drawRotatedImageNearestNeighbor
 #define LLDW_PAINTER_IMPL_drawRotatedImageBilinear Java_ej_drawing_DrawingPainterNatives_drawRotatedImageBilinear
-#define LLDW_PAINTER_IMPL_drawScaledImageNearestNeighbor Java_ej_drawing_DrawingPainterNatives_drawScaledImageNearestNeighbor
+#define LLDW_PAINTER_IMPL_drawScaledImageNearestNeighbor \
+		Java_ej_drawing_DrawingPainterNatives_drawScaledImageNearestNeighbor
 #define LLDW_PAINTER_IMPL_drawScaledImageBilinear Java_ej_drawing_DrawingPainterNatives_drawScaledImageBilinear
 
 // --------------------------------------------------------------------------------
@@ -56,30 +55,27 @@ extern "C" {
  * @brief Defines the start and end caps to draw when rendering an anti-aliased
  * drawing.
  */
-typedef enum
-{
+typedef enum {
 	/*
 	 * @brief No specific cap is drawn.
 	 */
-	DRAWING_ENDOFLINE_NONE = 0,
+	DRAWING_ENDOFLINE_NONE          = 0,
 
 	/*
 	 * @brief Cap is represented by a semi circle.
 	 */
-	DRAWING_ENDOFLINE_ROUNDED = 1,
+	DRAWING_ENDOFLINE_ROUNDED       = 1,
 
 	/*
 	 * @brief Cap is perpendicular to the line.
 	 */
 	DRAWING_ENDOFLINE_PERPENDICULAR = 2,
-
 } DRAWING_Cap;
 
 /*
  * @brief Defines the transformation to apply when drawing an image with flip.
  */
-typedef enum
-{
+typedef enum {
 	/*
 	 * @brief Defines the flip mode "none": no flip must be performed.
 	 *
@@ -95,7 +91,7 @@ typedef enum
 	 * C D
 	 * E F
 	 */
-	DRAWING_FLIP_NONE = 0,
+	DRAWING_FLIP_NONE       = 0,
 
 	/*
 	 * @brief Defines the flip mode 90°: image must be rotated to 90° anticlockwise.
@@ -111,7 +107,7 @@ typedef enum
 	 * B D F
 	 * A C E
 	 */
-	DRAWING_FLIP_90 = 7,
+	DRAWING_FLIP_90         = 7,
 
 	/*
 	 * @brief Defines the flip mode 180°: image must be rotated to 180° anticlockwise.
@@ -128,7 +124,7 @@ typedef enum
 	 * D C
 	 * B A
 	 */
-	DRAWING_FLIP_180 = 4,
+	DRAWING_FLIP_180        = 4,
 
 	/*
 	 * @brief Defines the flip mode 270°: image must be rotated to 270° anticlockwise.
@@ -144,7 +140,7 @@ typedef enum
 	 * E C A
 	 * F D B
 	 */
-	DRAWING_FLIP_270 = 2,
+	DRAWING_FLIP_270        = 2,
 
 	/*
 	 * @brief Defines the flip mode mirror + "none": only a vertical mirror must
@@ -162,7 +158,7 @@ typedef enum
 	 * D C
 	 * F E
 	 */
-	DRAWING_FLIP_MIRROR = 3,
+	DRAWING_FLIP_MIRROR     = 3,
 
 	/*
 	 * @brief Defines the flip mode mirror + 90°: a vertical mirror must be applied
@@ -180,7 +176,7 @@ typedef enum
 	 * B D F
 	 * and then mirrored
 	 */
-	DRAWING_FLIP_MIRROR_90 = 1,
+	DRAWING_FLIP_MIRROR_90  = 1,
 
 	/*
 	 * @brief Defines the flip mode mirror + 180°: a vertical mirror must be applied
@@ -216,7 +212,6 @@ typedef enum
 	 * E C A
 	 */
 	DRAWING_FLIP_MIRROR_270 = 5,
-
 } DRAWING_Flip;
 
 // --------------------------------------------------------------------------------
@@ -232,7 +227,7 @@ typedef enum
  * @param[in] thickness the point thickness.
  * @param[in] fade the fade to apply.
  */
-void LLDW_PAINTER_IMPL_drawThickFadedPoint(MICROUI_GraphicsContext* gc, jint x, jint y, jint thickness, jint fade);
+void LLDW_PAINTER_IMPL_drawThickFadedPoint(MICROUI_GraphicsContext *gc, jint x, jint y, jint thickness, jint fade);
 
 /*
  * @brief Draws a thick line with fade between given points.
@@ -247,7 +242,8 @@ void LLDW_PAINTER_IMPL_drawThickFadedPoint(MICROUI_GraphicsContext* gc, jint x, 
  * @param[in] startCap cap representation of start of shape
  * @param[in] endCap cap representation of end of shape
  */
-void LLDW_PAINTER_IMPL_drawThickFadedLine(MICROUI_GraphicsContext* gc, jint startX, jint startY, jint endX, jint endY, jint thickness, jint fade, DRAWING_Cap startCap, DRAWING_Cap endCap);
+void LLDW_PAINTER_IMPL_drawThickFadedLine(MICROUI_GraphicsContext *gc, jint startX, jint startY, jint endX, jint endY,
+                                          jint thickness, jint fade, DRAWING_Cap startCap, DRAWING_Cap endCap);
 
 /*
  * @brief Draws a thick circle with fade covering the square specified by its diameter.
@@ -261,7 +257,8 @@ void LLDW_PAINTER_IMPL_drawThickFadedLine(MICROUI_GraphicsContext* gc, jint star
  * @param[in] thickness the circle thickness.
  * @param[in] fade the fade to apply.
  */
-void LLDW_PAINTER_IMPL_drawThickFadedCircle(MICROUI_GraphicsContext* gc, jint x, jint y, jint diameter, jint thickness, jint fade);
+void LLDW_PAINTER_IMPL_drawThickFadedCircle(MICROUI_GraphicsContext *gc, jint x, jint y, jint diameter, jint thickness,
+                                            jint fade);
 
 /*
  * @brief Draws a thick circle with fade arc covering the specified square.
@@ -292,7 +289,9 @@ void LLDW_PAINTER_IMPL_drawThickFadedCircle(MICROUI_GraphicsContext* gc, jint x,
  * @param[in] start cap representation of start of shape
  * @param[in] end cap representation of end of shape
  */
-void LLDW_PAINTER_IMPL_drawThickFadedCircleArc(MICROUI_GraphicsContext* gc, jint x, jint y, jint diameter, jfloat startAngle, jfloat arcAngle, jint thickness, jint fade, DRAWING_Cap start, DRAWING_Cap end);
+void LLDW_PAINTER_IMPL_drawThickFadedCircleArc(MICROUI_GraphicsContext *gc, jint x, jint y, jint diameter,
+                                               jfloat startAngle, jfloat arcAngle, jint thickness, jint fade,
+                                               DRAWING_Cap start, DRAWING_Cap end);
 
 /*
  * @brief Draws a thick ellipse with fade covering the specified rectangle.
@@ -310,7 +309,8 @@ void LLDW_PAINTER_IMPL_drawThickFadedCircleArc(MICROUI_GraphicsContext* gc, jint
  * @param[in] thickness the ellipse thickness.
  * @param[in] fade the fade to apply.
  */
-void LLDW_PAINTER_IMPL_drawThickFadedEllipse(MICROUI_GraphicsContext* gc, jint x, jint y, jint width, jint height, jint thickness, jint fade);
+void LLDW_PAINTER_IMPL_drawThickFadedEllipse(MICROUI_GraphicsContext *gc, jint x, jint y, jint width, jint height,
+                                             jint thickness, jint fade);
 
 /*
  * @brief Draws a thick line between given points.
@@ -322,7 +322,8 @@ void LLDW_PAINTER_IMPL_drawThickFadedEllipse(MICROUI_GraphicsContext* gc, jint x
  * @param[in] endY the y coordinate of the end of the line
  * @param[in] thickness the line thickness.
  */
-void LLDW_PAINTER_IMPL_drawThickLine(MICROUI_GraphicsContext* gc, jint startX, jint startY, jint endX, jint endY, jint thickness);
+void LLDW_PAINTER_IMPL_drawThickLine(MICROUI_GraphicsContext *gc, jint startX, jint startY, jint endX, jint endY,
+                                     jint thickness);
 
 /*
  * @brief Draws a thick circle covering the square specified by its diameter.
@@ -335,7 +336,7 @@ void LLDW_PAINTER_IMPL_drawThickLine(MICROUI_GraphicsContext* gc, jint startX, j
  * @param[in] diameter the diameter of the circle to draw
  * @param[in] thickness the circle thickness.
  */
-void LLDW_PAINTER_IMPL_drawThickCircle(MICROUI_GraphicsContext* gc, jint x, jint y, jint diameter, jint thickness);
+void LLDW_PAINTER_IMPL_drawThickCircle(MICROUI_GraphicsContext *gc, jint x, jint y, jint diameter, jint thickness);
 
 /*
  * @brief Draws a thick ellipse covering the specified rectangle.
@@ -352,7 +353,8 @@ void LLDW_PAINTER_IMPL_drawThickCircle(MICROUI_GraphicsContext* gc, jint x, jint
  * @param[in] height the height of the ellipse to draw
  * @param[in] thickness the circle thickness.
  */
-void LLDW_PAINTER_IMPL_drawThickEllipse(MICROUI_GraphicsContext* gc, jint x, jint y, jint width, jint height, jint thickness);
+void LLDW_PAINTER_IMPL_drawThickEllipse(MICROUI_GraphicsContext *gc, jint x, jint y, jint width, jint height,
+                                        jint thickness);
 
 /*
  * @brief Draws a thick arc covering the square specified by its diameter.
@@ -375,7 +377,8 @@ void LLDW_PAINTER_IMPL_drawThickEllipse(MICROUI_GraphicsContext* gc, jint x, jin
  * @param[in] arcAngle the angular extent of the arc from startAngle
  * @param[in] thickness the arc thickness.
  */
-void LLDW_PAINTER_IMPL_drawThickCircleArc(MICROUI_GraphicsContext* gc, jint x, jint y, jint diameter, jfloat startAngle, jfloat arcAngle, jint thickness);
+void LLDW_PAINTER_IMPL_drawThickCircleArc(MICROUI_GraphicsContext *gc, jint x, jint y, jint diameter, jfloat startAngle,
+                                          jfloat arcAngle, jint thickness);
 
 /*
  * @brief Draws an image applying a flip (0, 90, 180 or 270 degrees with or without
@@ -384,7 +387,7 @@ void LLDW_PAINTER_IMPL_drawThickCircleArc(MICROUI_GraphicsContext* gc, jint x, j
  * @param[in] gc the MicroUI GraphicsContext target.
  * @param[in] img the MicroUI Image to draw.
  * @param[in] regionX the x coordinate of the upper-left corner of the region to draw.
- * @param[in] regionY the x coordinate of the upper-left corner of the region to draw.
+ * @param[in] regionY the y coordinate of the upper-left corner of the region to draw.
  * @param[in] width the width of the region to copy.
  * @param[in] height the height of the region to copy.
  * @param[in] x the x coordinate of the top-left point in the destination.
@@ -392,7 +395,9 @@ void LLDW_PAINTER_IMPL_drawThickCircleArc(MICROUI_GraphicsContext* gc, jint x, j
  * @param[in] transformation the flip to apply.
  * @param[in] alpha the opacity level to apply to the region.
  */
-void LLDW_PAINTER_IMPL_drawFlippedImage(MICROUI_GraphicsContext* gc, MICROUI_Image* img, jint regionX, jint regionY, jint width, jint height, jint x, jint y, DRAWING_Flip transformation, jint alpha);
+void LLDW_PAINTER_IMPL_drawFlippedImage(MICROUI_GraphicsContext *gc, MICROUI_Image *img, jint regionX, jint regionY,
+                                        jint width, jint height, jint x, jint y, DRAWING_Flip transformation,
+                                        jint alpha);
 
 /*
  * @brief Draws an image applying a free rotation (0 to 360 degrees).
@@ -413,7 +418,8 @@ void LLDW_PAINTER_IMPL_drawFlippedImage(MICROUI_GraphicsContext* gc, MICROUI_Ima
  * @param[in] angle the rotation angle.
  * @param[in] alpha the opacity level to apply to the region.
  */
-void LLDW_PAINTER_IMPL_drawRotatedImageNearestNeighbor(MICROUI_GraphicsContext* gc, MICROUI_Image* img, jint x, jint y, jint rotationX, jint rotationY, jfloat angle, jint alpha);
+void LLDW_PAINTER_IMPL_drawRotatedImageNearestNeighbor(MICROUI_GraphicsContext *gc, MICROUI_Image *img, jint x, jint y,
+                                                       jint rotationX, jint rotationY, jfloat angle, jint alpha);
 
 /*
  * @brief Draws an image applying a free rotation (0 to 360 degrees).
@@ -435,7 +441,8 @@ void LLDW_PAINTER_IMPL_drawRotatedImageNearestNeighbor(MICROUI_GraphicsContext* 
  * @param[in] angle the rotation angle.
  * @param[in] alpha the opacity level to apply to the region.
  */
-void LLDW_PAINTER_IMPL_drawRotatedImageBilinear(MICROUI_GraphicsContext* gc, MICROUI_Image* img, jint x, jint y, jint rotationX, jint rotationY, jfloat angle, jint alpha);
+void LLDW_PAINTER_IMPL_drawRotatedImageBilinear(MICROUI_GraphicsContext *gc, MICROUI_Image *img, jint x, jint y,
+                                                jint rotationX, jint rotationY, jfloat angle, jint alpha);
 
 /*
  * @brief Draws an image applying a scaling.
@@ -451,7 +458,8 @@ void LLDW_PAINTER_IMPL_drawRotatedImageBilinear(MICROUI_GraphicsContext* gc, MIC
  * @param[in] factorY scaling Y factor.
  * @param[in] alpha the opacity level to apply to the region.
  */
-void LLDW_PAINTER_IMPL_drawScaledImageNearestNeighbor(MICROUI_GraphicsContext* gc, MICROUI_Image* img, jint x, jint y, jfloat factorX, jfloat factorY, jint alpha);
+void LLDW_PAINTER_IMPL_drawScaledImageNearestNeighbor(MICROUI_GraphicsContext *gc, MICROUI_Image *img, jint x, jint y,
+                                                      jfloat factorX, jfloat factorY, jint alpha);
 
 /*
  * @brief Draws an image applying a scaling.
@@ -468,7 +476,8 @@ void LLDW_PAINTER_IMPL_drawScaledImageNearestNeighbor(MICROUI_GraphicsContext* g
  * @param[in] factorY scaling Y factor.
  * @param[in] alpha the opacity level to apply to the region.
  */
-void LLDW_PAINTER_IMPL_drawScaledImageBilinear(MICROUI_GraphicsContext* gc, MICROUI_Image* img, jint x, jint y, jfloat factorX, jfloat factorY, jint alpha);
+void LLDW_PAINTER_IMPL_drawScaledImageBilinear(MICROUI_GraphicsContext *gc, MICROUI_Image *img, jint x, jint y,
+                                               jfloat factorX, jfloat factorY, jint alpha);
 
 // --------------------------------------------------------------------------------
 // EOF
@@ -477,4 +486,4 @@ void LLDW_PAINTER_IMPL_drawScaledImageBilinear(MICROUI_GraphicsContext* gc, MICR
 #ifdef __cplusplus
 }
 #endif
-#endif
+#endif // ifndef _LLDW_PAINTER_IMPL

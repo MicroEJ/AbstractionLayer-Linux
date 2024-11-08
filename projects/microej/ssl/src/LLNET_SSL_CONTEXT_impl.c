@@ -18,8 +18,8 @@
  * @file
  * @brief LLNET_SSL_CONTEXT implementation over OpenSSL.
  * @author MicroEJ Developer Team
- * @version 1.0.1
- * @date 27 November 2020
+ * @version 2.0.0
+ * @date 25 July 2024
  */
 
 #ifdef __cplusplus
@@ -28,8 +28,9 @@
 
 #if (OPENSSL_VERSION_NUMBER >= 0x10100000L)
 static int32_t LLNET_SSL_CONTEXT_setContextVersion(SSL_CTX* ctx, int32_t protocol){
+	int32_t result = 1;
 	// Compute the protocol version based on the protocol argument
-	uint16_t version = 0;
+	int version = 0;
 	switch (protocol) {
 		case TLSv1_PROTOCOL:
 			version = TLS1_VERSION;
@@ -54,23 +55,24 @@ static int32_t LLNET_SSL_CONTEXT_setContextVersion(SSL_CTX* ctx, int32_t protoco
 	// Restrict the range of protocols based on the protocol argument
 	if(0 == SSL_CTX_set_min_proto_version(ctx, version)) {
 		// Could not set minimum protocol, free the context structure.
-		LLNET_SSL_DEBUG_TRACE("%s could not set minimum protocol to %d\n", __func__, protocol);
-		return 0;
+		LLNET_SSL_DEBUG_TRACE("%s could not set minimum protocol to %d\n", protocol);
+		result = 0;
 	} else {
 		// Restrict the range of protocols based on the protocol argument
 		if(0 == SSL_CTX_set_max_proto_version(ctx, version)) {
 			// Could not set maximum protocol, free the context structure.
-			LLNET_SSL_DEBUG_TRACE("%s could not set maximum protocol to %d\n", __func__, protocol);
-			return 0;
+			LLNET_SSL_DEBUG_TRACE("%s could not set maximum protocol to %d\n", protocol);
+			result = 0;
 		}
 	}
-	return 1;
+	return result;
 }
 
 #endif
 
-int32_t LLNET_SSL_CONTEXT_IMPL_createClientContext(int32_t protocol, uint8_t retry){
-	LLNET_SSL_DEBUG_TRACE("%s(method=%d)\n", __func__, protocol);
+static int32_t LLNET_SSL_CONTEXT_IMPL_createClientContext(int32_t protocol) {
+	LLNET_SSL_DEBUG_TRACE("(method=%d)\n", protocol);
+	int32_t ret = 0;
 	SSL_CTX* ctx = NULL;
 
 #if (OPENSSL_VERSION_NUMBER < 0x10100000L)
@@ -97,7 +99,6 @@ int32_t LLNET_SSL_CONTEXT_IMPL_createClientContext(int32_t protocol, uint8_t ret
 			break;
 	}
 #else
-	int ret = 0;
 	// Create an SSL context allowing all protocol versions
 	switch (protocol) {
 		case TLSv1_PROTOCOL:
@@ -124,15 +125,20 @@ int32_t LLNET_SSL_CONTEXT_IMPL_createClientContext(int32_t protocol, uint8_t ret
 	}
 #endif
 
-	LLNET_SSL_DEBUG_TRACE("%s(method=%d) return ctx=%p\n", __func__, protocol,ctx);
+	LLNET_SSL_DEBUG_TRACE("(method=%d) return ctx=%p\n", protocol,ctx);
 	if(ctx != NULL){
-		return (int32_t)ctx;
+		ret = (int32_t)ctx;
+	} else {
+		(void)SNI_throwNativeIOException(J_UNKNOWN_ERROR, "Unknown error");
+		ret = SNI_IGNORED_RETURNED_VALUE;
 	}
-	return J_CREATE_SSL_CONTEXT_ERROR; //error
+
+	return ret;
 }
 
-int32_t LLNET_SSL_CONTEXT_IMPL_createServerContext(int32_t protocol, uint8_t retry){
-	LLNET_SSL_DEBUG_TRACE("%s(method=%d)\n", __func__, protocol);
+static int32_t LLNET_SSL_CONTEXT_IMPL_createServerContext(int32_t protocol) {
+	LLNET_SSL_DEBUG_TRACE("(method=%d)\n", protocol);
+	int32_t ret = 0;
 	SSL_CTX* ctx = NULL;
 
 #if (OPENSSL_VERSION_NUMBER < 0x10100000L)
@@ -169,7 +175,6 @@ int32_t LLNET_SSL_CONTEXT_IMPL_createServerContext(int32_t protocol, uint8_t ret
 		SSL_CTX_set_cookie_verify_cb(ctx, LLNET_SSL_Verify_Cookie);
 	}
 #else
-	int ret = 0;
 	// Create an SSL context allowing all protocol versions
 	switch (protocol) {
 		case TLSv1_PROTOCOL:
@@ -198,19 +203,22 @@ int32_t LLNET_SSL_CONTEXT_IMPL_createServerContext(int32_t protocol, uint8_t ret
 	}
 #endif
 
-	LLNET_SSL_DEBUG_TRACE("%s(method=%d) return ctx=%p\n", __func__, protocol,ctx);
+	LLNET_SSL_DEBUG_TRACE("(method=%d) return ctx=%p\n", protocol,ctx);
 	if(ctx != NULL){
-		return (int32_t)ctx;
+		ret = (int32_t)ctx;
+	} else {
+		(void)SNI_throwNativeIOException(J_UNKNOWN_ERROR, "Unknown error");
+		ret = SNI_IGNORED_RETURNED_VALUE;
 	}
-	return J_CREATE_SSL_CONTEXT_ERROR; //error
+
+	return ret;
 }
 
-
-int32_t LLNET_SSL_CONTEXT_IMPL_addTrustedCert(int32_t context, uint8_t *cert, int32_t off, int32_t len, int32_t format, uint8_t retry){
-	LLNET_SSL_DEBUG_TRACE("%s\n", __func__);
-	int32_t ret = J_UNKNOWN_ERROR;
+void LLNET_SSL_CONTEXT_IMPL_addTrustedCertificate(int32_t context, uint8_t *cert, int32_t cert_size, int32_t format) {
+	LLNET_SSL_DEBUG_TRACE_INFO("context=%d, cert=0x%x, cert_size=%d, format=%d\n", context, cert, cert_size, format);
+	int32_t ret = J_SSL_NO_ERROR;
 	SSL_CTX* ssl_context = (SSL_CTX*)context;
-	X509* x509 = LLNET_SSL_X509_CERT_create(cert, off, len, NULL);
+	X509* x509 = LLNET_SSL_X509_CERT_create(cert, 0, cert_size, &format);
 
 	if(x509 != NULL){
 		// The certificate has been created: add it the store of the context (create the store if needed).
@@ -218,34 +226,33 @@ int32_t LLNET_SSL_CONTEXT_IMPL_addTrustedCert(int32_t context, uint8_t *cert, in
 		if(store == NULL){
 			// No store for the context: create it
 			store = X509_STORE_new();
-			if(store != NULL)
-			{
+			if (store != NULL) {
 				SSL_CTX_set_cert_store(ssl_context, store);
 			} else {
-				// TODO We need an error handler here.
 				X509_free(x509);
+				ret = J_CERT_PARSE_ERROR;
 			}
 		}
 
-		if(store != NULL)
-		{	// Store has been created or was retrieved
+		if (store != NULL) {
+			// Store has been created or was retrieved
 			int e_add_cert = X509_STORE_add_cert(store, x509);
 			// Note: I suppose that X509_STORE_add_cert returns 0 on success.
 			// This is specified neither in the man page nor in the header file ???
-			if(e_add_cert > 0)
-			{	// Yeah it's finally done!
-				ret = J_SSL_NO_ERROR;
+			if (e_add_cert <= 0) {
+				ret = J_CERT_PARSE_ERROR;
 			}
 		}
-	}
-	else
-	{
+	} else {
 		ret = J_CERT_PARSE_ERROR;
 	}
-	return ret;
+
+	if (ret != J_SSL_NO_ERROR) {
+		(void)SNI_throwNativeIOException(ret, "Error adding trusted certificate");
+	}
 }
 
-int32_t LLNET_SSL_CONTEXT_IMPL_setCertificate(int32_t contextID, uint8_t* cert, int32_t offset, int32_t len, int32_t format, uint8_t retry) {
+void LLNET_SSL_CONTEXT_IMPL_setCertificate(int32_t contextID, uint8_t* cert, int32_t len, int32_t format) {
 	LLNET_SSL_DEBUG_TRACE("%s\n", __func__);
 	int32_t retVal = J_SSL_NO_ERROR;
 	int sslRetVal;
@@ -253,67 +260,61 @@ int32_t LLNET_SSL_CONTEXT_IMPL_setCertificate(int32_t contextID, uint8_t* cert, 
 	SSL_CTX* ssl_context = (SSL_CTX*)contextID;
 
 	// decode the certificate
-	X509 * newCert = LLNET_SSL_X509_CERT_create(cert, offset, len, NULL);
+	X509 * newCert = LLNET_SSL_X509_CERT_create(cert, 0, len, &format);
 	if(NULL == newCert) {
 		LLNET_SSL_DEBUG_PRINT_ERR();
-		return J_CERT_PARSE_ERROR;
+		(void)SNI_throwNativeIOException(J_CERT_PARSE_ERROR, "Could not create certificate");
+	} else {
+		//load the certificate into the context
+		sslRetVal = SSL_CTX_use_certificate(ssl_context, newCert);
+		if(1 != sslRetVal) {
+			LLNET_SSL_DEBUG_PRINT_ERR();
+			(void)SNI_throwNativeIOException(J_CERT_PARSE_ERROR, "Could not use certificate");
+		}
 	}
-
-	//load the certificate into the context
-	sslRetVal = SSL_CTX_use_certificate(ssl_context, newCert);
-	if(1 != sslRetVal) {
-		LLNET_SSL_DEBUG_PRINT_ERR();
-		//sslErrorCode = 0; // TODO Get this working: SSL_get_error(ssl_context, sslRetVal);
-		retVal = J_UNKNOWN_ERROR;	// TODO What's the right error for this?
-	}
-
-	return retVal;
 }
 
-int pem_passwd_cb(char *buf, int size, int rwflag, void *password) {
+static int pem_passwd_cb(char *buf, int size, int rwflag, void *password) {
 	LLNET_SSL_DEBUG_TRACE("%s\n", __func__);
-	strncpy(buf, (char *) (password), size);
+	(void)rwflag;
+	(void)strncpy(buf, (char *) (password), size);
 	buf[size - 1] = '\0';
 	return (strlen(buf));
 }
 
-int32_t LLNET_SSL_CONTEXT_IMPL_setPrivateKey(int32_t contextID, uint8_t* privateKey, int32_t offset, int32_t privateKeyLen, uint8_t* keyPassword,
-		int32_t keyPasswordOffset, int32_t keyPasswordLen, uint8_t retry) {
-	LLNET_SSL_DEBUG_TRACE("%s\n", __func__);
+void LLNET_SSL_CONTEXT_IMPL_setPrivateKey(int32_t contextID, uint8_t* private_key, int32_t private_key_len, uint8_t* key_password, int32_t key_password_len) {
+	LLNET_SSL_DEBUG_TRACE("%s private_key_len=%d key_password_len=%d\n", private_key_len, key_password_len);
 	SSL_CTX* ssl_context = (SSL_CTX*)contextID;
 	void* password = NULL;
 	EVP_PKEY *key = NULL;
 	BIO *bp = NULL;
 
 	//The format of the private key must be a DER (ASN1) encrypted PKCS#8
-	if (keyPasswordLen <= 0) {
+	if (key_password_len <= 0) {
 		//no password to decrypt the key
-		return J_NO_PASSWORD;
+		(void)SNI_throwNativeIOException(J_UNKNOWN_ERROR, "No password provided");
+	} else {
+		password = key_password;
+		SSL_CTX_set_default_passwd_cb(ssl_context, pem_passwd_cb);
+
+		bp = BIO_new_mem_buf(private_key, private_key_len);
+		(void)d2i_PKCS8PrivateKey_bio(bp, &key, pem_passwd_cb, password);
+		if (NULL == key) {
+			LLNET_SSL_DEBUG_PRINT_ERR();
+			(void)SNI_throwNativeIOException(J_UNKNOWN_ERROR, "Could not create key");
+		} else if ( SSL_CTX_use_PrivateKey(ssl_context, key) <= 0) {
+			LLNET_SSL_DEBUG_PRINT_ERR();
+			(void)SNI_throwNativeIOException(J_UNKNOWN_ERROR, "Could not use key");
+		} else {
+			LLNET_SSL_DEBUG_TRACE("Success\n");
+		}
 	}
-
-	password = keyPassword + keyPasswordOffset;
-	SSL_CTX_set_default_passwd_cb(ssl_context, pem_passwd_cb);
-
-	bp = BIO_new_mem_buf(privateKey+offset, privateKeyLen);
-	d2i_PKCS8PrivateKey_bio(bp, &key, pem_passwd_cb, password);
-	if (NULL == key)
-	{
-		LLNET_SSL_DEBUG_PRINT_ERR();
-		//TODO Figure out the correct error return value
-		return J_UNKNOWN_ERROR;
-	}
-
-	if ( SSL_CTX_use_PrivateKey(ssl_context, key) <= 0)
-	{
-		LLNET_SSL_DEBUG_PRINT_ERR();
-		//TODO Figure out the correct error return value
-		return J_UNKNOWN_ERROR;
-	}
-
-	return J_SSL_NO_ERROR;
 }
-int32_t LLNET_SSL_CONTEXT_IMPL_initChainBuffer(int32_t contextID, int32_t nbChainCerts, int32_t chainCertsTotalSize, uint8_t retry){
+
+int32_t LLNET_SSL_CONTEXT_IMPL_initChainBuffer(int32_t contextID, int32_t nb_chain_certs, int32_t chain_certs_total_size) {
 	LLNET_SSL_DEBUG_TRACE("%s\n", __func__);
+	(void)nb_chain_certs;
+	(void)chain_certs_total_size;
 	int retVal;
 	int32_t ret = J_SSL_NO_ERROR;
 
@@ -324,72 +325,67 @@ int32_t LLNET_SSL_CONTEXT_IMPL_initChainBuffer(int32_t contextID, int32_t nbChai
 	retVal = SSL_CTX_clear_chain_certs(ssl_context);
 #endif
 	if(1 != retVal) {
-		//TODO Figure out the correct error return value
+		(void)SNI_throwNativeIOException(J_UNKNOWN_ERROR, "Init chain buffer failed");
 		ret = J_UNKNOWN_ERROR;
 	}
 
 	return ret;
 }
 
-int32_t LLNET_SSL_CONTEXT_IMPL_addChainCertificate(int32_t contextID, uint8_t* cert, int32_t offset, int32_t len, int32_t format, int32_t chainBufferSize, uint8_t retry) {
+void LLNET_SSL_CONTEXT_IMPL_addChainCertificate(int32_t contextID, uint8_t* cert, int32_t len, int32_t format, int32_t chain_buffer_size) {
 	LLNET_SSL_DEBUG_TRACE("%s\n", __func__);
+	(void)chain_buffer_size;
 	int retVal = 0;
-	int32_t returnValue = J_SSL_NO_ERROR;
 
 	SSL_CTX* ssl_context = (SSL_CTX*)contextID;
-	X509* x509 = LLNET_SSL_X509_CERT_create(cert, offset, len, NULL);
-	if(x509 == NULL){
-		return J_CERT_PARSE_ERROR;
-	}
+	X509* x509 = LLNET_SSL_X509_CERT_create(cert, 0, len, &format);
+	if (x509 == NULL) {
+		LLNET_SSL_DEBUG_PRINT_ERR();
+		(void)SNI_throwNativeIOException(J_UNKNOWN_ERROR, "Error creating certificate chain");
+	} else {
 #if (OPENSSL_VERSION_NUMBER < 0x10002000L)
-	retVal = SSL_CTX_add_extra_chain_cert(ssl_context, x509);
+		retVal = SSL_CTX_add_extra_chain_cert(ssl_context, x509);
 #else
-	retVal = SSL_CTX_add0_chain_cert(ssl_context, x509);
+		retVal = SSL_CTX_add0_chain_cert(ssl_context, x509);
 #endif
-	if(1 != retVal) {
-		//TODO Figure out the correct error return value
-		returnValue = J_UNKNOWN_ERROR;
+		if (1 != retVal) {
+			LLNET_SSL_DEBUG_PRINT_ERR();
+			(void)SNI_throwNativeIOException(J_UNKNOWN_ERROR, "Error creating certificate chain");
+		}
 	}
-
-	return returnValue;
 }
 
-int32_t LLNET_SSL_CONTEXT_IMPL_clearKeyStore(int32_t contextID, uint8_t retry) {
+void LLNET_SSL_CONTEXT_IMPL_clearKeyStore(int32_t contextID) {
 	LLNET_SSL_DEBUG_TRACE("%s\n", __func__);
-	// TODO
-
-	return J_SSL_NO_ERROR;
+	(void)contextID;
 }
 
-int32_t LLNET_SSL_CONTEXT_IMPL_createContext(int32_t protocol, uint8_t isClientContext, uint8_t retry) {
-	LLNET_SSL_DEBUG_TRACE("%s(protocol=%d, useClientMode=%d)\n", __func__, protocol,isClientContext);
-
-	if(isClientContext){
-		return LLNET_SSL_CONTEXT_IMPL_createClientContext(protocol, 0);
-	}else{
-		return LLNET_SSL_CONTEXT_IMPL_createServerContext(protocol, 0);
+int32_t LLNET_SSL_CONTEXT_IMPL_createContext(int32_t protocol, uint8_t is_client_context) {
+	LLNET_SSL_DEBUG_TRACE("(protocol=%d, useClientMode=%d)\n", protocol, is_client_context);
+	int32_t ret = 0;
+	if (is_client_context == (uint8_t)1) {
+		ret = LLNET_SSL_CONTEXT_IMPL_createClientContext(protocol);
+	} else {
+		ret = LLNET_SSL_CONTEXT_IMPL_createServerContext(protocol);
 	}
+	return ret;
 }
 
-int32_t LLNET_SSL_CONTEXT_IMPL_clearTrustStore(int32_t context, uint8_t retry){
+void LLNET_SSL_CONTEXT_IMPL_clearTrustStore(int32_t context){
 	LLNET_SSL_DEBUG_TRACE("%s\n", __func__);
 	SSL_CTX* ssl_context = (SSL_CTX*)context;
 	// Set an empty store to the context.
 	// The function SSL_CTX_set_cert_store() frees previously allocated
 	// store if any.
 	SSL_CTX_set_cert_store(ssl_context, X509_STORE_new());
-
-	return J_SSL_NO_ERROR;
+	return;
 }
 
-int32_t LLNET_SSL_CONTEXT_IMPL_closeContext(int32_t context, uint8_t retry){
-	LLNET_SSL_DEBUG_TRACE("%s(context=%p)\n", __func__, (SSL_CTX*) context);
-	// Note: The SSL_CTX_free() function frees all the objects referenced by the given
-	// context (store, certificate, ???).
-	SSL_CTX_free((SSL_CTX*) context);
-
-	return J_SSL_NO_ERROR;
+void LLNET_SSL_CONTEXT_IMPL_freeContext(int32_t context) {
+	LLNET_SSL_DEBUG_TRACE("(context=%p)\n", (SSL_CTX*) context);
+	(void)SSL_CTX_free((SSL_CTX*) context);
 }
+
 #ifdef __cplusplus
 	}
 #endif

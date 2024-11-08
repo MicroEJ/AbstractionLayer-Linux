@@ -35,8 +35,7 @@ int main(int argc, char** argv){
 	int app_exit_code = 0;
 	int res;
 
-	/* P0326IMX93EVK-16 workaround until we get a fix for M0090IDE-4679
-       MEJ Application logs are not flushed instantly in the SDK console */
+	/* MEJ Application logs need to be flushed instantly in the SDK console */
 	if (setvbuf(stdout, NULL, _IONBF, 0) != 0){
 		printf("setvbuf error: (err = %s).\n", strerror(errno));
 	}

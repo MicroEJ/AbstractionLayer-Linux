@@ -1,5 +1,5 @@
-/* 
- * Copyright 2020-2022 MicroEJ Corp. All rights reserved.
+/*
+ * Copyright 2020-2024 MicroEJ Corp. All rights reserved.
  * This library is provided in source code for use, modification and test, subject to license terms.
  * Any modification of the source code will break MicroEJ Corp. warranties on the whole library.
  */
@@ -20,53 +20,66 @@ extern "C" {
 // Includes
 // --------------------------------------------------------------------------------
 
-/*
- * @brief Requires ui_drawing.h typedefs.
- */
-#include "ui_drawing.h"
+#include <LLUI_DISPLAY_types.h>
 
 // --------------------------------------------------------------------------------
-// Typedefs and Structures
+// Inline functions
 // --------------------------------------------------------------------------------
 
 /*
- * @brief LLUI_DISPLAY error and status codes.
+ * @brief Function to report a non-critical incident that occurred during a drawing operation.
  *
- * These values are used by several functions. See each function comment to know
- * which are the available codes.
+ * Sets drawing_log_flags in a MICROUI_GraphicsContext. This will not set the DRAWING_LOG_ERROR flag (unless explicitly
+ * specified as a parameter),
+ * which will not cause an exception to be thrown when checking the flags in the application. This is meant to report
+ * non-critical
+ * incidents.
  */
-typedef enum
-{
-	/*
-	 * @brief Value when everything has been correctly executed.
-	 */
-	LLUI_DISPLAY_OK = 0,
+static inline void LLUI_DISPLAY_reportWarning(MICROUI_GraphicsContext *gc, jint flags) {
+	gc->drawing_log_flags |= flags;
+}
 
-	/*
-	 * @brief Value when a function cannot be executed due to an out of memory error.
-	 */
-	LLUI_DISPLAY_OUT_OF_MEMORY = -2,
-
-	/*
-	 * @brief Value when an error has occurred or when a function is not able to
-	 * implement the expected behavior.
-	 */
-	LLUI_DISPLAY_NOK = -9
-
-} LLUI_DISPLAY_Status;
+/*
+ * @brief Function to report an error that occurred during a drawing operation.
+ *
+ * Sets drawing_log_flags in a MICROUI_GraphicsContext. This will additionally set the DRAWING_LOG_ERROR flag, causing
+ * an exception to be thrown
+ * when checking the flags in the application.
+ */
+static inline void LLUI_DISPLAY_reportError(MICROUI_GraphicsContext *gc, jint flags) {
+	LLUI_DISPLAY_reportWarning(gc, DRAWING_LOG_ERROR | flags);
+}
 
 // --------------------------------------------------------------------------------
 // Functions provided by the graphics engine
 // --------------------------------------------------------------------------------
 
 /*
- * @brief Returns true when the given MicroUI Image specified targets the LCD.
+ * @brief Returns true when the given MicroUI Image specified targets the LCD, in
+ * other words, if the image targets the same buffer than the current LCD back buffer.
  *
  * @param[in] image the MicroUI Image to check.
  *
  * @return true when the image targets the LCD.
  */
-bool LLUI_DISPLAY_isLCD(MICROUI_Image* image);
+bool LLUI_DISPLAY_isLCD(MICROUI_Image *image);
+
+/*
+ * @brief Returns an image that targets the front buffer (display buffer) instead of the
+ * back buffer.
+ *
+ * This behavior only concerns the following use case:
+ * - the image targets the display (not an image),
+ * - the display buffer refresh strategy (BRS) has not restored yet the content of the
+ * old back buffer to the current back buffer.
+ *
+ * In that case, the read actions (GraphicsContext.readPixel(), Painter.drawDisplayRegion(),
+ * etc.) cannot use the back buffer as source buffer. The algorithm has to call
+ * LLUI_DISPLAY_getSourceImage() to retrieve a pointer to the front buffer address.
+ *
+ * For all other use cases, the returned image is the given parameter.
+ */
+MICROUI_Image * LLUI_DISPLAY_getSourceImage(MICROUI_Image *image);
 
 /*
  * @brief Returns true when the given MicroUI Image has been closed by the MicroEJ
@@ -76,21 +89,7 @@ bool LLUI_DISPLAY_isLCD(MICROUI_Image* image);
  *
  * @return true when the image has been closed.
  */
-bool LLUI_DISPLAY_isClosed(MICROUI_Image* image);
-
-/*
- * @brief Adds a log when a drawing function starts.
- *
- * @param[in] log the log identifier.
- */
-void LLUI_DISPLAY_logDrawingStart(uint32_t log);
-
-/*
- * @brief Adds a log when a drawing function ends.
- *
- * @param[in] log the log identifier.
- */
-void LLUI_DISPLAY_logDrawingEnd(uint32_t log);
+bool LLUI_DISPLAY_isClosed(MICROUI_Image *image);
 
 /*
  * @brief Enables or disables the graphics context clip. Useful to ignore clip during
@@ -99,7 +98,7 @@ void LLUI_DISPLAY_logDrawingEnd(uint32_t log);
  * @param[in] gc the MicroUI GraphicsContext where ignoring the clip.
  * @param[in] enable false to disable the clip.
  */
-void LLUI_DISPLAY_configureClip(MICROUI_GraphicsContext* gc, bool enable);
+void LLUI_DISPLAY_configureClip(MICROUI_GraphicsContext *gc, bool enable);
 
 /*
  * @brief Tells if the clip is enabled or not. This call should be performed at the
@@ -113,7 +112,29 @@ void LLUI_DISPLAY_configureClip(MICROUI_GraphicsContext* gc, bool enable);
  *
  * @return true when the clip is enabled (the clip must be checked).
  */
-bool LLUI_DISPLAY_isClipEnabled(MICROUI_GraphicsContext* gc);
+bool LLUI_DISPLAY_isClipEnabled(MICROUI_GraphicsContext *gc);
+
+/*
+ * @brief Function to modify the clip area in a graphics context.
+ *
+ * The user must save the current clip area before modifying it and restore it afterwards.
+ *
+ * This function sets the flag DRAWING_LOG_CLIP_MODIFIED as it does not modify the clip values of the GraphicsContext
+ * used in the application.
+ */
+void LLUI_DISPLAY_setClip(MICROUI_GraphicsContext *gc, jint x, jint y, jint width, jint height);
+
+/*
+ * @brief Function to modify the clip area in a graphics context.
+ *
+ * The resulting clip area will be the intersection of the current clip area and the clip area passed as arguments.
+ *
+ * The user must save the current clip area before modifying it and restore it afterwards.
+ *
+ * This function sets the flag DRAWING_LOG_CLIP_MODIFIED as it does not modify the clip values of the GraphicsContext
+ * used in the application.
+ */
+void LLUI_DISPLAY_intersectClip(MICROUI_GraphicsContext *gc, jint x, jint y, jint width, jint height);
 
 /*
  * @brief Tells if given pixel fits the clip or not.
@@ -124,7 +145,7 @@ bool LLUI_DISPLAY_isClipEnabled(MICROUI_GraphicsContext* gc);
  *
  * @return false when the point is outside the clip.
  */
-bool LLUI_DISPLAY_isPixelInClip(MICROUI_GraphicsContext* gc, jint x, jint y);
+bool LLUI_DISPLAY_isPixelInClip(MICROUI_GraphicsContext *gc, jint x, jint y);
 
 /*
  * @brief Tells if given horizontal line fully fits the clip or not.
@@ -137,7 +158,7 @@ bool LLUI_DISPLAY_isPixelInClip(MICROUI_GraphicsContext* gc, jint x, jint y);
  * @return false when the line is fully or partially outside the clip, true when
  * line fully fits the clip (clip can be disabled).
  */
-bool LLUI_DISPLAY_isHorizontalLineInClip(MICROUI_GraphicsContext* gc, jint x1, jint x2, jint y);
+bool LLUI_DISPLAY_isHorizontalLineInClip(MICROUI_GraphicsContext *gc, jint x1, jint x2, jint y);
 
 /*
  * @brief Tells if given vertical line fully fits the clip or not.
@@ -150,7 +171,7 @@ bool LLUI_DISPLAY_isHorizontalLineInClip(MICROUI_GraphicsContext* gc, jint x1, j
  * @return false when the line is fully or partially outside the clip, true when
  * line fully fits the clip (clip can be disabled).
  */
-bool LLUI_DISPLAY_isVerticalLineInClip(MICROUI_GraphicsContext* gc, jint y1, jint y2, jint x);
+bool LLUI_DISPLAY_isVerticalLineInClip(MICROUI_GraphicsContext *gc, jint y1, jint y2, jint x);
 
 /*
  * @brief Tells if given rectangle fully fits the clip or not.
@@ -164,7 +185,7 @@ bool LLUI_DISPLAY_isVerticalLineInClip(MICROUI_GraphicsContext* gc, jint y1, jin
  * @return false when the rectangle is fully or partially outside the clip, true when
  * rectangle fully fits the clip (clip can be disabled).
  */
-bool LLUI_DISPLAY_isRectangleInClip(MICROUI_GraphicsContext* gc, jint x1, jint y1, jint x2, jint y2);
+bool LLUI_DISPLAY_isRectangleInClip(MICROUI_GraphicsContext *gc, jint x1, jint y1, jint x2, jint y2);
 
 /*
  * @brief Tells if given region (from x,y to x+width-1,y+height-1) fully fits the clip
@@ -179,7 +200,7 @@ bool LLUI_DISPLAY_isRectangleInClip(MICROUI_GraphicsContext* gc, jint x1, jint y
  * @return false when the region is fully or partially outside the clip, true when
  * region fully fits the clip (clip can be disabled).
  */
-bool LLUI_DISPLAY_isRegionInClip(MICROUI_GraphicsContext* gc, jint x, jint y, jint width, jint height);
+bool LLUI_DISPLAY_isRegionInClip(MICROUI_GraphicsContext *gc, jint x, jint y, jint width, jint height);
 
 /*
  * @brief Tells if given horizontal line fits the clip or not. If at least one pixel
@@ -195,7 +216,7 @@ bool LLUI_DISPLAY_isRegionInClip(MICROUI_GraphicsContext* gc, jint x, jint y, ji
  * @return false when the line is fully outside the clip, true when at least
  * one pixel fits the clip.
  */
-bool LLUI_DISPLAY_clipHorizontalLine(MICROUI_GraphicsContext* gc, jint* x1, jint* x2, jint y);
+bool LLUI_DISPLAY_clipHorizontalLine(MICROUI_GraphicsContext *gc, jint *x1, jint *x2, jint y);
 
 /*
  * @brief Tells if given vertical line fits the clip or not. If at least one pixel
@@ -211,7 +232,7 @@ bool LLUI_DISPLAY_clipHorizontalLine(MICROUI_GraphicsContext* gc, jint* x1, jint
  * @return false when the line is fully outside the clip, true when at least
  * one pixel fits the clip.
  */
-bool LLUI_DISPLAY_clipVerticalLine(MICROUI_GraphicsContext* gc, jint* y1, jint* y2, jint x);
+bool LLUI_DISPLAY_clipVerticalLine(MICROUI_GraphicsContext *gc, jint *y1, jint *y2, jint x);
 
 /*
  * @brief Tells if given rectangle fits the clip or not. If at least one pixel
@@ -228,7 +249,7 @@ bool LLUI_DISPLAY_clipVerticalLine(MICROUI_GraphicsContext* gc, jint* y1, jint* 
  * @return false when the rectangle is fully outside the clip, true when at least
  * one pixel fits the clip.
  */
-bool LLUI_DISPLAY_clipRectangle(MICROUI_GraphicsContext* gc, jint* x1, jint* y1, jint* x2, jint* y2);
+bool LLUI_DISPLAY_clipRectangle(MICROUI_GraphicsContext *gc, jint *x1, jint *y1, jint *x2, jint *y2);
 
 /*
  * @brief Tells if given region (from x,y to x+width-1,y+height-1) fits the clip
@@ -248,7 +269,8 @@ bool LLUI_DISPLAY_clipRectangle(MICROUI_GraphicsContext* gc, jint* x1, jint* y1,
  * @return false when the region is fully outside the clip, true when at least
  * one pixel fits the clip.
  */
-bool LLUI_DISPLAY_clipRegion(MICROUI_GraphicsContext* gc, jint* x, jint* y, jint* width, jint* height, jint* destX, jint* destY);
+bool LLUI_DISPLAY_clipRegion(MICROUI_GraphicsContext *gc, jint *x, jint *y, jint *width, jint *height, jint *destX,
+                             jint *destY);
 
 /*
  * @brief Tells if source and destination share a region.
@@ -260,7 +282,7 @@ bool LLUI_DISPLAY_clipRegion(MICROUI_GraphicsContext* gc, jint* x, jint* y, jint
  * @param[in] gc the MicroUI GraphicsContext target of destination.
  * @param[in] img the MicroUI Image to draw.
  * @param[in] regionX the x coordinate of the upper-left corner of the region to check.
- * @param[in] regionY the x coordinate of the upper-left corner of the region to check.
+ * @param[in] regionY the y coordinate of the upper-left corner of the region to check.
  * @param[in] width the width of the region to check.
  * @param[in] height the height of the region to check.
  * @param[in] destX the x coordinate of the top-left point in the destination.
@@ -268,7 +290,8 @@ bool LLUI_DISPLAY_clipRegion(MICROUI_GraphicsContext* gc, jint* x, jint* y, jint
  *
  * @return true when source and destination are same image and when destination region intersects source region.
  */
-bool LLUI_DISPLAY_regionsOverlap(MICROUI_GraphicsContext* gc, MICROUI_Image* img, jint regionX, jint regionY, jint width, jint height, jint destX, jint destY);
+bool LLUI_DISPLAY_regionsOverlap(MICROUI_GraphicsContext *gc, MICROUI_Image *img, jint regionX, jint regionY,
+                                 jint width, jint height, jint destX, jint destY);
 
 /*
  * @brief Tells if the ellipsis is enabled or not. Returns 0 when ellipsis is disabled, a
@@ -279,19 +302,16 @@ bool LLUI_DISPLAY_regionsOverlap(MICROUI_GraphicsContext* gc, MICROUI_Image* img
  *
  * @return the ellipsis width or 0.
  */
-uint32_t LLUI_DISPLAY_getEllipsisWidth(MICROUI_GraphicsContext* gc);
+uint32_t LLUI_DISPLAY_getEllipsisWidth(MICROUI_GraphicsContext *gc);
 
 /*
- * @brief Requests a call to LLUI_DISPLAY_IMPL_flush(). The call of LLUI_DISPLAY_IMPL_flush()
- * is synchronized with the MicroEJ application drawing (see MicroUI event pump).
- *
- * @param[in] force true to force a call to LLUI_DISPLAY_IMPL_flush() even if the application
- * dirty area is null (the flush seems actually useless); false to not call LLUI_DISPLAY_IMPL_flush()
- * if the the application dirty area is null.
+ * @brief Requests a call to LLUI_DISPLAY_IMPL_flush() if something has been drawn in the back
+ * buffer (application dirty region is not null). The call of LLUI_DISPLAY_IMPL_flush() is
+ * synchronized with the MicroEJ application drawing (see MicroUI event pump).
  *
  * @return true when request has been added, false when queue is full.
  */
-bool LLUI_DISPLAY_requestFlush(bool force);
+bool LLUI_DISPLAY_requestFlush(void);
 
 /*
  * @brief Requests a call to Displayable.render(). The call of Displayable.render()
@@ -315,7 +335,21 @@ bool LLUI_DISPLAY_requestRender(void);
  *
  * @return the MicroUI Image pixels buffer address.
  */
-uint8_t* LLUI_DISPLAY_getBufferAddress(MICROUI_Image* image);
+uint8_t * LLUI_DISPLAY_getBufferAddress(MICROUI_Image *image);
+
+/*
+ * @brief Tells if format is the display buffer format or not. If yes, all
+ * software algorithms listed in ui_drawing_soft.h and dw_drawing_soft.h can
+ * be used. If not, these software algorithms must not be used (no check).
+ *
+ * @see MICROUI_ImageFormat
+ *
+ * @param[in] format the format to check. The format is one value from the
+ * MICROUI_ImageFormat enumeration.
+ *
+ * @return true if format refers to the display format
+ */
+bool LLUI_DISPLAY_isDisplayFormat(jbyte format);
 
 /*
  * @brief Tells if format is a custom format or not.
@@ -330,6 +364,24 @@ uint8_t* LLUI_DISPLAY_getBufferAddress(MICROUI_Image* image);
 bool LLUI_DISPLAY_isCustomFormat(jbyte format);
 
 /*
+ * @brief Returns the bit per pixel from a MicroUI image format.
+ *
+ * @param[in] format: The MicroUI format of the image
+ *
+ * @return The bit per pixel of the image, or 0 if the image format is unknown or custom.
+ */
+uint32_t LLUI_DISPLAY_getFormatBPP(jbyte format);
+
+/*
+ * @brief Returns the bit per pixel from a MicroUI image.
+ *
+ * @param[in] image: The MicroUI image
+ *
+ * @return The bit per pixel of the image, or 0 if the image format is unknown or custom.
+ */
+uint32_t LLUI_DISPLAY_getImageBPP(MICROUI_Image *image);
+
+/*
  * @brief Returns the MicroUI Image row stride in bytes. This value may be higher
  * than the formula "width * bpp / 8" when some padding bytes are available before
  * and/or after the row.
@@ -338,7 +390,7 @@ bool LLUI_DISPLAY_isCustomFormat(jbyte format);
  *
  * @return the MicroUI Image row stride in bytes.
  */
-uint32_t LLUI_DISPLAY_getStrideInBytes(MICROUI_Image* image);
+uint32_t LLUI_DISPLAY_getStrideInBytes(MICROUI_Image *image);
 
 /*
  * @brief Returns the MicroUI Image row stride in pixels. This value may be higher
@@ -349,7 +401,7 @@ uint32_t LLUI_DISPLAY_getStrideInBytes(MICROUI_Image* image);
  *
  * @return the MicroUI Image row stride in pixels.
  */
-uint32_t LLUI_DISPLAY_getStrideInPixels(MICROUI_Image* image);
+uint32_t LLUI_DISPLAY_getStrideInPixels(MICROUI_Image *image);
 
 /*
  * @brief Returns the MicroUI Image LUT size when the image format is MICROUI_IMAGE_FORMAT_LARGB8888
@@ -362,7 +414,7 @@ uint32_t LLUI_DISPLAY_getStrideInPixels(MICROUI_Image* image);
  * @return the MicroUI Image LUT size in bytes or 0 when the image format is not
  * MICROUI_IMAGE_FORMAT_LARGB8888 or MICROUI_IMAGE_FORMAT_LRGB888.
  */
-uint32_t LLUI_DISPLAY_getLUTSize(MICROUI_Image* image);
+uint32_t LLUI_DISPLAY_getLUTSize(MICROUI_Image *image);
 
 /*
  * @brief Tells if the MicroUI Image is not fully opaque. An image may be fully
@@ -373,36 +425,7 @@ uint32_t LLUI_DISPLAY_getLUTSize(MICROUI_Image* image);
  *
  * @return true when the image is not fully opaque.
  */
-bool LLUI_DISPLAY_isTransparent(MICROUI_Image* image);
-
-/*
- * @brief Updates the flush dirty area. This dirty area will be merged with the
- * current dirty area and given as parameter in LLUI_DISPLAY_IMPL_flush() function.
- *
- * This function is useless when the graphics context where the drawing has been performed
- * is not the display (in this case this call has no effect). Caller can check that calling
- * LLUI_DISPLAY_isLCD() before.
- *
- * This function can be called by the drawing native implementation or by the GPU callback
- * function. The graphics engine automatically checks if the current drawing concerns
- * the display or not.
- *
- * When this function is called by the drawing native implementation, this function must
- * be called before LLUI_DISPLAY_setDrawingStatus().
- *
- * When this function is called by the GPU callback function, this function must be
- * called before LLUI_DISPLAY_notifyAsynchronousDrawingEnd().
- *
- * @param[in] xmin the dirty area top-left X coordinate.
- * @param[in] ymin the dirty area top-left Y coordinate.
- * @param[in] xmax the dirty area bottom-right X coordinate.
- * @param[in] ymax the dirty area bottom-right Y coordinate.
- *
- * @return true when dirty area has been updated or false when the specified dirty
- * area is out of current clip or when the given graphics context does not target
- * the display.
- */
-bool LLUI_DISPLAY_setDrawingLimits(jint xmin, jint ymin, jint xmax, jint ymax);
+bool LLUI_DISPLAY_isTransparent(MICROUI_Image *image);
 
 /*
  * @brief Converts the 32-bit ARGB color format (A-R-G-B) into the display color
@@ -439,7 +462,7 @@ uint32_t LLUI_DISPLAY_convertDisplayColorToARGBColor(uint32_t color);
  *
  * @return an ARGB8888 color or 0 if the pixel is out-of-bounds.
  */
-uint32_t LLUI_DISPLAY_readPixel(MICROUI_Image* img, int32_t x, int32_t y);
+uint32_t LLUI_DISPLAY_readPixel(MICROUI_Image *img, int32_t x, int32_t y);
 
 /*
  * @brief Blends two colors applying a global alpha factor.
@@ -464,7 +487,7 @@ uint32_t LLUI_DISPLAY_blend(uint32_t foreground, uint32_t background, uint32_t a
  *
  * @return false when buffer cannot be allocated (out of memory)
  */
-bool LLUI_DISPLAY_allocateImageBuffer(MICROUI_Image* img, uint8_t rowAlignmentInBytes);
+bool LLUI_DISPLAY_allocateImageBuffer(MICROUI_Image *img, uint8_t rowAlignmentInBytes);
 
 /*
  * @brief Frees manually an image buffer. This action is useless when the image
@@ -473,15 +496,25 @@ bool LLUI_DISPLAY_allocateImageBuffer(MICROUI_Image* img, uint8_t rowAlignmentIn
  *
  * @param[in] image the MicroUI Image.
  */
-void LLUI_DISPLAY_freeImageBuffer(MICROUI_Image* img);
+void LLUI_DISPLAY_freeImageBuffer(MICROUI_Image *img);
 
 /*
  * @brief Callback to call by LLUI_DISPLAY_IMPL.h implementation when the flush
- * (copy of drawings to LCD) is finished. See LLUI_DISPLAY_IMPL_flush() function.
+ * (update of the front buffer) is finished. See LLUI_DISPLAY_IMPL_flush() function.
  *
+ * @param[in] flushIdentifier the identifier given by LLUI_DISPLAY_IMPL_flush()
+ * @param[in] new_back_buffer the new back buffer the Graphics Engine has to use.
  * @param[in] from_isr true when this function is called from an interrupt context.
+ *
+ * @return true if the new back buffer will be used for next drawings, false if
+ * the current back buffer is already is use or if this call occurs too late.
  */
-void LLUI_DISPLAY_flushDone(bool from_isr);
+bool LLUI_DISPLAY_setBackBuffer(uint8_t flushIdentifier, uint8_t *new_back_buffer, bool from_isr);
+
+/*
+ * Indirection to be backward compatible with UI Pack 14.0.0
+ */
+#define LLUI_DISPLAY_setDrawingBuffer LLUI_DISPLAY_setBackBuffer
 
 /*
  * @brief Requests the graphics engine to start a drawing. This allows to suspend
@@ -517,15 +550,13 @@ void LLUI_DISPLAY_flushDone(bool from_isr);
  * @return true if the drawing can start or false when the drawing does not need
  * to be done for any reason.
  */
-bool LLUI_DISPLAY_requestDrawing(MICROUI_GraphicsContext* gc, SNI_callback callback);
+bool LLUI_DISPLAY_requestDrawing(MICROUI_GraphicsContext *gc, SNI_callback callback);
 
 /*
  * @brief Notifies the graphics engine about the drawing status.
  *
  * This function must be called when the call to LLUI_DISPLAY_requestDrawing() has
  * returned true.
- *
- * After this call, the next call to LLUI_DISPLAY_setDrawingLimits() is ignored.
  *
  * @param[in] status drawing status: drawing is done (synchronous drawing): DRAWING_DONE
  * or drawing has been launched / is running (asynchronous drawing): DRAWING_RUNNING.
@@ -535,8 +566,6 @@ void LLUI_DISPLAY_setDrawingStatus(DRAWING_Status status);
 /*
  * @brief Callback to call by LLUI_DISPLAY_IMPL implementation when the asynchronous
  * drawing (launched just after the call to LLUI_DISPLAY_requestDrawing()) is finished.
- *
- * After this call, the next call to LLUI_DISPLAY_setDrawingLimits() is ignored.
  *
  * @param[in] from_isr true when this function is called from an interrupt context.
  */
@@ -549,4 +578,4 @@ void LLUI_DISPLAY_notifyAsynchronousDrawingEnd(bool from_isr);
 #ifdef __cplusplus
 }
 #endif
-#endif
+#endif // ifndef _LLUI_DISPLAY

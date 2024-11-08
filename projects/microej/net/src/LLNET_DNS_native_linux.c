@@ -9,50 +9,52 @@
  * @file
  * @brief LLNET_DNS 2.1.0 implementation over Linux.
  * @author MicroEJ Developer Team
- * @version 2.0.3
- * @date 27 November 2020
+ * @version 3.0.0
+ * @date 23 July 2024
  */
 
 #include <LLNET_DNS_impl.h>
 
-#include <stdio.h>
 #include <string.h>
 #include <netdb.h>
 #include <arpa/inet.h>
-#include "LLNET_CONSTANTS.h"
 #include "LLNET_ERRORS.h"
 #include "LLNET_Common.h"
 
 #ifdef __cplusplus
-	extern "C" {
+extern "C" {
 #endif
 
-int32_t LLNET_DNS_IMPL_getHostByAddr(int8_t* inOut, int32_t offset, int32_t length, uint8_t retry)
-{
-	LLNET_DEBUG_TRACE("%s\n", __func__);
-	struct hostent * host;
-	if(length == 4) {
+int32_t LLNET_DNS_IMPL_getHostByAddr(int8_t *address, int32_t address_length, uint8_t *hostname,
+                                     int32_t hostname_length) {
+	int32_t result = J_EHOSTUNKNOWN;
+	const struct hostent *host;
+	if (address_length == 4) {
 		/* Resolve the address */
-		host = gethostbyaddr(inOut, length, AF_INET);
-		if(host != NULL){
-			memcpy(inOut+offset, host->h_name, host->h_length);
-			return host->h_length;
+		host = gethostbyaddr(address, address_length, AF_INET);
+		if (host != NULL) {
+			(void)memcpy(hostname, host->h_name, hostname_length);
+			result = hostname_length;
 		}
 	}
-	return J_EHOSTUNKNOWN;
+	LLNET_DEBUG_TRACE("%s(address=%s, address_length=%d), host=%s, result=%d\n", __func__, address, address_length,
+	                  host, result);
+	return result;
 }
 
-int32_t LLNET_DNS_IMPL_getHostByNameAt(int32_t index, int8_t* inOut, int32_t offset, int32_t length, uint8_t retry)
-{
-	LLNET_DEBUG_TRACE("%s host ->%s<- index = %d\n", __func__,(unsigned char *)inOut+offset, index);
+int32_t LLNET_DNS_IMPL_getHostByNameAt(int32_t index, uint8_t *hostname, int32_t hostname_length, int8_t *address,
+                                       int32_t address_length) {
+	(void)hostname_length;
+	LLNET_DEBUG_TRACE("%s host ->%s<- index = %d\n", __func__, (unsigned char *)hostname, index);
 	struct hostent *hret;
 
 	int r;
-	struct addrinfo hints =  {0};
-	struct addrinfo* addrinfos;
-	void *ptr = NULL;
+	struct addrinfo hints = { 0 };
+	struct addrinfo *addrinfos;
+	const void *ptr = NULL;
 	int32_t addrLength = 0;
-	unsigned int indexCounter = 0;
+	int32_t indexCounter = 0;
+	int32_t res = J_EHOSTUNKNOWN;
 
 	// Set the hints address structure with the type of IP address we need
 
@@ -69,53 +71,61 @@ int32_t LLNET_DNS_IMPL_getHostByNameAt(int32_t index, int8_t* inOut, int32_t off
 	hints.ai_family = AF_INET;
 #endif
 
-	r = getaddrinfo(inOut+offset, NULL, &hints, &addrinfos);
-	LLNET_DEBUG_TRACE("%s getaddrinfo(inOut) returned %d\n", __func__, r);
-	if(r != 0){
-		return J_EHOSTUNKNOWN;
+	r = getaddrinfo(hostname, NULL, &hints, &addrinfos);
+	if (r != 0) {
+		LLNET_DEBUG_TRACE("%s getaddrinfo() returned %d\n", __func__, r);
+		(void)SNI_throwNativeIOException(J_EHOSTUNKNOWN, gai_strerror(r));
+		res = SNI_IGNORED_RETURNED_VALUE;
 	}
 
 	// Find the right address
-	struct addrinfo* current_addrinfo = addrinfos;
-	while (current_addrinfo && indexCounter != index) {
+	const struct addrinfo *current_addrinfo = addrinfos;
+	while ((NULL != current_addrinfo) && (indexCounter != index)) {
 		indexCounter++;
 		current_addrinfo = current_addrinfo->ai_next;
 	}
 
-	int res = J_EHOSTUNKNOWN;
-	if(current_addrinfo){
+	if (NULL != current_addrinfo) {
 #if LLNET_AF & LLNET_AF_IPV4
-		if(current_addrinfo->ai_family == AF_INET) {
-			ptr = &((struct sockaddr_in *) current_addrinfo->ai_addr)->sin_addr;
+		if (current_addrinfo->ai_family == AF_INET) {
+			ptr = &((struct sockaddr_in *)current_addrinfo->ai_addr)->sin_addr;
 			addrLength = sizeof(in_addr_t);
 		}
 #endif
 #if LLNET_AF & LLNET_AF_IPV6
-		if(current_addrinfo->ai_family == AF_INET6) {
-			ptr = &((struct sockaddr_in6 *) current_addrinfo->ai_addr)->sin6_addr;
+		if (current_addrinfo->ai_family == AF_INET6) {
+			ptr = &((struct sockaddr_in6 *)current_addrinfo->ai_addr)->sin6_addr;
 			addrLength = sizeof(struct in6_addr);
 		}
 #endif
 		if (ptr != NULL) {
-			int bufferLength = SNI_getArrayLength(inOut) - offset;
-			if(addrLength <= bufferLength){
-				memcpy(inOut + offset, ptr, addrLength);
-				res = addrLength;
+			size_t copy_size = 0;
+			// Check maximum length that can be copied in destination buffer.
+			if (addrLength <= address_length) {
+				copy_size = addrLength;
+			} else {
+				copy_size = address_length;
 			}
+			(void)memcpy(address, ptr, copy_size);
+			res = copy_size;
 		}
 	}
 	freeaddrinfo(addrinfos);
+	if (0 >= res) {
+		(void)SNI_throwNativeIOException(J_EHOSTUNKNOWN, gai_strerror(r));
+		res = SNI_IGNORED_RETURNED_VALUE;
+	}
 	return res;
 }
 
-int32_t LLNET_DNS_IMPL_getHostByNameCount(int8_t* hostname, int32_t offset, int32_t length, uint8_t retry)
-{
-	LLNET_DEBUG_TRACE("%s host ->%s<- \n", __func__,(unsigned char *)hostname+offset);
+int32_t LLNET_DNS_IMPL_getHostByNameCount(uint8_t *hostname, int32_t hostname_length) {
+	(void)hostname_length;
+	LLNET_DEBUG_TRACE("%s host ->%s<- \n", __func__, (unsigned char *)hostname);
 	struct hostent *hret;
 
 	int r;
-	struct addrinfo hints =  {0};
-	struct addrinfo* addrinfos;
+	struct addrinfo hints = { 0 };
+	struct addrinfo *addrinfos;
 	unsigned int counter = 0;
 
 	// Set the hints address structure with the type of IP address we need
@@ -133,20 +143,22 @@ int32_t LLNET_DNS_IMPL_getHostByNameCount(int8_t* hostname, int32_t offset, int3
 	hints.ai_family = AF_INET;
 #endif
 
-	r = getaddrinfo(hostname+offset, NULL, &hints, &addrinfos);
-	LLNET_DEBUG_TRACE("%s getaddrinfo(hostname) returned %d\n", __func__, r);
-	if(r != 0){
-		return J_EHOSTUNKNOWN;
+	r = getaddrinfo(hostname, NULL, &hints, &addrinfos);
+	if (r != 0) {
+		LLNET_DEBUG_TRACE("%s getaddrinfo(hostname) returned %d: %s\n", __func__, r, gai_strerror(r));
+		(void)SNI_throwNativeIOException(J_EHOSTUNKNOWN, gai_strerror(r));
+		counter = SNI_IGNORED_RETURNED_VALUE;
+		addrinfos = NULL;
 	}
 
 	// Count the number of entries
-	struct addrinfo* current_addrinfo = addrinfos;
-	while (current_addrinfo) {
+	struct addrinfo *current_addrinfo = addrinfos;
+	while (NULL != current_addrinfo) {
 		++counter;
 		current_addrinfo = current_addrinfo->ai_next;
 	}
 
-	LLNET_DEBUG_TRACE("%s host count = %d\n", __func__,counter);
+	LLNET_DEBUG_TRACE("%s host count = %d\n", __func__, counter);
 
 	freeaddrinfo(addrinfos);
 
@@ -154,6 +166,5 @@ int32_t LLNET_DNS_IMPL_getHostByNameCount(int8_t* hostname, int32_t offset, int3
 }
 
 #ifdef __cplusplus
-	}
+}
 #endif
-

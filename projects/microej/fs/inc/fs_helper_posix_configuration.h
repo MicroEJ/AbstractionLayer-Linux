@@ -49,6 +49,17 @@
 	#define FS_BUFFER_SIZE (1024)
 #endif
 
+#if (_FILE_OFFSET_BITS == 64)
+/**
+ * @brief Maximum offset allowed for large files
+ * Experiments show that libc behavior varies in how it handles large offsets
+ * There is a limit where fseek/fread will start to return EINVAL instead of EOF, ex:
+ * For linux ARM libc, the limit is 0x7FFFFFFFFFFFEFFF
+ * For linux i386 libc the limit is      0xFFFFFFFEFFF
+ */
+#define FS_LARGE_FILE_MAX_OFFSET (0xFFFFFFFEFFF)
+#endif
+
 
 #ifdef __cplusplus
 	}

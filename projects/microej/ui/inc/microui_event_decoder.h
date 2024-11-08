@@ -9,13 +9,12 @@
  * @file
  * @brief See microui_event_decoder.c.
  * @author MicroEJ Developer Team
- * @version 2.0.1
- * @date 16 December 2022
+ * @version 4.1.0
  * @since MicroEJ UI Pack 13.1.0
  */
 
 #if !defined MICROUI_EVENT_DECODER_H
-# define MICROUI_EVENT_DECODER_H
+#define MICROUI_EVENT_DECODER_H
 
 // -----------------------------------------------------------------------------
 // Includes
@@ -32,7 +31,7 @@ extern "C" {
 #endif
 
 #ifdef MICROUIEVENTDECODER_ENABLED
-  
+
 // -----------------------------------------------------------------------------
 // Types
 // -----------------------------------------------------------------------------
@@ -88,7 +87,8 @@ void MICROUI_EVENT_DECODER_drop_data(uint32_t data, uint32_t index);
  * @param[in] index the event's index in queue.
  * @param[out] fct_data_decoder function to decode the data of the event.
  */
-void MICROUI_EVENT_DECODER_decode_event(uint32_t event, uint32_t index, MICROUI_EVENT_DECODER_decode_event_data* fct_data_decoder);
+void MICROUI_EVENT_DECODER_decode_event(uint32_t event, uint32_t index,
+                                        MICROUI_EVENT_DECODER_decode_event_data *fct_data_decoder);
 
 #endif // MICROUIEVENTDECODER_ENABLED
 

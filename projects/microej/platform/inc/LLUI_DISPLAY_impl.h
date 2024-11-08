@@ -1,5 +1,5 @@
-/* 
- * Copyright 2011-2022 MicroEJ Corp. All rights reserved.
+/*
+ * Copyright 2011-2024 MicroEJ Corp. All rights reserved.
  * This library is provided in source code for use, modification and test, subject to license terms.
  * Any modification of the source code will break MicroEJ Corp. warranties on the whole library.
  */
@@ -20,7 +20,9 @@ extern "C" {
 // Includes
 // --------------------------------------------------------------------------------
 
-#include "LLUI_DISPLAY.h"
+#include <stddef.h>
+
+#include <LLUI_DISPLAY.h>
 
 // --------------------------------------------------------------------------------
 // Constants
@@ -29,17 +31,17 @@ extern "C" {
 /*
  * @brief Low-Level API UI major version.
  */
-#define LLUI_MAJOR_VERSION 13
+#define LLUI_MAJOR_VERSION 14
 
 /*
  * @brief Low-Level API UI minor version.
  */
-#define LLUI_MINOR_VERSION 4
+#define LLUI_MINOR_VERSION 0
 
 /*
  * @brief Low-Level API UI patch version.
  */
-#define LLUI_PATCH_VERSION 1
+#define LLUI_PATCH_VERSION 2
 
 // --------------------------------------------------------------------------------
 // Typedef and Structure
@@ -48,7 +50,7 @@ extern "C" {
 /*
  * @brief Defines a binary semaphore used by the Graphics Engine.
  */
-typedef void* LLUI_DISPLAY_binary_semaphore;
+typedef void *LLUI_DISPLAY_binary_semaphore;
 
 /*
  * @brief LLUI_DISPLAY_IMPL initialization data.
@@ -56,8 +58,7 @@ typedef void* LLUI_DISPLAY_binary_semaphore;
  * Defines the element the implementation has to initialize when the Graphics Engine
  * is calling the function LLUI_DISPLAY_IMPL_initialize.
  */
-typedef struct
-{
+typedef struct {
 	/*
 	 * @brief Binary semaphore used by the Graphics Engine.
 	 *
@@ -70,7 +71,7 @@ typedef struct
 	 * actions). The implementation must create its own semaphores in addition with
 	 * this dedicated Graphics Engine's semaphore.
 	 */
-	LLUI_DISPLAY_binary_semaphore* binary_semaphore_0;
+	LLUI_DISPLAY_binary_semaphore *binary_semaphore_0;
 
 	/*
 	 * @brief Binary semaphore used by the Graphics Engine.
@@ -80,17 +81,17 @@ typedef struct
 	 *
 	 * For more information on this semaphore, refer to the binary_semaphore_0's documentation.
 	 */
-	LLUI_DISPLAY_binary_semaphore* binary_semaphore_1;
+	LLUI_DISPLAY_binary_semaphore *binary_semaphore_1;
 
 	/*
 	 * @brief Back buffer address on startup.
 	 *
 	 * This buffer will be used by the Graphics Engine to draw application drawings.
-	 * In COPY and DIRECT modes, this buffer address is used during all application
-	 * runtime. In SWITCH mode, this buffer address will be internally updated by the
-	 * Graphics Engine (see LLUI_DISPLAY_IMPL_flush()).
+	 * In SINGLE and DIRECT modes, this buffer address is used during all application
+	 * runtime. In SWAP mode, this buffer address will be internally updated by the
+	 * Graphics Engine (see LLUI_DISPLAY_setBackBuffer()).
 	 */
-	uint8_t* back_buffer_address;
+	uint8_t *back_buffer_address;
 
 	/*
 	 * @brief LCD width in pixels.
@@ -103,10 +104,10 @@ typedef struct
 	uint32_t lcd_height;
 
 	/*
-	 * @brief LCD buffer width in pixels.
+	 * @brief Display front buffer width in pixels.
 	 *
-	 * The display graphics buffer may require more memory than theoretical memory.
-	 * Theoretical memory size is:
+	 * The display graphics buffer (front buffer) may require more memory than
+	 * theoretical memory. Theoretical memory size is:
 	 * 		lcd_width * lcd_height * bpp / 8.
 	 *
 	 * On some devices the memory width (in pixels) is higher than virtual width.
@@ -119,10 +120,10 @@ typedef struct
 	uint32_t memory_width;
 
 	/*
-	 * @brief LCD buffer height in pixels.
+	 * @brief Display front buffer height in pixels.
 	 *
-	 * The display graphics buffer may require more memory than theoretical memory.
-	 * Theoretical memory size is:
+	 * The display graphics buffer (front buffer) may require more memory than
+	 * theoretical memory. Theoretical memory size is:
 	 * 		lcd_width * lcd_height * bpp / 8.
 	 *
 	 * On some devices the memory height (in pixels) is higher than virtual height.
@@ -133,7 +134,6 @@ typedef struct
 	 * thrown by the Graphics Engine when memory_height is smaller than lcd_height.
 	 */
 	uint32_t memory_height;
-
 } LLUI_DISPLAY_SInitData;
 
 // --------------------------------------------------------------------------------
@@ -149,14 +149,14 @@ typedef struct
  *
  * @param[in] init_data the data to initialize.
  */
-void LLUI_DISPLAY_IMPL_initialize(LLUI_DISPLAY_SInitData* init_data);
+void LLUI_DISPLAY_IMPL_initialize(LLUI_DISPLAY_SInitData *init_data);
 
 /*
  * @brief Takes the binary semaphore.
  *
  * @param[in] binary_semaphore the binary semaphore to take.
  */
-void LLUI_DISPLAY_IMPL_binarySemaphoreTake(void* binary_semaphore);
+void LLUI_DISPLAY_IMPL_binarySemaphoreTake(void *binary_semaphore);
 
 /*
  * @brief Gives the binary semaphore.
@@ -164,61 +164,74 @@ void LLUI_DISPLAY_IMPL_binarySemaphoreTake(void* binary_semaphore);
  * @param[in] binary_semaphore the binary semaphore to give.
  * @param[in] from_isr true when giving the semaphore from an interrupt.
  */
-void LLUI_DISPLAY_IMPL_binarySemaphoreGive(void* binary_semaphore, bool from_isr);
+void LLUI_DISPLAY_IMPL_binarySemaphoreGive(void *binary_semaphore, bool from_isr);
 
 /*
- * @brief Performs a flush.
+ * @brief Performs a flush: the content of the back buffer (address returned by
+ * LLUI_DISPLAY_getBufferAddress(gc->image)) has to be flushed to the front buffer
+ * (display's buffer).
  *
- * The content of given square in graphics buffer (back buffer) must be displayed
- * into LCD buffer (frame buffer). The rectangle specified by (xmin, ymin) to (xmax, ymax)
- * is the region which has changed during last draw and only this region should
- * be updated (dirty area).
+ * The content of given rectangles in the graphics buffer (back buffer) must be displayed
+ * into the LCD buffer (front buffer). The rectangles specified are the regions which
+ * have changed during last draw and only these regions should be updated (drawing regions).
+ * The number of rectangles depends on the display buffer refresh strategy (BRS).
  *
- * The implementation has to return the new graphics buffer address, depending on
- * the display flushing mode (see UI documentation):
+ * There are several ways to update the display, depending on the display flushing
+ * mode (see UI documentation).
  *
- * 		- In DIRECT mode, this action is useless because graphics and frame buffers
- * 		are same buffer. The buffer address to return must be equal to the given
- * 		buffer address.
- *
- * 		- In COPY mode, the content of given rectangle in back buffer must be copied
- * 		into LCD buffer. This function should be atomic and not block until the
- * 		buffer is copied. The implementation should start a DMA or another OS task
- * 		to perform the copy and return. The buffer address to return must be equal
- * 		to the given buffer address. At the end of the asynchronous copy, LLUI_DISPLAY
- * 		implementation has to call the function LLUI_DISPLAY_flushDone() to notify
- * 		to the Graphics Engine the back buffer is now free and can be reused to
- * 		perform the next drawing operations.
- *
- * 		- In SWITCH mode, the implementation has to set the new display buffer address
- * 		to the supplied address. The buffers are swapped: the existing display buffer
- * 		becomes the new back buffer and the supplied address becomes the new display
- * 		buffer. After the swap the implementation must copy the content of the new
- * 		display buffer into the new back buffer. This function should be atomic
- * 		and not block until the buffer is copied. The implementation should start
- * 		a DMA or another OS task to perform the copy and return. The buffer address
- * 		to return must be the old frame buffer address. At the end of the asynchronous
- * 		copy, LLUI_DISPLAY implementation has to call the function LLUI_DISPLAY_flushDone()
- * 		to notify to the Graphics Engine the new back buffer is now free and can
- * 		be reused to perform the next drawing operations.
- *
- * The new display buffer given as parameter can be also retrieved calling
- * LLUI_DISPLAY_getBufferAddress(&gc->image);
- *
- * @param[in] gc the graphics context to flush
- * @param[in] sourceAddr the address of graphics context buffer
- * @param[in] xmin the top-left X-coordinate of the dirty area.
- * @param[in] ymin the top-left Y-coordinate of the dirty area.
- * @param[in] xmax the bottom-right X-coordinate of the dirty area.
- * @param[in] ymax the bottom-right Y-coordinate of the dirty area.
- *
- * @return the new graphics buffer address
+ * @param[in] gc the graphics context that targets the back buffer to flush.
+ * @param[in] flush_identifier a value that identifies the flush; the next call(s) to
+ * LLUI_DISPLAY_setBackBuffer() (that notify the end of flush) must use this identifier.
+ * @param[in] regions an array of modified rectangular regions in the back buffer since last flush
+ * @param[in] length the available number of regions
  */
-uint8_t* LLUI_DISPLAY_IMPL_flush(MICROUI_GraphicsContext* gc, uint8_t* sourceAddr, uint32_t xmin, uint32_t ymin, uint32_t xmax, uint32_t ymax);
+void LLUI_DISPLAY_IMPL_flush(MICROUI_GraphicsContext *gc, uint8_t flush_identifier, const ui_rect_t regions[],
+                             size_t length);
 
 // --------------------------------------------------------------------------------
 // Optional functions to implement
 // --------------------------------------------------------------------------------
+
+/**
+ * @brief This function allows to plug a display buffer refresh strategy (BRS) (see CCO MicroUI).
+ * By default, no strategy is used and the Graphics Engine only calls LLUI_DISPLAY_IMPL_flush()
+ * with a single rectangle that fits the full display area.
+ *
+ * @param[in] gc the graphics context that targets the back buffer to flush.
+ * @param[in] flush_identifier a value that identifies the flush; the next call(s) to
+ * LLUI_DISPLAY_setBackBuffer() (that notify the end of flush) must use this identifier.
+ */
+DRAWING_Status LLUI_DISPLAY_IMPL_refresh(MICROUI_GraphicsContext *gc, uint8_t flush_identifier);
+
+/*
+ * @brief Notifies that a region will be modified by the application in the display
+ * back buffer.
+ *
+ * This function is called by the Graphics Engine:
+ * - For each call to LLUI_DISPLAY_requestDrawing() (in the display back buffer) if the drawing
+ * region set by the application is different than the previous drawing region. In this case,
+ * the drawing_now parameter is set to true.
+ * - For each call to GraphicsContext.notifyDirtyRegion(). In this case, the drawing_now parameter
+ * is set to false.
+ *
+ * The implementation (the BRS) can perform some drawings. If these drawings are asynchronous
+ * (often executed by a GPU), this function must return DRAWING_RUNNING. The execution
+ * will be suspended until the next call to LLUI_DISPLAY_notifyAsynchronousDrawingEnd().
+ * The same function will be called again just after.
+ *
+ * If the drawings are synchronous, this function has to return DRAWING_DONE.
+ *
+ * As soon as all drawings (asynchronous or synchronous) are made, the Graphics Engine
+ * gives the hand to the caller to LLUI_DISPLAY_requestDrawing().
+ *
+ * @param[in] gc the graphics context of the back buffer
+ * @param[in] region the drawing region
+ * @param[in] drawing_now true if the region will be altered just after this call
+ *
+ * @return DRAWING_RUNNING if a drawing has been started or DRAWING_DONE when the caller
+ * of LLUI_DISPLAY_requestDrawing() can draw in the display back buffer.
+ */
+DRAWING_Status LLUI_DISPLAY_IMPL_newDrawingRegion(MICROUI_GraphicsContext *gc, ui_rect_t *region, bool drawing_now);
 
 /*
  * @brief Initializes the MicroUI images heap. This heap is used to decode at runtime PNG
@@ -233,13 +246,13 @@ uint8_t* LLUI_DISPLAY_IMPL_flush(MICROUI_GraphicsContext* gc, uint8_t* sourceAdd
  * The default implementation is using a best fit allocator:
  * <code>
  * 		BESTFIT_ALLOCATOR_new(&image_heap);
-		BESTFIT_ALLOCATOR_initialize(&image_heap, (int32_t)heap_start, (int32_t)heap_limit);
+ *      BESTFIT_ALLOCATOR_initialize(&image_heap, (int32_t)heap_start, (int32_t)heap_limit);
  * </code>
  *
  * @param[in] heap_start bss section start address.
  * @param[in] heap_limit bss section end address + 1.
  */
-void LLUI_DISPLAY_IMPL_image_heap_initialize(uint8_t* heap_start, uint8_t* heap_limit);
+void LLUI_DISPLAY_IMPL_imageHeapInitialize(uint8_t *heap_start, uint8_t *heap_limit);
 
 /*
  * @brief Allocates a block in the images heap.
@@ -253,7 +266,7 @@ void LLUI_DISPLAY_IMPL_image_heap_initialize(uint8_t* heap_start, uint8_t* heap_
  *
  * @return the block address or NULL in case of out of memory.
  */
-uint8_t* LLUI_DISPLAY_IMPL_image_heap_allocate(uint32_t size);
+uint8_t * LLUI_DISPLAY_IMPL_imageHeapAllocate(uint32_t size);
 
 /*
  * @brief Frees a block in images heap.
@@ -265,7 +278,15 @@ uint8_t* LLUI_DISPLAY_IMPL_image_heap_allocate(uint32_t size);
  *
  * @param[in] block the block to free.
  */
-void LLUI_DISPLAY_IMPL_image_heap_free(uint8_t* block);
+void LLUI_DISPLAY_IMPL_imageHeapFree(uint8_t *block);
+
+/*
+ * @brief Old naming convention, kept for backward compatibility
+ * @deprecated
+ */
+#define LLUI_DISPLAY_IMPL_image_heap_initialize LLUI_DISPLAY_IMPL_imageHeapInitialize
+#define LLUI_DISPLAY_IMPL_image_heap_allocate LLUI_DISPLAY_IMPL_imageHeapAllocate
+#define LLUI_DISPLAY_IMPL_image_heap_free LLUI_DISPLAY_IMPL_imageHeapFree
 
 /*
  * @brief Sets the new contrast. By default the weak function does nothing (feature
@@ -407,7 +428,7 @@ uint32_t LLUI_DISPLAY_IMPL_convertDisplayColorToARGBColor(uint32_t color);
  * @param[in/out] background pointer on the background ARGB color to convert.
  * @return true when the indexes have been found, false otherwise.
  */
-bool LLUI_DISPLAY_IMPL_prepareBlendingOfIndexedColors(uint32_t* foreground, uint32_t* background);
+bool LLUI_DISPLAY_IMPL_prepareBlendingOfIndexedColors(uint32_t *foreground, uint32_t *background);
 
 /*
  * @brief Use an hardware image decoder to create a RAW image.
@@ -442,7 +463,32 @@ bool LLUI_DISPLAY_IMPL_prepareBlendingOfIndexedColors(uint32_t* foreground, uint
  *
  * @return LLUI_DISPLAY_OK when decoding is successful.
  */
-LLUI_DISPLAY_Status LLUI_DISPLAY_IMPL_decodeImage(uint8_t* addr, uint32_t length, jbyte expectedFormat, MICROUI_Image* image, bool* isFullyOpaque);
+LLUI_DISPLAY_Status LLUI_DISPLAY_IMPL_decodeImage(uint8_t *addr, uint32_t length, jbyte expectedFormat,
+                                                  MICROUI_Image *image, bool *isFullyOpaque);
+
+/*
+ * @brief Gets the drawing engine able to draw in the GraphicsContext whose format
+ * is the given format.
+ *
+ * When the Graphics Context format is the same as the display buffer (see LLUI_DISPLAY_isDisplayFormat()),
+ * the drawing engine (called "drawer") may be the same as the one used to draw in the display
+ * buffer: the software algorithms will be used by default and the VEE Port can override one or
+ * several drawing functions to use a GPU.
+ *
+ * When this format is not same as the display buffer (see LLUI_DISPLAY_isDisplayFormat()),
+ * a dedicated drawer must be used. This engine is identified by an identifier: a value between
+ * 0 and 255. This identifier is stored in the structure "MICROUI_GraphicsContext" (see "drawer").
+ * "0" identifies the "display buffer" drawing engine.
+ *
+ * This function can return a negative value to indicate that the VEE Port does not support the
+ * destination format (no available drawing engine). It will throw an exception in the application.
+ *
+ * @param[in] image_format the new RAW image format. The format is one value from the
+ * MICROUI_ImageFormat enumeration.
+ *
+ * @return a drawing engine identifier, between 0 and 255, all other values indicate "no available drawing engine".
+ */
+int32_t LLUI_DISPLAY_IMPL_getDrawerIdentifier(jbyte image_format);
 
 /*
  * @brief Returns the new image row stride in bytes.
@@ -470,7 +516,8 @@ LLUI_DISPLAY_Status LLUI_DISPLAY_IMPL_decodeImage(uint8_t* addr, uint32_t length
  *
  * @return expected row stride (in bytes)
  */
-uint32_t LLUI_DISPLAY_IMPL_getNewImageStrideInBytes(jbyte image_format, uint32_t image_width, uint32_t image_height, uint32_t default_stride);
+uint32_t LLUI_DISPLAY_IMPL_getNewImageStrideInBytes(jbyte image_format, uint32_t image_width, uint32_t image_height,
+                                                    uint32_t default_stride);
 
 /*
  * @brief Adjusts the new image characteristics: data size and alignment.
@@ -501,20 +548,31 @@ uint32_t LLUI_DISPLAY_IMPL_getNewImageStrideInBytes(jbyte image_format, uint32_t
  * @param[in/out] data_size the minimal data size (in bytes).
  * @param[in/out] data_alignment the minimal data alignment to respect (in bytes).
  */
-void LLUI_DISPLAY_IMPL_adjustNewImageCharacteristics(jbyte image_format, uint32_t width, uint32_t height, uint32_t* data_size, uint32_t* data_alignment);
+void LLUI_DISPLAY_IMPL_adjustNewImageCharacteristics(jbyte image_format, uint32_t width, uint32_t height,
+                                                     uint32_t *data_size, uint32_t *data_alignment);
 
 /*
- * @brief Initializes the image's custom header when available.
+ * @brief Initializes the image's buffer: the image data when it is a custom image (see
+ * LLUI_DISPLAY_IMPL_getDrawerIdentifier()), an optional custom header (see
+ * LLUI_DISPLAY_IMPL_adjustNewImageCharacteristics()), etc.
  *
- * This function is only called when a custom header has been specified when creating a new
- * image (see LLUI_DISPLAY_IMPL_adjustNewImageCharacteristics()). This implementation can
- * retrieve the custom header address by calling LLUI_DISPLAY_getBufferAddress(). The image
- * format (generic or custom) and the image dimensions can be also useful to initialize the
- * custom header (see struct MICROUI_Image).
+ * This function can retrieve the image buffer address by calling LLUI_DISPLAY_getBufferAddress().
+ * The image format (generic or custom) and the image dimensions can be also useful to initialize a
+ * custom header (see struct MICROUI_Image and LLUI_DISPLAY_IMPL_adjustNewImageCharacteristics()).
  *
  * @param[in] image the MicroUI Image to initialize.
  */
-void LLUI_DISPLAY_IMPL_initializeNewImage(MICROUI_Image* image);
+void LLUI_DISPLAY_IMPL_initializeNewImage(MICROUI_Image *image);
+
+/*
+ * @brief Frees the image's third-party resources. For a given image format, some resources may
+ * have been allocated. This call allows to free them before freeing the image buffer itself.
+ *
+ * This function can retrieve the image buffer address by calling LLUI_DISPLAY_getBufferAddress().
+ *
+ * @param[in] image the MicroUI Image being closed.
+ */
+void LLUI_DISPLAY_IMPL_freeImageResources(MICROUI_Image *image);
 
 // --------------------------------------------------------------------------------
 // EOF
@@ -523,4 +581,4 @@ void LLUI_DISPLAY_IMPL_initializeNewImage(MICROUI_Image* image);
 #ifdef __cplusplus
 }
 #endif
-#endif
+#endif // ifndef _LLUI_DISPLAY_IMPL

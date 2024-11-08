@@ -14,7 +14,14 @@ target_sources(${target}
     ${CMAKE_CURRENT_LIST_DIR}/src/LLUI_PAINTER_impl.c
     ${CMAKE_CURRENT_LIST_DIR}/src/event_generator.c
     ${CMAKE_CURRENT_LIST_DIR}/src/microui_event_decoder.c
-
+    ${CMAKE_CURRENT_LIST_DIR}/src/ui_display_brs.c
+    ${CMAKE_CURRENT_LIST_DIR}/src/ui_display_brs_legacy.c
+    ${CMAKE_CURRENT_LIST_DIR}/src/ui_display_brs_predraw.c
+    ${CMAKE_CURRENT_LIST_DIR}/src/ui_display_brs_single.c
+    ${CMAKE_CURRENT_LIST_DIR}/src/ui_drawing.c
+    ${CMAKE_CURRENT_LIST_DIR}/src/ui_drawing_stub.c
+    ${CMAKE_CURRENT_LIST_DIR}/src/ui_image_drawing.c
+    ${CMAKE_CURRENT_LIST_DIR}/src/ui_rect_util.c
 )
 
 if (BUILD_UI_FBDEV)

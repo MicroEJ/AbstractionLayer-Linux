@@ -26,7 +26,7 @@
 
 #include "microui_constants.h"
 
-// #define LLTOUCH_DEBUG
+//#define LLTOUCH_DEBUG
 
 #ifdef LLTOUCH_DEBUG
 #define LLTOUCH_LOG_DEBUG printf
@@ -37,105 +37,117 @@
 
 static volatile int pressed;
 
-#define NB_RETRIES 5
-#define TSDEVICE_DEFAULT_NAME "/dev/input/event1"
+#define TSDEVICE_RETRY_TIMEOUT_SEC 1
+#define TSDEVICE_RETRY_TIMEOUT_NB 10
+#define TSDEVICE_DEFAULT_NAME "/dev/input/touchscreen0"
 
 #ifdef TOUCH_POLLING
 static int64_t touch_poll_delay = 20;
 #endif // TOUCH_POLLING
 
-void* TOUCH_MANAGER_work(void* p_args)
-{
-  struct tsdev *ts = NULL;
-  char *tsdevice=NULL;
-  struct ts_sample samp;
-  int ret;
-  int retries = NB_RETRIES;
+struct tsdev *TOUCH_MANAGER_ts_init() {
+	struct tsdev *ts = NULL;
+	char *tsdevice = NULL;
+	int retries = TSDEVICE_RETRY_TIMEOUT_NB;
 
-  tsdevice = getenv("TSLIB_TSDEVICE");
-  if (!tsdevice) {
-    tsdevice = TSDEVICE_DEFAULT_NAME;
-  }
-  while (retries > 0) {
-    ts = ts_open(tsdevice, 0);
-    if (ts != NULL) {
-      break;
-    }
-    LLTOUCH_LOG_DEBUG("Touch initialization failed. retries left %d (ts_open error %d: %m)\n", retries, errno);
-    sleep(1);
-    retries--;
-  }
+	tsdevice = getenv("TSLIB_TSDEVICE");
+	if (NULL == tsdevice) {
+		tsdevice = TSDEVICE_DEFAULT_NAME;
+	}
 
-  if (!ts) {
-      LLTOUCH_LOG_WARNING("Touch initialization failed... (ts_open error)\n");
-      return NULL;
-  }
-
-  if (ts_config(ts)) {
-      LLTOUCH_LOG_WARNING("Touch initialization failed... (ts_config error)\n");
-      return NULL;
-  }
-
-#ifdef TOUCH_POLLING
-  int64_t t0 = 0;
-  int64_t t1 = 0;
-#endif
-
-  while (1) {
-#ifdef TOUCH_POLLING
-	  if(t0 == 0l){
-//		  LLTOUCH_LOG_DEBUG("[TOUCH] init time \n");
-		  t0 = posix_time_getcurrenttime(1);
-	  }
-#endif
-
-    ret = ts_read(ts, &samp, 1);
-
-    if (ret < 0) {
-        LLTOUCH_LOG_DEBUG("Fail to Read touch event (ts_read error=%d)\n", ret);
-    }
-
-    if (ret != 1)
-      continue;
-
-
-//    LLTOUCH_LOG_DEBUG("%ld.%06ld: %6d %6d %6d\n", samp.tv.tv_sec, samp.tv.tv_usec, samp.x, samp.y, samp.pressure);
-    if(samp.pressure > 0){
-
-    	if(pressed == 0){
-			TOUCH_HELPER_pressed(samp.x,samp.y);
-			pressed = 1;
-		} else {
-
-#ifdef TOUCH_POLLING
-			t1 = posix_time_getcurrenttime(1) - t0;
-//			LLTOUCH_LOG_DEBUG("[TOUCH] t0=%l ms, t1=%l \n", t0, t1);
-//			LLTOUCH_LOG_DEBUG("[TOUCH] test (%l ms, ret=%d)\n", t1, ret);
-			if(t1 < touch_poll_delay){
-//				LLTOUCH_LOG_DEBUG("[TOUCH] continue (%l ms, ret=%d)\n", t1, ret);
-				continue;
-			}else{
-//				LLTOUCH_LOG_DEBUG("[TOUCH] reset (%l ms, ret=%d)\n", t1, ret);
-				t0 = 0;
-			}
-//			LLTOUCH_LOG_DEBUG("%ld.%06ld: %6d %6d %6d\n", samp.tv.tv_sec, samp.tv.tv_usec, samp.x, samp.y, samp.pressure);
-#endif
-			TOUCH_HELPER_moved(samp.x, samp.y);
+	/* retry in case the device is not ready yet */
+	while (retries > 0) {
+		ts = ts_open(tsdevice, 0);
+		if (NULL != ts) {
+			break;
 		}
+		LLTOUCH_LOG_DEBUG("Touch initialization failed. retry in %d seconds (ts_open error %d: %m)\n", TSDEVICE_RETRY_TIMEOUT_SEC, errno);
+		retries--;
+		sleep(TSDEVICE_RETRY_TIMEOUT_SEC);
+	}
 
-    } else {
+	if (NULL == ts) {
+		LLTOUCH_LOG_WARNING("Touch initialization failed... (ts_open error)\n");
+	}
 
-    	if(pressed == 1){
-			//post the event
-			TOUCH_HELPER_released();
-			pressed = 0;
-		}
-    }
-  }
+	if ((NULL != ts) && (0 != ts_config(ts))) {
+		LLTOUCH_LOG_WARNING("Touch initialization failed... (ts_config error)\n");
+		ts_close(ts);
+		ts = NULL;
+	}
+	return ts;
 }
 
-void TOUCH_MANAGER_initialize(void)
-{
+void* TOUCH_MANAGER_work(void* p_args) {
+	struct tsdev *ts = NULL;
+	struct ts_sample samp;
+	int ret;
+
+	ts = TOUCH_MANAGER_ts_init();
+	if (NULL == ts) {
+		return NULL;
+	}
+
+#ifdef TOUCH_POLLING
+	int64_t t0 = 0;
+	int64_t t1 = 0;
+#endif
+
+	while (1) {
+#ifdef TOUCH_POLLING
+		if(t0 == 0l) {
+//			LLTOUCH_LOG_DEBUG("[TOUCH] init time \n");
+			t0 = posix_time_getcurrenttime(1);
+		}
+#endif
+
+		ret = ts_read(ts, &samp, 1);
+
+		if (ret != 1) {
+			LLTOUCH_LOG_DEBUG("Fail to Read touch event (ts_read error=%d)\n", ret);
+			/* error during ts_read(), reopen the ts device, and exit if it fails again  */
+			ts_close(ts);
+			ts = TOUCH_MANAGER_ts_init();
+			if (NULL == ts) {
+				return NULL;
+			} else {
+				continue;
+			}
+		}
+
+//		LLTOUCH_LOG_DEBUG("%ld.%06ld: %6d %6d %6d\n", samp.tv.tv_sec, samp.tv.tv_usec, samp.x, samp.y, samp.pressure);
+		if(samp.pressure > 0) {
+
+			if(pressed == 0) {
+				TOUCH_HELPER_pressed(samp.x,samp.y);
+				pressed = 1;
+			} else {
+#ifdef TOUCH_POLLING
+				t1 = posix_time_getcurrenttime(1) - t0;
+//				LLTOUCH_LOG_DEBUG("[TOUCH] t0=%l ms, t1=%l \n", t0, t1);
+//				LLTOUCH_LOG_DEBUG("[TOUCH] test (%l ms, ret=%d)\n", t1, ret);
+				if(t1 < touch_poll_delay){
+//					LLTOUCH_LOG_DEBUG("[TOUCH] continue (%l ms, ret=%d)\n", t1, ret);
+					continue;
+				}else{
+//					LLTOUCH_LOG_DEBUG("[TOUCH] reset (%l ms, ret=%d)\n", t1, ret);
+					t0 = 0;
+				}
+//				LLTOUCH_LOG_DEBUG("%ld.%06ld: %6d %6d %6d\n", samp.tv.tv_sec, samp.tv.tv_usec, samp.x, samp.y, samp.pressure);
+#endif
+				TOUCH_HELPER_moved(samp.x, samp.y);
+			}
+		} else {
+			if(pressed == 1) {
+				//post the event
+				TOUCH_HELPER_released();
+				pressed = 0;
+			}
+		}
+	}
+}
+
+void TOUCH_MANAGER_initialize(void) {
 	pthread_t thread;
 	pthread_attr_t attributes;
 	int32_t result;

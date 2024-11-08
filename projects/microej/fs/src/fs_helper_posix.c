@@ -8,8 +8,8 @@
  * @file
  * @brief LLFS implementation over POSIX API.
  * @author MicroEJ Developer Team
- * @version 3.0.3
- * @date 21 July 2023
+ * @version 3.0.5
+ * @date 14 August 2024
  */
 
 /* Includes ------------------------------------------------------------------*/
@@ -783,6 +783,14 @@ void LLFS_File_IMPL_seek_action(MICROEJ_ASYNC_WORKER_job_t* job) {
 
 #if (_FILE_OFFSET_BITS == 64)
 	off_t pos = (off_t) n;
+	// Depending on the libc implementation, fseeko will only accept values <= FS_LARGE_FILE_MAX_OFFSET
+	if (pos > (off_t)(FS_LARGE_FILE_MAX_OFFSET)) {
+#ifdef LLFS_DEBUG
+		printf("LLFS_DEBUG [%s:%u] Saturate offset %lld to %lld (FS_LARGE_FILE_MAX_OFFSET)\n",
+               __FILE__, __LINE__, pos, FS_LARGE_FILE_MAX_OFFSET);
+#endif
+		pos = (off_t)(FS_LARGE_FILE_MAX_OFFSET);
+	}
 	seek_err = fseeko(file, pos, SEEK_SET);
 #else
 	// Convert given offset in a type accepted by fseek
@@ -802,7 +810,11 @@ void LLFS_File_IMPL_seek_action(MICROEJ_ASYNC_WORKER_job_t* job) {
 		params->result = LLFS_OK;
 
 #ifdef LLFS_DEBUG
-printf("LLFS_DEBUG [%s:%u] file %d seek to n %ld\n", __FILE__, __LINE__, file, pos);
+#if (_FILE_OFFSET_BITS == 64)
+		printf("LLFS_DEBUG [%s:%u] file %d seek to n %lld\n", __FILE__, __LINE__, file, pos);
+#else
+		printf("LLFS_DEBUG [%s:%u] file %d seek to n %ld\n", __FILE__, __LINE__, file, pos);
+#endif
 #endif
 
 		return;

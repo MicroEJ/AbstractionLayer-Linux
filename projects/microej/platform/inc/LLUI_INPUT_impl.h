@@ -1,5 +1,5 @@
-/* 
- * Copyright 2012-2022 MicroEJ Corp. All rights reserved.
+/*
+ * Copyright 2012-2024 MicroEJ Corp. All rights reserved.
  * This library is provided in source code for use, modification and test, subject to license terms.
  * Any modification of the source code will break MicroEJ Corp. warranties on the whole library.
  */
@@ -15,7 +15,11 @@ extern "C" {
  * of API to connect the MicroUI input pump. All APIs are mandatory.
  */
 
-#include "LLUI_INPUT.h"
+// --------------------------------------------------------------------------------
+// Includes
+// --------------------------------------------------------------------------------
+
+#include <LLUI_INPUT.h>
 
 // --------------------------------------------------------------------------------
 // Constants
@@ -24,17 +28,17 @@ extern "C" {
 /*
  * @brief Low-Level API UI major version.
  */
-#define LLUI_MAJOR_VERSION 13
+#define LLUI_MAJOR_VERSION 14
 
 /*
  * @brief Low-Level API UI minor version.
  */
-#define LLUI_MINOR_VERSION 4
+#define LLUI_MINOR_VERSION 0
 
 /*
  * @brief Low-Level API UI patch version.
  */
-#define LLUI_PATCH_VERSION 1
+#define LLUI_PATCH_VERSION 2
 
 // --------------------------------------------------------------------------------
 // Functions that must be implemented
@@ -163,8 +167,8 @@ void LLUI_INPUT_IMPL_log_queue_read(uint32_t data, uint32_t index);
  *
  * The dump status are:
  * - 0: start the dump: all next logs are the events or events' data already
-		consumed ("past" events) and first log is the latest event or data
-		stored in the queue.
+ *      consumed ("past" events) and first log is the latest event or data
+ *      stored in the queue.
  * - 1: next logs are the events or data not consumed yet ("future" events).
  * - 2: the dump will log the Java objects associated with the events that are not
  * 		consumed yet ("future" events); this feature is only available with the
@@ -187,4 +191,4 @@ void LLUI_INPUT_IMPL_log_dump(bool log_type, uint32_t log, uint32_t index);
 #ifdef __cplusplus
 }
 #endif
-#endif
+#endif // ifndef _LLUI_INPUT_IMPL

@@ -15,8 +15,6 @@ typedef struct LLKERNEL LLKERNEL;
 #include <stdint.h>
 #define LLKERNEL_CONCAT0(p,s) p ## s
 #define LLKERNEL_CONCAT(p,s) LLKERNEL_CONCAT0(p,s)
-#define LLKERNEL_IMPL_allocateWorkingBuffer LLKERNEL_CONCAT(LLKERNEL_IMPL,_allocateWorkingBuffer__I)
-#define LLKERNEL_IMPL_freeWorkingBuffer LLKERNEL_CONCAT(LLKERNEL_IMPL,_freeWorkingBuffer__LiceTea_lang_Ram_2)
 #define LLKERNEL_IMPL_allocateFeature LLKERNEL_CONCAT(LLKERNEL_IMPL,_allocateFeature__II)
 #define LLKERNEL_IMPL_freeFeature LLKERNEL_CONCAT(LLKERNEL_IMPL,_freeFeature__I)
 #define LLKERNEL_IMPL_getAllocatedFeaturesCount LLKERNEL_CONCAT(LLKERNEL_IMPL,_getAllocatedFeaturesCount)

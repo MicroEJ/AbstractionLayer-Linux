@@ -1,5 +1,5 @@
-/* 
- * Copyright 2012-2022 MicroEJ Corp. All rights reserved.
+/*
+ * Copyright 2012-2024 MicroEJ Corp. All rights reserved.
  * This library is provided in source code for use, modification and test, subject to license terms.
  * Any modification of the source code will break MicroEJ Corp. warranties on the whole library.
  */
@@ -24,17 +24,17 @@ extern "C" {
 /*
  * @brief Low-Level API UI major version.
  */
-#define LLUI_MAJOR_VERSION 13
+#define LLUI_MAJOR_VERSION 14
 
 /*
  * @brief Low-Level API UI minor version.
  */
-#define LLUI_MINOR_VERSION 4
+#define LLUI_MINOR_VERSION 0
 
 /*
  * @brief Low-Level API UI patch version.
  */
-#define LLUI_PATCH_VERSION 1
+#define LLUI_PATCH_VERSION 2
 
 /**
  * @brief Intensity value to turn off a LED.
@@ -87,4 +87,4 @@ void LLUI_LED_IMPL_setIntensity(jint ledID, jint intensity);
 #ifdef __cplusplus
 }
 #endif
-#endif
+#endif // ifndef _LLUI_LED_IMPL

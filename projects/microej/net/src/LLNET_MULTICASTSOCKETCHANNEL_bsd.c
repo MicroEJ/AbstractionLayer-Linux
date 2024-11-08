@@ -7,19 +7,18 @@
 
 /**
  * @file
- * @brief LLNET_MULTICASTSOCKETCHANNEL 2.1.0 implementation over BSD-like API.
+ * @brief LLNET_MULTICASTSOCKETCHANNEL 3.0.0 implementation over BSD-like API.
  * @author MicroEJ Developer Team
- * @version 1.3.1
- * @date 20 April 2021
+ * @version 2.0.0
+ * @date 17 June 2022
  */
 
-#include <LLNET_MULTICASTSOCKETCHANNEL_impl.h>
-
+#include "LLNET_MULTICASTSOCKETCHANNEL_impl.h"
 #include <stdio.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include "LLNET_CONSTANTS.h"
+#include "sni.h"
 #include "LLNET_ERRORS.h"
 #include "LLNET_Common.h"
 #include "LLNET_CHANNEL_impl.h"
@@ -34,27 +33,22 @@
 	extern "C" {
 #endif
 
-int32_t LLNET_MULTICASTSOCKETCHANNEL_IMPL_getTimeToLive(int32_t fd, uint8_t retry)
+int32_t LLNET_MULTICASTSOCKETCHANNEL_IMPL_getTimeToLive(int32_t fd)
 {
-	(void)retry;
-
-	LLNET_DEBUG_TRACE("%s(fd=0x%X, ..., retry=%d)\n", __func__, fd, retry);
-	return LLNET_CHANNEL_IMPL_getOption(fd, CPNET_IP_TTL, 0);
+	LLNET_DEBUG_TRACE("%s(fd=0x%X)\n", __func__, fd);
+	return LLNET_CHANNEL_IMPL_getOption(fd, LLNET_SOCKETOPTION_IP_TTL);
 }
 
-int32_t LLNET_MULTICASTSOCKETCHANNEL_IMPL_setTimeToLive(int32_t fd, int32_t ttl, uint8_t retry)
+void LLNET_MULTICASTSOCKETCHANNEL_IMPL_setTimeToLive(int32_t fd, int32_t ttl)
 {
-	(void)retry;
-
-	LLNET_DEBUG_TRACE("%s(fd=0x%X, ..., retry=%d)\n", __func__, fd, retry);
-	return LLNET_CHANNEL_IMPL_setOption(fd, CPNET_IP_TTL, ttl, 0);
+	LLNET_DEBUG_TRACE("%s(fd=0x%X)\n", __func__, fd);
+	LLNET_CHANNEL_IMPL_setOption(fd, LLNET_SOCKETOPTION_IP_TTL, ttl);
 }
 
-int32_t LLNET_MULTICASTSOCKETCHANNEL_IMPL_joinOrLeave(int32_t fd, uint8_t join, int8_t* mcastAddr, int32_t mcastAddrLength, int8_t* netIfAddr, int32_t netIfAddrLength, uint8_t retry)
+void LLNET_MULTICASTSOCKETCHANNEL_IMPL_joinOrLeave(int32_t fd, uint8_t join, int8_t* mcastAddr, int32_t mcastAddrLength, int8_t* netIfAddr, int32_t netIfAddrLength)
 {
-	(void)retry;
-
-	LLNET_DEBUG_TRACE("%s(fd=0x%X, join=%d, ..., retry=%d, mcastAddrLength=%d, netIfAddrLength=%d)\n", __func__, fd, join, retry, mcastAddrLength, netIfAddrLength);
+	LLNET_DEBUG_TRACE("%s(fd=0x%X)\n", __func__, fd);
+	int32_t fd_errno;
 #if LLNET_AF & LLNET_AF_IPV4
 
 	if(mcastAddrLength==sizeof(in_addr_t) && (netIfAddrLength==sizeof(in_addr_t) || netIfAddrLength==0))
@@ -70,10 +64,11 @@ int32_t LLNET_MULTICASTSOCKETCHANNEL_IMPL_joinOrLeave(int32_t fd, uint8_t join, 
 		}
 		if (llnet_setsockopt(fd, IPPROTO_IP, join ? IP_ADD_MEMBERSHIP : IP_DROP_MEMBERSHIP, &optval, sizeof(optval)) == -1)
 		{
-			LLNET_DEBUG_TRACE("%s(%d): errno=%d\n", __func__, __LINE__, llnet_errno(fd));
-			return map_to_java_exception(llnet_errno(fd));
+			fd_errno = llnet_errno(fd);
+			LLNET_DEBUG_TRACE("%s(%d): errno=%d\n", __func__, __LINE__, fd_errno);
+			SNI_throwNativeIOException(LLNET_map_to_java_exception(fd_errno), LLNET_get_socket_error_msg(fd_errno));
 		}
-		return 0;
+		return;
 	}
 #endif
 #if LLNET_AF & LLNET_AF_IPV6
@@ -86,11 +81,13 @@ int32_t LLNET_MULTICASTSOCKETCHANNEL_IMPL_joinOrLeave(int32_t fd, uint8_t join, 
 			struct ifaddrs * ifaddrs = NULL;
 			struct ifaddrs * i;
 			if(getifaddrs(&ifaddrs) != 0) {
-				return J_EUNKNOWN;
+				fd_errno = llnet_errno(fd);
+				SNI_throwNativeIOException(LLNET_map_to_java_exception(fd_errno), LLNET_get_socket_error_msg(fd_errno));
+				return;
 			}
 			// Walk the interface address structure until we match the interface address
 			for (i = ifaddrs; i != NULL; i = i->ifa_next) {
-				if (AF_INET6 == i->ifa_addr->sa_family) {
+				if (NULL != i->ifa_addr && AF_INET6 == i->ifa_addr->sa_family) {
 					if(memcmp(netIfAddr, ((struct sockaddr_in6*)i->ifa_addr)->sin6_addr.s6_addr, netIfAddrLength) == 0) {
 						optval.ipv6mr_interface = if_nametoindex(i->ifa_name);
 						break;
@@ -104,14 +101,16 @@ int32_t LLNET_MULTICASTSOCKETCHANNEL_IMPL_joinOrLeave(int32_t fd, uint8_t join, 
 		}
 		if (llnet_setsockopt(fd, IPPROTO_IPV6, join ? IPV6_JOIN_GROUP : IPV6_LEAVE_GROUP, &optval, sizeof(optval)) == -1)
 		{
-			LLNET_DEBUG_TRACE("%s(%d): errno=%d\n", __func__, __LINE__, llnet_errno(fd));
-			return map_to_java_exception(llnet_errno(fd));
+			fd_errno = llnet_errno(fd);
+			LLNET_DEBUG_TRACE("%s(%d): errno=%d\n", __func__, __LINE__, fd_errno);
+			SNI_throwNativeIOException(LLNET_map_to_java_exception(fd_errno), LLNET_get_socket_error_msg(fd_errno));
 		}
-		return 0;
+		return;
 	}
 #endif
-	return J_EINVAL;
+	SNI_throwNativeIOException(J_EINVAL, "wrong address length");
 }
+
 #ifdef __cplusplus
 	}
 #endif

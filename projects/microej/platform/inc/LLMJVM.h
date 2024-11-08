@@ -115,6 +115,11 @@
 #define LLMJVM_E_SHUTDOWN_ERROR (-25)
 
 /**
+ * Exit code returned when the GC mark stack size is too small.
+ */
+#define LLMJVM_E_INV_GC_MARK_STACK_SIZE (-26)
+
+/**
  * Error code returned when an error occurred.
  */
 #define LLMJVM_E_ERROR (-1)

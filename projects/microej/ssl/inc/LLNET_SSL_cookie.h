@@ -13,8 +13,8 @@
  * @file
  * @brief LLNET SSL cookie OpenSSL header.
  * @author MicroEJ Developer Team
- * @version 1.0.1
- * @date 27 November 2020
+ * @version 2.0.0
+ * @date 25 July 2024
  */
 
 #ifdef __cplusplus

@@ -29,11 +29,11 @@
 
 //#define DEBUG_SYNC
 
-static uint8_t* lldisplay_buf = NULL;
-static int32_t lldisplay_xmin = 0;
-static int32_t lldisplay_xmax = 0;
-static int32_t lldisplay_ymin = 0;
-static int32_t lldisplay_ymax = 0;
+static struct {
+	uint8_t flush_identifier;
+	void* buffer;
+	ui_rect_t area;
+} flush_data;
 
 static int fd = -1;	/* file descriptor for the framebuffer device */
 static char * fb_base;	/* base address of the video-memory */
@@ -149,13 +149,18 @@ static void* lldisplay_copy_task(void* p_args){
 		framerate_increment();
 #endif
 		vsync();
+
 		int32_t mul = (display_screeninfo.bpp/8);
-		(void)memcpy((void*)(fb_base+(display_screeninfo.width*lldisplay_ymin*mul)), (void*)(lldisplay_buf+(display_screeninfo.width*lldisplay_ymin*mul)), display_screeninfo.width*(lldisplay_ymax-lldisplay_ymin+1)*mul);
+		const size_t row_length = mul * (flush_data.area.x2 - flush_data.area.x1 + 1);
+		for (size_t y = flush_data.area.y1; y <= flush_data.area.y2; y++) {
+			const size_t offset = mul * (y * display_screeninfo.width + flush_data.area.x1);
+			memcpy(fb_base + offset, flush_data.buffer + offset, row_length);
+		}
 
 #ifdef DEBUG_SYNC
 		LLDISPLAY_LOG_DEBUG("[TASK] give done signal\n");
 #endif
-		LLUI_DISPLAY_flushDone(false);
+		LLUI_DISPLAY_setBackBuffer(flush_data.flush_identifier, flush_data.buffer, false);
 #ifdef DEBUG_SYNC
 		LLDISPLAY_LOG_DEBUG("[TASK] done signal given\n");
 #endif
@@ -300,14 +305,17 @@ void LLUI_DISPLAY_IMPL_initialize(LLUI_DISPLAY_SInitData* init_data) {
 	LLDISPLAY_LOG_DEBUG("Screen initialization...	OK\n");
 }
 
-uint8_t* LLUI_DISPLAY_IMPL_flush(MICROUI_GraphicsContext* gc, uint8_t* addr, uint32_t xmin, uint32_t ymin, uint32_t xmax, uint32_t ymax)
+void LLUI_DISPLAY_IMPL_flush(MICROUI_GraphicsContext* gc, uint8_t flush_identifier, const ui_rect_t regions[], size_t length)
 {
 	(void)gc;
-	(void)xmin;
-	(void)xmax;
-	lldisplay_buf = addr;
-	lldisplay_ymin = ymin;
-	lldisplay_ymax = ymax;
+
+	assert(length == 1);
+	// The previous frame should have been processed
+	assert(flush_data.buffer == NULL);
+	// Store the flush data
+	flush_data.buffer = LLUI_DISPLAY_getBufferAddress(&gc->image);
+	flush_data.flush_identifier = flush_identifier;
+	flush_data.area = regions[0];
 
 	if (display_is_available == 1) {
 #ifdef DEBUG_SYNC
@@ -322,7 +330,6 @@ uint8_t* LLUI_DISPLAY_IMPL_flush(MICROUI_GraphicsContext* gc, uint8_t* addr, uin
 //	framerate_increment();
 #endif
 	}
-	return addr;
 }
 
 void LLUI_DISPLAY_IMPL_binarySemaphoreTake(void* sem)

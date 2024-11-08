@@ -28,6 +28,16 @@
 #define LLKERNEL_ERROR (-1)
 
 /**
+ * The RAM area alignment constraint.
+ */
+#define LLKERNEL_RAM_AREA_ALIGNMENT (8)
+
+/**
+ * The ROM area alignment constraint.
+ */
+#define LLKERNEL_ROM_AREA_ALIGNMENT (16)
+
+/**
  * Error code thrown by {@link LLKERNEL_onFeatureInitializationError}
  * function when the Installed Feature content is corrupted. The checksum
  * computed during the installation does not match the actual computed
@@ -79,33 +89,19 @@
  */
 #define LLKERNEL_FEATURE_INIT_ERROR_RAM_ADDRESS_CHANGED (8)
 
+/**
+ * Error code thrown by {@link LLKERNEL_onFeatureInitializationError}
+ * function when a previous call to {@link LLKERNEL_getFeatureHandle} returned <code>0</code>.
+ */
+#define LLKERNEL_FEATURE_INIT_ERROR_NULL_HANDLE (9)
+
 // --------------------------------------------------------------------------------
 // -                      Functions that must be implemented                      -
 // --------------------------------------------------------------------------------
 
 /**
- * Allocates a new chunk of memory in the Kernel Working Buffer.
- * 
- * @param size
- *            the size in bytes
- * @return a 32 bits aligned address, or <code>null</code> on error
- */
-void* LLKERNEL_IMPL_allocateWorkingBuffer(int32_t size);
-
-/**
- * Releases a chunk of memory previously allocated using
- * {@link LLKERNEL_allocateWorkingBuffer}.
- * 
- * @param chunk_address
- *            the start address of a previously allocated chunk
- */
-void LLKERNEL_IMPL_freeWorkingBuffer(void* chunk_address);
-
-/**
  * Allocates a new Feature and reserves its ROM and RAM areas. If the
- * implementation does not support custom Feature allocation, it must return
- * <code>0</code>. In this latter case, the Feature is allocated in the
- * Kernel Working Buffer and installed in-place.
+ * Feature cannot be allocated, it must return <code>0</code>.
  * <p>
  * Warning: ROM and RAM areas reservation must take care of address alignment
  * constraints required by {@link LLKERNEL_getFeatureAddressROM} and
@@ -118,7 +114,7 @@ void LLKERNEL_IMPL_freeWorkingBuffer(void* chunk_address);
  *            the size in bytes to allocate in RAM
  * 
  * @return a handle that uniquely identifies the allocated Feature, or
- *         <code>0</code> if custom Feature allocation is not supported
+ *         <code>0</code> if the Feature could not be allocated.
  */
 int32_t LLKERNEL_IMPL_allocateFeature(int32_t size_ROM, int32_t size_RAM);
 
@@ -133,49 +129,57 @@ int32_t LLKERNEL_IMPL_allocateFeature(int32_t size_ROM, int32_t size_RAM);
 void LLKERNEL_IMPL_freeFeature(int32_t handle);
 
 /**
- * Gets the current number of allocated Features.
- * <p>
- * This function is called once at the start of the Core Engine. Afterward, the Core Engine will retrieve Feature
- * handles by calling {@link LLKERNEL_getFeatureHandle} for each index in the range <code>[0..allocated_features_count[</code>.
+ * Retrieves the count of currently installed Features in memory.<br>
  * 
- * @return the number of Features allocated using {@link LLKERNEL_allocateFeature}, but not yet released by
- *         {@link LLKERNEL_freeFeature}. If there are no Features, it will return <code>0</code>.
+ * A Feature is considered installed in memory if it has been successfully allocated
+ * using the {@link LLKERNEL_allocateFeature} method and has not been freed
+ * with the {@link LLKERNEL_freeFeature} method. This count may include Features that were installed
+ * in a previous execution of this Kernel.
+ * 
+ * Upon calling this method, the Core Engine will retrieve Feature handles by invoking
+ * {@link LLKERNEL_getFeatureHandle} for each index within the range <code>[0..{@link LLKERNEL_getAllocatedFeaturesCount}-1)]</code>.
+ * 
+ * @return the current count of Features installed in memory, <code>0</code> if there are none.
  * @see LLKERNEL_getFeatureHandle
  */
 int32_t LLKERNEL_IMPL_getAllocatedFeaturesCount(void);
 
 /**
- * Gets the Feature handle that matches the given allocation index.
- * <p>
- * This function is called at the start of the Core Engine for each allocation index from <code>0</code> to
- * <code>{@link LLKERNEL_getAllocatedFeaturesCount}-1</code>.
+ * Retrieves the handle of a Feature that has been installed in memory.<br>
  * 
- * @param allocation_index
- *            an index in the range <code>[0..{@link LLKERNEL_getAllocatedFeaturesCount}[</code>
- * @return a handle that uniquely identifies the allocated Feature. <code>0</code> is not allowed.
+ * This method is invoked by the Core Engine immediately following a call to
+ * {@link LLKERNEL_getAllocatedFeaturesCount} for each index
+ * within the range <code>[0..{@link LLKERNEL_getAllocatedFeaturesCount}-1]</code>.
+ * 
+ * @param index
+ *            an index within the range <code>[0..{@link LLKERNEL_getAllocatedFeaturesCount}-1]</code>.
+ * @return a unique handle that identifies the Feature at the specified index, or <code>0</code> if
+ *         no valid handle is found.
  * @see LLKERNEL_getAllocatedFeaturesCount
  */
-int32_t LLKERNEL_IMPL_getFeatureHandle(int32_t allocation_index);
+int32_t LLKERNEL_IMPL_getFeatureHandle(int32_t index);
 
 /**
  * Gets the address of the allocated RAM area for the given Feature.
- * The returned address must be <code>8</code> bytes aligned.
+ * The returned address must be {@link LLKERNEL_RAM_AREA_ALIGNMENT} bytes aligned.
  * 
  * @param handle
  *            the Feature handle
  * 
- * @return the start address in bytes of the allocated RAM area.
+ * @return the start address in bytes of the allocated RAM area, or
+ *         <code>NULL</code> if the Feature handle is not valid.
  */
 void* LLKERNEL_IMPL_getFeatureAddressRAM(int32_t handle);
 
 /**
  * Gets the address of the allocated ROM area for the given Feature.
- * The returned address must be <code>16</code> bytes aligned.
+ * The returned address must be {@link LLKERNEL_ROM_AREA_ALIGNMENT} bytes aligned.
  * 
  * @param handle
  *            the Feature handle
  * 
- * @return the start address in bytes of the allocated ROM area.
+ * @return the start address in bytes of the allocated ROM area, or
+ *         <code>NULL</code> if the Feature handle is not valid.
  */
 void* LLKERNEL_IMPL_getFeatureAddressROM(int32_t handle);
 

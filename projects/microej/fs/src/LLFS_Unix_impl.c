@@ -9,8 +9,8 @@
  * @file
  * @brief LLFS implementation over POSIX API.
  * @author MicroEJ Developer Team
- * @version 3.0.3
- * @date 21 July 2023
+ * @version 3.0.5
+ * @date 14 August 2024
  */
 
 /* Includes ------------------------------------------------------------------*/

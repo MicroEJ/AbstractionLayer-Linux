@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2020-2024 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
@@ -9,8 +8,7 @@
  * @brief This file implements all "Drawing" (MicroUI extended library) drawing native functions.
  * @see LLDW_PAINTER_impl.h file comment
  * @author MicroEJ Developer Team
- * @version 2.0.1
- * @date 16 December 2022
+ * @version 4.1.0
  * @since MicroEJ UI Pack 13.0.0
  */
 
@@ -19,25 +17,25 @@
 // --------------------------------------------------------------------------------
 
 // implements LLDW_PAINTER_impl functions
-#include "LLDW_PAINTER_impl.h"
-
-// calls dw_drawing functions
-#include "dw_drawing.h"
+#include <LLDW_PAINTER_impl.h>
 
 // use graphical engine functions to synchronize drawings
-#include "LLUI_DISPLAY.h"
+#include <LLUI_DISPLAY.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+// calls ui_drawing functions
+#include "ui_drawing.h"
+
+// logs the drawings
+#include "ui_log.h"
 
 // --------------------------------------------------------------------------------
 // Macros and Defines
 // --------------------------------------------------------------------------------
 
 // macros to log a drawing
-#define LOG_DRAW_START(fn) LLUI_DISPLAY_logDrawingStart(CONCAT_DEFINES(LOG_DRAW_, fn))
-#define LOG_DRAW_END(fn) LLUI_DISPLAY_logDrawingEnd(CONCAT_DEFINES(LOG_DRAW_, fn))
+#define LOG_DRAW_START(fn) LLTRACE_record_event_u32(LLUI_EVENT_group, LLUI_EVENT_offset + UI_LOG_DRAW, \
+													CONCAT_DEFINES(LOG_DRAW_, fn))
+#define LOG_DRAW_END(s) LLTRACE_record_event_end_u32(LLUI_EVENT_group, LLUI_EVENT_offset + UI_LOG_DRAW, (s))
 
 /*
  * LOG_DRAW_EVENT logs identifiers
@@ -62,115 +60,180 @@ extern "C" {
 // LLDW_PAINTER_impl.h functions
 // --------------------------------------------------------------------------------
 
-void LLDW_PAINTER_IMPL_drawThickFadedPoint(MICROUI_GraphicsContext* gc, jint x, jint y, jint thickness, jint fade) {
-	if (((thickness > 0) || (fade > 0)) && LLUI_DISPLAY_requestDrawing(gc, (SNI_callback)&LLDW_PAINTER_IMPL_drawThickFadedPoint)) {
+void LLDW_PAINTER_IMPL_drawThickFadedPoint(MICROUI_GraphicsContext *gc, jint x, jint y, jint thickness, jint fade) {
+	if (((thickness > 0) || (fade > 0)) && LLUI_DISPLAY_requestDrawing(gc,
+	                                                                   (SNI_callback) &
+	                                                                   LLDW_PAINTER_IMPL_drawThickFadedPoint)) {
 		LOG_DRAW_START(drawThickFadedPoint);
-		LLUI_DISPLAY_setDrawingStatus(DW_DRAWING_drawThickFadedPoint(gc, x, y, thickness, fade));
-		LOG_DRAW_END(drawThickFadedPoint);
+		DRAWING_Status status = UI_DRAWING_drawThickFadedPoint(gc, x, y, thickness, fade);
+		LLUI_DISPLAY_setDrawingStatus(status);
+		LOG_DRAW_END(status);
 	}
 }
 
-void LLDW_PAINTER_IMPL_drawThickFadedLine(MICROUI_GraphicsContext* gc, jint startX, jint startY, jint endX, jint endY, jint thickness, jint fade, DRAWING_Cap startCap, DRAWING_Cap endCap) {
-	if (((thickness > 0) || (fade > 0)) && LLUI_DISPLAY_requestDrawing(gc, (SNI_callback)&LLDW_PAINTER_IMPL_drawThickFadedLine)) {
+void LLDW_PAINTER_IMPL_drawThickFadedLine(MICROUI_GraphicsContext *gc, jint startX, jint startY, jint endX, jint endY,
+                                          jint thickness, jint fade, DRAWING_Cap startCap, DRAWING_Cap endCap) {
+	if (((thickness > 0) || (fade > 0)) && LLUI_DISPLAY_requestDrawing(gc,
+	                                                                   (SNI_callback) &
+	                                                                   LLDW_PAINTER_IMPL_drawThickFadedLine)) {
 		LOG_DRAW_START(drawThickFadedLine);
-		LLUI_DISPLAY_setDrawingStatus(DW_DRAWING_drawThickFadedLine(gc, startX, startY, endX, endY, thickness, fade, startCap, endCap));
-		LOG_DRAW_END(drawThickFadedLine);
+		DRAWING_Status status = UI_DRAWING_drawThickFadedLine(gc, startX, startY, endX, endY, thickness, fade, startCap,
+		                                                      endCap);
+		LLUI_DISPLAY_setDrawingStatus(status);
+		LOG_DRAW_END(status);
 	}
 }
 
-void LLDW_PAINTER_IMPL_drawThickFadedCircle(MICROUI_GraphicsContext* gc, jint x, jint y, jint diameter, jint thickness, jint fade) {
-	if (((thickness > 0) || (fade > 0)) && (diameter > 0) && LLUI_DISPLAY_requestDrawing(gc, (SNI_callback)&LLDW_PAINTER_IMPL_drawThickFadedCircle)) {
+void LLDW_PAINTER_IMPL_drawThickFadedCircle(MICROUI_GraphicsContext *gc, jint x, jint y, jint diameter, jint thickness,
+                                            jint fade) {
+	if (((thickness > 0) || (fade > 0)) && (diameter > 0) && LLUI_DISPLAY_requestDrawing(gc,
+	                                                                                     (SNI_callback) &
+	                                                                                     LLDW_PAINTER_IMPL_drawThickFadedCircle))
+	{
 		LOG_DRAW_START(drawThickFadedCircle);
-		LLUI_DISPLAY_setDrawingStatus(DW_DRAWING_drawThickFadedCircle(gc, x, y, diameter, thickness, fade));
-		LOG_DRAW_END(drawThickFadedCircle);
+		DRAWING_Status status = UI_DRAWING_drawThickFadedCircle(gc, x, y, diameter, thickness, fade);
+		LLUI_DISPLAY_setDrawingStatus(status);
+		LOG_DRAW_END(status);
 	}
 }
 
-void LLDW_PAINTER_IMPL_drawThickFadedCircleArc(MICROUI_GraphicsContext* gc, jint x, jint y, jint diameter, jfloat startAngle, jfloat arcAngle, jint thickness, jint fade, DRAWING_Cap start, DRAWING_Cap end) {
-	if (((thickness > 0) || (fade > 0)) && (diameter > 0) && ((int32_t)arcAngle != 0) && LLUI_DISPLAY_requestDrawing(gc, (SNI_callback)&LLDW_PAINTER_IMPL_drawThickFadedCircleArc)) {
+void LLDW_PAINTER_IMPL_drawThickFadedCircleArc(MICROUI_GraphicsContext *gc, jint x, jint y, jint diameter,
+                                               jfloat startAngle, jfloat arcAngle, jint thickness, jint fade,
+                                               DRAWING_Cap start, DRAWING_Cap end) {
+	if (((thickness > 0) || (fade > 0)) && (diameter > 0) && ((int32_t)arcAngle != 0) && LLUI_DISPLAY_requestDrawing(gc,
+																													 (
+																														 SNI_callback)
+	                                                                                                                 &
+	                                                                                                                 LLDW_PAINTER_IMPL_drawThickFadedCircleArc))
+	{
 		LOG_DRAW_START(drawThickFadedCircleArc);
-		LLUI_DISPLAY_setDrawingStatus(DW_DRAWING_drawThickFadedCircleArc(gc, x, y, diameter, startAngle, arcAngle, thickness, fade, start, end));
-		LOG_DRAW_END(drawThickFadedCircleArc);
+		DRAWING_Status status = UI_DRAWING_drawThickFadedCircleArc(gc, x, y, diameter, startAngle, arcAngle, thickness,
+		                                                           fade, start, end);
+		LLUI_DISPLAY_setDrawingStatus(status);
+		LOG_DRAW_END(status);
 	}
 }
 
-void LLDW_PAINTER_IMPL_drawThickFadedEllipse(MICROUI_GraphicsContext* gc, jint x, jint y, jint width, jint height, jint thickness, jint fade) {
-	if (((thickness > 0) || (fade > 0)) && (width > 0) && (height > 0) && LLUI_DISPLAY_requestDrawing(gc, (SNI_callback)&LLDW_PAINTER_IMPL_drawThickFadedEllipse)) {
+void LLDW_PAINTER_IMPL_drawThickFadedEllipse(MICROUI_GraphicsContext *gc, jint x, jint y, jint width, jint height,
+                                             jint thickness, jint fade) {
+	if (((thickness > 0) || (fade > 0)) && (width > 0) && (height > 0) && LLUI_DISPLAY_requestDrawing(gc,
+	                                                                                                  (SNI_callback) &
+	                                                                                                  LLDW_PAINTER_IMPL_drawThickFadedEllipse))
+	{
 		LOG_DRAW_START(drawThickFadedEllipse);
-		LLUI_DISPLAY_setDrawingStatus(DW_DRAWING_drawThickFadedEllipse(gc, x, y, width, height, thickness, fade));
-		LOG_DRAW_END(drawThickFadedEllipse);
+		DRAWING_Status status = UI_DRAWING_drawThickFadedEllipse(gc, x, y, width, height, thickness, fade);
+		LLUI_DISPLAY_setDrawingStatus(status);
+		LOG_DRAW_END(status);
 	}
 }
 
-void LLDW_PAINTER_IMPL_drawThickLine(MICROUI_GraphicsContext* gc, jint startX, jint startY, jint endX, jint endY, jint thickness) {
-	if ((thickness > 0) && LLUI_DISPLAY_requestDrawing(gc, (SNI_callback)&LLDW_PAINTER_IMPL_drawThickLine)) {
+void LLDW_PAINTER_IMPL_drawThickLine(MICROUI_GraphicsContext *gc, jint startX, jint startY, jint endX, jint endY,
+                                     jint thickness) {
+	if ((thickness > 0) && LLUI_DISPLAY_requestDrawing(gc, (SNI_callback) & LLDW_PAINTER_IMPL_drawThickLine)) {
 		LOG_DRAW_START(drawThickLine);
-		LLUI_DISPLAY_setDrawingStatus(DW_DRAWING_drawThickLine(gc, startX, startY, endX, endY, thickness));
-		LOG_DRAW_END(drawThickLine);
+		DRAWING_Status status = UI_DRAWING_drawThickLine(gc, startX, startY, endX, endY, thickness);
+		LLUI_DISPLAY_setDrawingStatus(status);
+		LOG_DRAW_END(status);
 	}
 }
 
-void LLDW_PAINTER_IMPL_drawThickCircle(MICROUI_GraphicsContext* gc, jint x, jint y, jint diameter, jint thickness) {
-	if ((thickness > 0) && (diameter > 0) && LLUI_DISPLAY_requestDrawing(gc, (SNI_callback)&LLDW_PAINTER_IMPL_drawThickCircle)) {
+void LLDW_PAINTER_IMPL_drawThickCircle(MICROUI_GraphicsContext *gc, jint x, jint y, jint diameter, jint thickness) {
+	if ((thickness > 0) && (diameter > 0) && LLUI_DISPLAY_requestDrawing(gc,
+	                                                                     (SNI_callback) &
+	                                                                     LLDW_PAINTER_IMPL_drawThickCircle)) {
 		LOG_DRAW_START(drawThickCircle);
-		LLUI_DISPLAY_setDrawingStatus(DW_DRAWING_drawThickCircle(gc, x, y, diameter, thickness));
-		LOG_DRAW_END(drawThickCircle);
+		DRAWING_Status status = UI_DRAWING_drawThickCircle(gc, x, y, diameter, thickness);
+		LLUI_DISPLAY_setDrawingStatus(status);
+		LOG_DRAW_END(status);
 	}
 }
 
-void LLDW_PAINTER_IMPL_drawThickEllipse(MICROUI_GraphicsContext* gc, jint x, jint y, jint width, jint height, jint thickness) {
-	if ((thickness > 0) && (width > 0) && (height > 0) && LLUI_DISPLAY_requestDrawing(gc, (SNI_callback)&LLDW_PAINTER_IMPL_drawThickEllipse)) {
+void LLDW_PAINTER_IMPL_drawThickEllipse(MICROUI_GraphicsContext *gc, jint x, jint y, jint width, jint height,
+                                        jint thickness) {
+	if ((thickness > 0) && (width > 0) && (height > 0) && LLUI_DISPLAY_requestDrawing(gc,
+	                                                                                  (SNI_callback) &
+	                                                                                  LLDW_PAINTER_IMPL_drawThickEllipse))
+	{
 		LOG_DRAW_START(drawThickEllipse);
-		LLUI_DISPLAY_setDrawingStatus(DW_DRAWING_drawThickEllipse(gc, x, y, width, height, thickness));
-		LOG_DRAW_END(drawThickEllipse);
+		DRAWING_Status status = UI_DRAWING_drawThickEllipse(gc, x, y, width, height, thickness);
+		LLUI_DISPLAY_setDrawingStatus(status);
+		LOG_DRAW_END(status);
 	}
 }
 
-void LLDW_PAINTER_IMPL_drawThickCircleArc(MICROUI_GraphicsContext* gc, jint x, jint y, jint diameter, jfloat startAngle, jfloat arcAngle, jint thickness) {
-	if ((thickness > 0) && (diameter > 0) && ((int32_t)arcAngle != 0) && LLUI_DISPLAY_requestDrawing(gc, (SNI_callback)&LLDW_PAINTER_IMPL_drawThickCircleArc)) {
+void LLDW_PAINTER_IMPL_drawThickCircleArc(MICROUI_GraphicsContext *gc, jint x, jint y, jint diameter, jfloat startAngle,
+                                          jfloat arcAngle, jint thickness) {
+	if ((thickness > 0) && (diameter > 0) && ((int32_t)arcAngle != 0) && LLUI_DISPLAY_requestDrawing(gc,
+	                                                                                                 (SNI_callback) &
+	                                                                                                 LLDW_PAINTER_IMPL_drawThickCircleArc))
+	{
 		LOG_DRAW_START(drawThickCircleArc);
-		LLUI_DISPLAY_setDrawingStatus(DW_DRAWING_drawThickCircleArc(gc, x, y, diameter, startAngle, arcAngle, thickness));
-		LOG_DRAW_END(drawThickCircleArc);
+		DRAWING_Status status = UI_DRAWING_drawThickCircleArc(gc, x, y, diameter, startAngle, arcAngle, thickness);
+		LLUI_DISPLAY_setDrawingStatus(status);
+		LOG_DRAW_END(status);
 	}
 }
 
-void LLDW_PAINTER_IMPL_drawFlippedImage(MICROUI_GraphicsContext* gc, MICROUI_Image* img, jint regionX, jint regionY, jint width, jint height, jint x, jint y, DRAWING_Flip transformation, jint alpha) {
-	if (!LLUI_DISPLAY_isClosed(img) && (alpha > 0) && LLUI_DISPLAY_requestDrawing(gc, (SNI_callback)&LLDW_PAINTER_IMPL_drawFlippedImage)) {
+void LLDW_PAINTER_IMPL_drawFlippedImage(MICROUI_GraphicsContext *gc, MICROUI_Image *img, jint regionX, jint regionY,
+                                        jint width, jint height, jint x, jint y, DRAWING_Flip transformation,
+                                        jint alpha) {
+	if (!LLUI_DISPLAY_isClosed(img) && (alpha > 0) && LLUI_DISPLAY_requestDrawing(gc,
+	                                                                              (SNI_callback) &
+	                                                                              LLDW_PAINTER_IMPL_drawFlippedImage)) {
 		LOG_DRAW_START(drawFlippedImage);
-		LLUI_DISPLAY_setDrawingStatus(DW_DRAWING_drawFlippedImage(gc, img, regionX, regionY, width, height, x, y, transformation, alpha));
-		LOG_DRAW_END(drawFlippedImage);
+		DRAWING_Status status = UI_DRAWING_drawFlippedImage(gc, img, regionX, regionY, width, height, x, y,
+		                                                    transformation, alpha);
+		LLUI_DISPLAY_setDrawingStatus(status);
+		LOG_DRAW_END(status);
 	}
 }
 
-void LLDW_PAINTER_IMPL_drawRotatedImageNearestNeighbor(MICROUI_GraphicsContext* gc, MICROUI_Image* img, jint x, jint y, jint rotationX, jint rotationY, jfloat angle, jint alpha) {
-	if (!LLUI_DISPLAY_isClosed(img) && (alpha > 0) && LLUI_DISPLAY_requestDrawing(gc, (SNI_callback)&LLDW_PAINTER_IMPL_drawRotatedImageNearestNeighbor)) {
+void LLDW_PAINTER_IMPL_drawRotatedImageNearestNeighbor(MICROUI_GraphicsContext *gc, MICROUI_Image *img, jint x, jint y,
+                                                       jint rotationX, jint rotationY, jfloat angle, jint alpha) {
+	if (!LLUI_DISPLAY_isClosed(img) && (alpha > 0) && LLUI_DISPLAY_requestDrawing(gc,
+	                                                                              (SNI_callback) &
+	                                                                              LLDW_PAINTER_IMPL_drawRotatedImageNearestNeighbor))
+	{
 		LOG_DRAW_START(drawRotatedImageNearestNeighbor);
-		LLUI_DISPLAY_setDrawingStatus(DW_DRAWING_drawRotatedImageNearestNeighbor(gc, img, x, y, rotationX, rotationY, angle, alpha));
-		LOG_DRAW_END(drawRotatedImageNearestNeighbor);
+		DRAWING_Status status = UI_DRAWING_drawRotatedImageNearestNeighbor(gc, img, x, y, rotationX, rotationY, angle,
+		                                                                   alpha);
+		LLUI_DISPLAY_setDrawingStatus(status);
+		LOG_DRAW_END(status);
 	}
 }
 
-void LLDW_PAINTER_IMPL_drawRotatedImageBilinear(MICROUI_GraphicsContext* gc, MICROUI_Image* img, jint x, jint y, jint rotationX, jint rotationY, jfloat angle, jint alpha) {
-	if (!LLUI_DISPLAY_isClosed(img) && (alpha > 0) && LLUI_DISPLAY_requestDrawing(gc, (SNI_callback)&LLDW_PAINTER_IMPL_drawRotatedImageBilinear)) {
+void LLDW_PAINTER_IMPL_drawRotatedImageBilinear(MICROUI_GraphicsContext *gc, MICROUI_Image *img, jint x, jint y,
+                                                jint rotationX, jint rotationY, jfloat angle, jint alpha) {
+	if (!LLUI_DISPLAY_isClosed(img) && (alpha > 0) && LLUI_DISPLAY_requestDrawing(gc,
+	                                                                              (SNI_callback) &
+	                                                                              LLDW_PAINTER_IMPL_drawRotatedImageBilinear))
+	{
 		LOG_DRAW_START(drawRotatedImageBilinear);
-		LLUI_DISPLAY_setDrawingStatus(DW_DRAWING_drawRotatedImageBilinear(gc, img, x, y, rotationX, rotationY, angle, alpha));
-		LOG_DRAW_END(drawRotatedImageBilinear);
+		DRAWING_Status status = UI_DRAWING_drawRotatedImageBilinear(gc, img, x, y, rotationX, rotationY, angle, alpha);
+		LLUI_DISPLAY_setDrawingStatus(status);
+		LOG_DRAW_END(status);
 	}
 }
 
-void LLDW_PAINTER_IMPL_drawScaledImageNearestNeighbor(MICROUI_GraphicsContext* gc, MICROUI_Image* img, jint x, jint y, jfloat factorX, jfloat factorY, jint alpha) {
-	if (!LLUI_DISPLAY_isClosed(img) && (alpha > 0) && (factorX > 0.f) && (factorY > 0.f) && LLUI_DISPLAY_requestDrawing(gc, (SNI_callback)&LLDW_PAINTER_IMPL_drawScaledImageNearestNeighbor)) {
+void LLDW_PAINTER_IMPL_drawScaledImageNearestNeighbor(MICROUI_GraphicsContext *gc, MICROUI_Image *img, jint x, jint y,
+                                                      jfloat factorX, jfloat factorY, jint alpha) {
+	if (!LLUI_DISPLAY_isClosed(img) && (alpha > 0) && (factorX > 0.f) && (factorY > 0.f) &&
+	    LLUI_DISPLAY_requestDrawing(gc, (SNI_callback) & LLDW_PAINTER_IMPL_drawScaledImageNearestNeighbor)) {
 		LOG_DRAW_START(drawScaledImageNearestNeighbor);
-		LLUI_DISPLAY_setDrawingStatus(DW_DRAWING_drawScaledImageNearestNeighbor(gc, img, x, y, factorX, factorY, alpha));
-		LOG_DRAW_END(drawScaledImageNearestNeighbor);
+		DRAWING_Status status = UI_DRAWING_drawScaledImageNearestNeighbor(gc, img, x, y, factorX, factorY, alpha);
+		LLUI_DISPLAY_setDrawingStatus(status);
+		LOG_DRAW_END(status);
 	}
 }
 
-void LLDW_PAINTER_IMPL_drawScaledImageBilinear(MICROUI_GraphicsContext* gc, MICROUI_Image* img, jint x, jint y, jfloat factorX, jfloat factorY, jint alpha) {
-	if (!LLUI_DISPLAY_isClosed(img) && (alpha > 0) && (factorX > 0.f) && (factorY > 0.f) && LLUI_DISPLAY_requestDrawing(gc, (SNI_callback)&LLDW_PAINTER_IMPL_drawScaledImageBilinear)) {
+void LLDW_PAINTER_IMPL_drawScaledImageBilinear(MICROUI_GraphicsContext *gc, MICROUI_Image *img, jint x, jint y,
+                                               jfloat factorX, jfloat factorY, jint alpha) {
+	if (!LLUI_DISPLAY_isClosed(img) && (alpha > 0) && (factorX > 0.f) && (factorY > 0.f) &&
+	    LLUI_DISPLAY_requestDrawing(gc, (SNI_callback) & LLDW_PAINTER_IMPL_drawScaledImageBilinear)) {
 		LOG_DRAW_START(drawScaledImageBilinear);
-		LLUI_DISPLAY_setDrawingStatus(DW_DRAWING_drawScaledImageBilinear(gc, img, x, y, factorX, factorY, alpha));
-		LOG_DRAW_END(drawScaledImageBilinear);
+		DRAWING_Status status = UI_DRAWING_drawScaledImageBilinear(gc, img, x, y, factorX, factorY, alpha);
+		LLUI_DISPLAY_setDrawingStatus(status);
+		LOG_DRAW_END(status);
 	}
 }
 
