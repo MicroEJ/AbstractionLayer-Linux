@@ -3,7 +3,7 @@
 	Use of this source code is governed by a BSD-style license that can be found with this software.
 -->
 <ivy-module version="2.0" xmlns:ea="http://www.easyant.org" xmlns:m="http://ant.apache.org/ivy/extra" xmlns:ej="https://developer.microej.com" ej:version="2.0.0">
-	<info organisation="com.microej.clibrary.platform" module="bsp-linux" status="integration" revision="2.0.0">
+	<info organisation="com.microej.clibrary.platform" module="bsp-linux" status="integration" revision="2.0.1">
 		<ea:build organisation="com.is2t.easyant.buildtypes" module="build-custom" revision="2.2.+"/>
 
 		<!-- Retrieve embedded and default dependencies -->
@@ -29,7 +29,7 @@
 	</publications>
 
 	<dependencies>
-		<!-- CCO -->
+		<!-- CCO begin
 		<dependency org="com.microej.clibrary.llimpl" name="bsp-generic" rev="1.0.0" transitive="false"/>
 		<dependency org="com.microej.clibrary.llimpl" name="ecom-network-generic" rev="2.3.1" transitive="false"/>
 		<dependency org="com.microej.clibrary.llimpl" name="fs-generic" rev="2.1.1" transitive="false"/>
@@ -46,6 +46,7 @@
 		<dependency org="com.microej.clibrary.platform" name="bsp-microej-main" rev="3.0.0" transitive="false"/>
 		<dependency org="com.microej.clibrary.platform" name="main-linux" rev="2.0.0" transitive="false"/>
 		<dependency org="com.microej.clibrary.platform" name="osal-headers" rev="0.2.0" transitive="false"/>
+		CCO end -->
 	</dependencies>
 		
 	</ivy-module>

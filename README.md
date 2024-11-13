@@ -1,49 +1,45 @@
-# Generic Abstraction layers for Linux VEE ports
+![SDK](https://shields.microej.com/endpoint?url=https://repository.microej.com/packages/badges/sdk_5.x.json)
+![ARCH](https://shields.microej.com/endpoint?url=https://repository.microej.com/packages/badges/arch_8.1.json)
+![GUI](https://shields.microej.com/endpoint?url=https://repository.microej.com/packages/badges/gui_3.json)
+
+# Generic Abstraction Layers for Linux VEE Ports
 
 # Overview
 
-This project contains all the abstraction layers implementation to run the VEE on a Linux system.
+This project contains all the Abstraction Layers implementation to run the VEE on a Linux system.
 
 It also contains a cmake project with differents sets of configuration (toolchains, features).
 
-This abstraction layer requires a GNU GCC 32 bit toolchain as well as a few listed C librairies, see [Requirements](#requirements)
+This Abstraction Layer requires a GNU GCC 32 bit toolchain as well as a few listed C librairies, see [Requirements](#requirements)
 
-## Abstraction layers supported
+## Supported Features
 
-| Foundation Library | Version |
+This Abstraction Layer is compliant with Architecture 8.x, with the following packs:
+
+| Pack Name          | Version |
 | ------------------ | ------- |
-| BON                | 1.4     |
-| DEVICE             | 1.2     |
-| DRAWING            | 1.0     |
-| ECOM-NETWORK       | 2.1     |
-| FS                 | 2.1     |
-| KF                 | 1.7     |
-| MICROUI            | 3.5     |
-| NET                | 1.1     |
-| RESOURCEMANAGER    | 1.0     |
-| SECURITY           | 1.7     |
-| SNI                | 1.4     |
-| SSL                | 2.2     |
-| TRACE              | 1.1     |
-| WATCHDOG           | 1.0     |
+| DEVICE             | 1.0     |
+| FS                 | 6.0     |
+| NET                | 11.1    |
+| ECOM-NETWORK       | 1.0     |
 
 # Usage
 
 This project has 2 configuration steps.
 
-First you [add this abstraction layer into a Linux VEE port project](#how-to-use-this-abstraction-layer-in-a-linux-vee-port)
+First you [add this Abstraction Layer into a Linux VEE port project](#how-to-use-this-abstraction-layer-in-a-linux-vee-port)
 
 Then you [customize the features for your VEE port requirements](#how-to-customize-the-vee-port)
 
-# How to use this abstraction layer in a Linux VEE port
+# How to Use this Abstraction Layer in a Linux VEE Port
 
-A typical Linux VEE port can use this abstraction layer as its BSP to build and run the VEE.
+A typical Linux VEE port can use this Abstraction Layer as its BSP to build and run the VEE.
 
 See MicroEJ documentation about [BSP connection](https://docs.microej.com/en/latest/VEEPortingGuide/bspConnection.html#bsp-connection)
 
 The following folder structure can be used:
 - a VEE port configuration project containing the board specific configurations (see details below)
-- a VEE port abstraction layer (the current repository, named `Linux-abstractionlayer`), with all the necessary C abstraction layers and scripts.
+- a VEE port Abstraction Layer (the current repository, named `Linux-abstractionlayer`), with all the necessary C Abstraction Layers and scripts.
 
 It should look like this:
 ```
@@ -86,14 +82,14 @@ For example in `Linux-configuration/configuration.xml`:
         <import file="${project.parent.dir}/Linux-abstractionlayer/configuration.xml"/>
 ```
 
-# How to customize the VEE port
+# How to Customize the VEE port
 
 ## Build & Run Scripts
 
 In the directory ``project/microej/scripts/`` are scripts that can be used to build and flash the executable.  
 The ``.bat`` and ``.sh`` scripts are meant to run in a Windows and Linux environment respectively.
 
-- The ``build*`` scripts are used to compile and link the abstraction layers with a MicroEJ Application to produce a MicroEJ executable (``application.out``) that can be run on a linux device.
+- The ``build*`` scripts are used to compile and link the Abstraction Layers with a MicroEJ Application to produce a MicroEJ executable (``application.out``) that can be run on a linux device.
 
   The ``build*`` scripts work out of the box, assuming the toolchain is configured properly, see :ref:`Plaftorm configuration section`
 
@@ -102,15 +98,15 @@ The ``.bat`` and ``.sh`` scripts are meant to run in a Windows and Linux environ
 The environment variables can be defined globally by the user or in the ``set_local_env*`` scripts.  When the ``.bat`` (``.sh``) scripts are executed, the ``set_local_env.bat`` (``set_local_env.sh``) script is executed if it exists.
 Create and configure these files to customize the environment locally.
 
-## Host configuration
+## Host Configuration
 
-### target SSH configuration
+### Target SSH Configuration
 
 See ``set_local_env.sh``. This is where you can configure the ``SSH_HOSTNAME`` variable.
 
 This address is then used to deploy the executable on the target automatically.
 
-### WSL configuration (if using WSL for Windows)
+### WSL Configuration (if using WSL for Windows)
 
 See ``set_local_env.bat``. The default setting is ``Ubuntu``, but if you have several WSL distributions it could be different.
 
@@ -122,9 +118,9 @@ IF [%WSL_DISTRIBUTION_NAME%] == [] (
 )
 ```
 
-## VEE port configuration
+## VEE Port Configuration
 
-At build time, the |VEEPORT| configuration project will install the 3 following files into the ``project/microej/scripts/`` folder:
+At build time, the VEE port configuration project will install the 3 following files into the ``project/microej/scripts/`` folder:
 
 * ``set_project_env.sh``
 
@@ -136,7 +132,7 @@ This is a cmake configuration file purely dedicated to the toolchain configurati
 
 * ``project_options.cmake``
 
-This is a cmake configuration file dedicated to the abstraction layers configuration.
+This is a cmake configuration file dedicated to the Abstraction Layers configuration.
 
 ### set_project_env.sh
 
@@ -203,7 +199,7 @@ set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
 ```
 
-#### Using a standalone toolchain
+#### Using a Standalone Toolchain
 
 Here is how to cross compile for i686 GCC on Ubuntu, see the CMAKE_C_COMPILER variable below:
 
@@ -230,15 +226,15 @@ set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
 
 ### project_options.cmake
 
-This is where all the generic abstraction layers configuration takes place.
+This is where all the generic Abstraction Layers configuration takes place.
 
-#### How to add your own abstraction layer
+#### How to Add Your Own Abstraction Layer
 
 With the following syntax, you can specify the source of external code:
 
 ```
 #
-# Abstraction layer external source
+# Abstraction Layer external source
 #
 # set(ABSTRACTION_LAYER_EXTERNAL ../../../Linux-abstractionlayer-imx93)
 # When specifying an out-of-tree source a binary directory must be explicitly specified
@@ -246,7 +242,7 @@ With the following syntax, you can specify the source of external code:
 # add_subdirectory(${ABSTRACTION_LAYER_EXTERNAL} Linux-abstractionlayer-imx93)
 ```
 
-#### How to set custom CFLAGS options
+#### How to Set Custom CFLAGS Options
 
 Here is an example when building a 32bit executable for a 64bit target
 
@@ -260,7 +256,7 @@ set(CFLAGS ${CFLAGS} -m32)
 set(CFLAGS ${CFLAGS} -msse -mfpmath=sse)
 ```
 
-#### How to enable/disable Abstraction layers
+#### How to Enable/Disable Abstraction Layers
 
 The list of options can be found in the [options.cmake](projects/microej/options.cmake) file.
 
@@ -291,7 +287,7 @@ To disable a feature, simply add the following line in the project_options.cmake
 set(BUILD_XXX         "Build XXX Abstraction Layer"                   OFF)
 ```
 
-#### Abstraction layers specific configurations
+#### Abstraction Layers Specific Configurations
 
 ```
 # Set specific features
@@ -315,19 +311,19 @@ endif()
   * Otherwise, if linux supports DRM, select BUILD_UI_DRM
   * If you don't have a display, just disable BUILD_UI
 
-#### Debug and advanced features
+#### Debug and Advanced Features
 
 ```
 # Debug features
 option(ADVANCED_TRACE "Enable MJVM Advanced trace" OFF)
 ```
 
-* ADVANCED_TRACE is used for `Advanced Event Tracing <https://docs.microej.com/en/latest/VEEPortingGuide/advanceTrace.html>`_
+* ADVANCED_TRACE is used for [Advanced Event Tracing](https://docs.microej.com/en/latest/VEEPortingGuide/advanceTrace.html)
 
 
 # Requirements
 
-This abstraction layer implementation requires a GNU compiler for 32-bit Linux architecture.
+This Abstraction Layer implementation requires a GNU compiler for 32-bit Linux architecture.
 
 The following librairies must be installed in the sysroot:
 - libc.so
