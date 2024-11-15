@@ -10,36 +10,63 @@ This project contains all the Abstraction Layers implementation to run the VEE o
 
 It also contains a cmake project with differents sets of configuration (toolchains, features).
 
-This Abstraction Layer requires a GNU GCC 32 bit toolchain as well as a few listed C librairies, see [Requirements](#requirements)
+This Abstraction Layer requires a GNU GCC 32 bit toolchain as well as a few listed C libraries, see [Requirements](#requirements)
 
 ## Supported Features
 
-This Abstraction Layer is compliant with Architecture 8.x, with the following packs:
+This Abstraction Layer is compliant with Architecture `8.x` and the following Packs:
 
-| Pack Name          | Version |
-| ------------------ | ------- |
-| DEVICE             | 1.0     |
-| FS                 | 6.0     |
-| NET                | 11.1    |
-| ECOM-NETWORK       | 1.0     |
+| Pack Name    | Version  |
+| ------------ | -------- |
+| DEVICE       | 1.2.0    |
+| ECOM-NETWORK | 1.0.0    |
+| FS           | 6.0.4    |
+| NET          | 11.1.0   |
+| UI           | 14.0.2   |
+
+### Architecture
+
+The Multi-Sandbox Application download implementation is based on malloc/free in RAM, so without reboot persistence.
+
+### Device Pack
+
+The Device UID is based on the Ethernet HWAddr.
+
+### Networking Pack
+
+Both IPv4 a IPv6 are supported.
+
+SSL supports TLSv1, TLSv1.1, TLSv1.2, DTLS1.2.
+
+Security algorithms:
+- Cipher: AES-128-CBC, AES-192-CBC, AES-256-CBC, DES-CBC
+- RSA Cipher: RSA/ECB/PKCS1Padding, RSA/ECB/OAEPWithSHA-1AndMGF1Padding, RSA/ECB/OAEPWithSHA-256AndMGF1Padding
+- Digest: MD5, SHA-1, SHA-256, SHA-512
+- Key generation: EC, RSA
+- HMAC: SHA-256
+- Signature: SHA256withRSA, SHA256withECDSA
+
+### UI Pack
+
+This Abstraction Layer implements the display on either the Linux kernel Frame Buffer or Direct Rendering Manager (libdrm).
 
 # Usage
 
 This project has 2 configuration steps.
 
-First you [add this Abstraction Layer into a Linux VEE port project](#how-to-use-this-abstraction-layer-in-a-linux-vee-port)
+First you [add this Abstraction Layer into a Linux VEE Port project](#how-to-use-this-abstraction-layer-in-a-linux-vee-port).
 
-Then you [customize the features for your VEE port requirements](#how-to-customize-the-vee-port)
+Then you [customize the features for your VEE Port requirements](#how-to-customize-the-vee-port).
 
 # How to Use this Abstraction Layer in a Linux VEE Port
 
-A typical Linux VEE port can use this Abstraction Layer as its BSP to build and run the VEE.
+A typical Linux VEE Port can use this Abstraction Layer as its BSP to build and run the VEE.
 
-See MicroEJ documentation about [BSP connection](https://docs.microej.com/en/latest/VEEPortingGuide/bspConnection.html#bsp-connection)
+See MicroEJ documentation about [BSP connection](https://docs.microej.com/en/latest/VEEPortingGuide/bspConnection.html#bsp-connection).
 
 The following folder structure can be used:
-- a VEE port configuration project containing the board specific configurations (see details below)
-- a VEE port Abstraction Layer (the current repository, named `Linux-abstractionlayer`), with all the necessary C Abstraction Layers and scripts.
+- a VEE Port configuration project containing the board specific configurations (see details below)
+- a VEE Port Abstraction Layer (the current repository, named `Linux-abstractionlayer`), with all the necessary C Abstraction Layers and scripts
 
 It should look like this:
 ```
@@ -59,7 +86,7 @@ Linux-abstractionlayer/
         └── ...
 ```
 
-- The VEE port configuration project uses variables to locate the `Linux-abstractionlayer` folder.
+- The VEE Port configuration project uses variables to locate the `Linux-abstractionlayer` folder.
 For example in `Linux-configuration/bsp/bsp.properties`:
 ```
 microejapp.relative.dir=projects/microej/platform/lib
@@ -69,27 +96,27 @@ microejscript.relative.dir=projects/microej/scripts
 root.dir=${project.parent.dir}/Linux-abstractionlayer
 ```
 
-- The VEE port configuration project imports the `module.properties` file.
+- The VEE Port configuration project imports the `module.properties` file.
 For example in `Linux-configuration/override.module.ant`:
 ```
         <property file="${override.module.dir}/../Linux-abstractionlayer/module.properties"/>
 ```
 
-- The VEE port configuration project imports the `configuration.xml` file.
+- The VEE Port configuration project imports the `configuration.xml` file.
 For example in `Linux-configuration/configuration.xml`:
 ```
         <!-- Import BSP Configuration script -->
         <import file="${project.parent.dir}/Linux-abstractionlayer/configuration.xml"/>
 ```
 
-# How to Customize the VEE port
+# How to Customize the VEE Port
 
 ## Build & Run Scripts
 
 In the directory ``project/microej/scripts/`` are scripts that can be used to build and flash the executable.  
 The ``.bat`` and ``.sh`` scripts are meant to run in a Windows and Linux environment respectively.
 
-- The ``build*`` scripts are used to compile and link the Abstraction Layers with a MicroEJ Application to produce a MicroEJ executable (``application.out``) that can be run on a linux device.
+- The ``build*`` scripts are used to compile and link the Abstraction Layers with a MicroEJ Application to produce a MicroEJ executable (``application.out``) that can be run on a Linux device.
 
   The ``build*`` scripts work out of the box, assuming the toolchain is configured properly, see :ref:`Plaftorm configuration section`
 
@@ -120,11 +147,11 @@ IF [%WSL_DISTRIBUTION_NAME%] == [] (
 
 ## VEE Port Configuration
 
-At build time, the VEE port configuration project will install the 3 following files into the ``project/microej/scripts/`` folder:
+At build time, the VEE Port configuration project will install the 3 following files into the ``project/microej/scripts/`` folder:
 
 * ``set_project_env.sh``
 
-This script is used to setup environment variables for compilation (such as the path to the Compiler and/or Yocto SDK)
+This script is used to setup environment variables for compilation (such as the path to the Compiler and/or Yocto SDK).
 
 * ``toolchain.cmake``
 
@@ -244,7 +271,7 @@ With the following syntax, you can specify the source of external code:
 
 #### How to Set Custom CFLAGS Options
 
-Here is an example when building a 32bit executable for a 64bit target
+Here is an example when building a 32bit executable for a 64bit target:
 
 ```
 #
@@ -276,12 +303,12 @@ option(BUILD_UTIL         "Build Util Abstraction Layer"                   ON)
 option(BUILD_VALIDATION   "Build validation utilities"                     OFF)
 ```
 
-examples:
+Examples:
 
-* if your VEE port doesn't have the FS foundation library, you can disable BUILD_FS
+* If your VEE Port doesn't have the FS Foundation Library, you can disable BUILD_FS.
 * BUILD_VALIDATION is only used to validate the core architecture.
 
-To disable a feature, simply add the following line in the project_options.cmake file of your VEE port project:
+To disable a feature, simply add the following line in the project_options.cmake file of your VEE Port project:
 
 ```
 set(BUILD_XXX         "Build XXX Abstraction Layer"                   OFF)
@@ -304,12 +331,12 @@ if (BUILD_NET)
 endif()
 ```
 
-* BUILD_UI_TOUCHSCREEN is based on tslib API (https://github.com/libts/tslib)
+* BUILD_UI_TOUCHSCREEN is based on tslib API (https://github.com/libts/tslib).
 * BUILD_UI_FBDEV and BUILD_UI_DRM are mutually exclusive.
 
-  * If linux only supports the legacy frame buffer (/dev/fb0), select BUILD_UI_FBDEV
-  * Otherwise, if linux supports DRM, select BUILD_UI_DRM
-  * If you don't have a display, just disable BUILD_UI
+  * If Linux only supports the legacy frame buffer (/dev/fb0), select BUILD_UI_FBDEV
+  * Otherwise, if Linux supports DRM, select BUILD_UI_DRM.
+  * If you don't have a display, just disable BUILD_UI.
 
 #### Debug and Advanced Features
 
@@ -325,7 +352,7 @@ option(ADVANCED_TRACE "Enable MJVM Advanced trace" OFF)
 
 This Abstraction Layer implementation requires a GNU compiler for 32-bit Linux architecture.
 
-The following librairies must be installed in the sysroot:
+The following libraries must be installed in the sysroot:
 - libc.so
 - libssl.so
 - libcrypto.so
@@ -352,6 +379,8 @@ N/A
 # Restrictions
 
 None.
+
 ---
-_Copyright 2024 MicroEJ Corp. All rights reserved._
-_Use of this source code is governed by a BSD-style license that can be found with this software._
+
+_Copyright 2024 MicroEJ Corp. All rights reserved._  
+_Use of this source code is governed by a BSD-style license that can be found with this software._  
