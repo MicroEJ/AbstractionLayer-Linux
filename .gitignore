@@ -1,3 +1,8 @@
-/target~/
-/projects/cppcheck/html-report/
-projects/cppcheck/html-report/
+cppcheck/html-report/
+vee/build
+vee/inc
+vee/lib
+
+# macOS
+.DS_Store
+

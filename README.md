@@ -1,14 +1,14 @@
-![SDK](https://shields.microej.com/endpoint?url=https://repository.microej.com/packages/badges/sdk_5.x.json)
+![SDK](https://shields.microej.com/endpoint?url=https://repository.microej.com/packages/badges/sdk_6.0.json)
 ![ARCH](https://shields.microej.com/endpoint?url=https://repository.microej.com/packages/badges/arch_8.1.json)
 ![GUI](https://shields.microej.com/endpoint?url=https://repository.microej.com/packages/badges/gui_3.json)
 
-# Generic Abstraction Layers for Linux VEE Ports
+# Generic Abstraction Layer for Linux VEE Ports
 
 # Overview
 
-This project contains all the Abstraction Layers implementation to run the VEE on a Linux system.
+This project contains a complete Abstraction Layer implementation to run the VEE on a Linux system.
 
-It also contains a cmake project with differents sets of configuration (toolchains, features).
+It also contains a cmake project with different sets of configuration (toolchains, features).
 
 This Abstraction Layer requires a GNU GCC 32 bit toolchain as well as a few listed C libraries, see [Requirements](#requirements)
 
@@ -66,72 +66,110 @@ See MicroEJ documentation about [BSP connection](https://docs.microej.com/en/lat
 
 The following folder structure can be used:
 - a VEE Port configuration project containing the board specific configurations (see details below)
-- a VEE Port Abstraction Layer (the current repository, named `Linux-abstractionlayer`), with all the necessary C Abstraction Layers and scripts
+- a VEE Port Abstraction Layer (the current repository, named `AbstractionLayer-Linux`)
 
 It should look like this:
 ```
-Linux-configuration/
-├── bsp
-│   ├── bsp.properties
-│   └── scripts
-│       ├── project_options.cmake
-│       ├── set_project_env.sh
-│       └── toolchain.cmake
-├── configuration.xml
-├── module.ivy
-└── override.module.ant
-Linux-abstractionlayer/
-└── projects
-    └── microej
-        └── ...
+├── vee-port/
+    ├── bsp
+        ├── project_options.cmake
+        ├── set_project_env.sh
+        └── toolchain.cmake
+    ├── build.gradle.kts
+    ├── configuration.properties
+    ...
+├── AbstractionLayer-Linux
+    ├── gradle/libs.versions.toml
+    └── vee
+        ├── CMakeLists.txt
+        ├── build
+        ├── inc
+        ├── lib
+        ├── options.cmake
+        ├── port
+        └── scripts
 ```
 
-- The VEE Port configuration project uses variables to locate the `Linux-abstractionlayer` folder.
-For example in `Linux-configuration/bsp/bsp.properties`:
+## BSP Connection
+- In this folder structure, we are using a full BSP connection:
+For example in `vee-port/configuration.properties`:
 ```
-microejapp.relative.dir=projects/microej/platform/lib
-microejlib.relative.dir=projects/microej/platform/lib
-microejinc.relative.dir=projects/microej/platform/inc
-microejscript.relative.dir=projects/microej/scripts
-root.dir=${project.parent.dir}/Linux-abstractionlayer
-```
-
-- The VEE Port configuration project imports the `module.properties` file.
-For example in `Linux-configuration/override.module.ant`:
-```
-        <property file="${override.module.dir}/../Linux-abstractionlayer/module.properties"/>
+bsp.microejapp.relative.dir=vee/lib
+bsp.microejlib.relative.dir=vee/lib
+bsp.microejinc.relative.dir=vee/inc
+bsp.microejscript.relative.dir=vee/scripts
+bsp.root.dir=${project.parent.dir}/AbstractionLayer-Linux
 ```
 
-- The VEE Port configuration project imports the `configuration.xml` file.
-For example in `Linux-configuration/configuration.xml`:
+## Pack Version Dependencies
+
+This Abstraction Layer is compatible with a set of MicroEJ packs.
+
+The VEE Port project can use the file `libs.versions.toml` to set the proper pack dependencies in gradle.
+
+For example in `vee-port/build.gradle.kts`:
 ```
-        <!-- Import BSP Configuration script -->
-        <import file="${project.parent.dir}/Linux-abstractionlayer/configuration.xml"/>
+    // load the versions
+    dependencyResolutionManagement {
+        versionCatalogs {
+            create("libsOverride") {
+                from(files("./AbstractionLayer-Linux/gradle/libs.versions.toml"))
+            }
+        }
+    }
+    // then add the packs in the gradle dependencies
+    microejPack(libsOverride.pack.device)
+    microejPack(libsOverride.pack.ecom.network)
+    microejPack(libsOverride.pack.fs)
+    microejPack(libsOverride.pack.net)
 ```
+
+## CMake Project Configuration
+
+This Abstraction Layer does not come with a default configuration. It needs to be provided by the VEE Port project.
+
+3 files are necessary, their contents are detailed in a following section [VEE Port Configuration](#vee-port-configuration).
+
+Here is a way to install them properly on top of the Abstraction Layer:
+```
+// Add this code in vee-port/build.gradle.kts
+tasks.register<Copy>("copyBspScripts") {
+    from("bsp")
+    into("../AbstractionLayer-Linux/vee/scripts")
+}
+
+tasks.getByName("buildVeePort").dependsOn("copyBspScripts")
+tasks.getByName("buildVeePortConfiguration").dependsOn("copyBspScripts")
+```
+This method makes sure that the files are copied before the compilation stage.
 
 # How to Customize the VEE Port
 
+Now that we have seen how to connect this Abstraction Layer with a VEE Port, we will see how it can be configured.
+
 ## Build & Run Scripts
 
-In the directory ``project/microej/scripts/`` are scripts that can be used to build and flash the executable.  
+In the directory ``vee/scripts/`` are scripts that can be used to build and flash the executable.  
 The ``.bat`` and ``.sh`` scripts are meant to run in a Windows and Linux environment respectively.
 
-- The ``build*`` scripts are used to compile and link the Abstraction Layers with a MicroEJ Application to produce a MicroEJ executable (``application.out``) that can be run on a Linux device.
+- The ``build*`` scripts are used to compile and link the Abstraction Layer with a MicroEJ Application to produce a MicroEJ executable (``application.out``) that can be run on a Linux device.
 
   The ``build*`` scripts work out of the box, assuming the toolchain is configured properly, see :ref:`Plaftorm configuration section`
 
 - The ``run*`` scripts are used to send and execute a MicroEJ executable (``application.out``) on a device, over SSH.
 
 The environment variables can be defined globally by the user or in the ``set_local_env*`` scripts.  When the ``.bat`` (``.sh``) scripts are executed, the ``set_local_env.bat`` (``set_local_env.sh``) script is executed if it exists.
-Create and configure these files to customize the environment locally.
+You can edit these files to customize the environment locally.
 
 ## Host Configuration
 
 ### Target SSH Configuration
 
-See ``set_local_env.sh``. This is where you can configure the ``SSH_HOSTNAME`` variable.
+See ``set_local_env.sh``. This is where you can configure the ``SSH_HOSTNAME`` environment variable.
 
 This address is then used to deploy the executable on the target automatically.
+
+You can also set this environment variable in your machine shell, or via your IDE by editing the gradle task `runOnDevice`.
 
 ### WSL Configuration (if using WSL for Windows)
 
@@ -145,9 +183,15 @@ IF [%WSL_DISTRIBUTION_NAME%] == [] (
 )
 ```
 
+### Docker configuration
+
+In case of running a docker image to build the executable, you must set the following environment variables:
+- ``DOCKER_IMAGE`` to chose the docker image to use.
+- ``ROOT_PROJECT_DIR`` indicating the absolute path to the root of your project
+
 ## VEE Port Configuration
 
-At build time, the VEE Port configuration project will install the 3 following files into the ``project/microej/scripts/`` folder:
+At build time, the VEE Port configuration project will install the 3 following files into the ``vee/scripts/`` folder:
 
 * ``set_project_env.sh``
 
@@ -159,7 +203,7 @@ This is a cmake configuration file purely dedicated to the toolchain configurati
 
 * ``project_options.cmake``
 
-This is a cmake configuration file dedicated to the Abstraction Layers configuration.
+This is a cmake configuration file dedicated to the Abstraction Layer configuration.
 
 ### set_project_env.sh
 
@@ -173,8 +217,6 @@ Here is an example when building with a [Yocto SDK](https://docs.yoctoproject.or
 #
 # BASH
 #
-# Copyright 2024 MicroEJ Corp. All rights reserved.
-# Use of this source code is governed by a BSD-style license that can be found with this software.
 
 # Toolchain settings:
 # Application SDK installation path (e.g. /usr/local/oecore-x86_64)
@@ -206,8 +248,6 @@ When building with a [Yocto SDK](https://docs.yoctoproject.org/2.1/sdk-manual/sd
 A few additional settings are necessary like setting the sysroot, see below:
 
 ```
-# Copyright 2024 MicroEJ Corp. All rights reserved.
-# Use of this source code is governed by a BSD-style license that can be found with this software.
 #
 # Toolchain settings
 #
@@ -231,8 +271,6 @@ set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
 Here is how to cross compile for i686 GCC on Ubuntu, see the CMAKE_C_COMPILER variable below:
 
 ```
-# Copyright 2024 MicroEJ Corp. All rights reserved.
-# Use of this source code is governed by a BSD-style license that can be found with this software.
 #
 # Toolchain settings
 #
@@ -253,9 +291,10 @@ set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
 
 ### project_options.cmake
 
-This is where all the generic Abstraction Layers configuration takes place.
+This is where all the generic Abstraction Layer configuration takes place.
+This CMake file is sourced by `vee/CMakeLists.txt`, and so any CMake option can be set or overridden here.
 
-#### How to Add Your Own Abstraction Layer
+#### How to Add Your Own Native Code
 
 With the following syntax, you can specify the source of external code:
 
@@ -263,10 +302,10 @@ With the following syntax, you can specify the source of external code:
 #
 # Abstraction Layer external source
 #
-# set(ABSTRACTION_LAYER_EXTERNAL ../../../Linux-abstractionlayer-imx93)
+# set(ABSTRACTION_LAYER_EXTERNAL ../../../AbstractionLayer-Linux-external)
 # When specifying an out-of-tree source a binary directory must be explicitly specified
 # here we will install the output files in a subdirectory of CMAKE_CURRENT_BINARY_DIR
-# add_subdirectory(${ABSTRACTION_LAYER_EXTERNAL} Linux-abstractionlayer-imx93)
+# add_subdirectory(${ABSTRACTION_LAYER_EXTERNAL} AbstractionLayer-Linux-external)
 ```
 
 #### How to Set Custom CFLAGS Options
@@ -283,11 +322,11 @@ set(CFLAGS ${CFLAGS} -m32)
 set(CFLAGS ${CFLAGS} -msse -mfpmath=sse)
 ```
 
-#### How to Enable/Disable Abstraction Layers
+#### How to Enable/Disable Each Module
 
-The list of options can be found in the [options.cmake](projects/microej/options.cmake) file.
+The support for each pack is separated in different modules, which can all be disabled using a CMake option.
 
-This file lists all the different options, and sets a default value with the `option(<variable> "<help_text>" [value])` syntax.
+The file [options.cmake](vee/options.cmake) lists all the different options, and sets a default value with the `option(<variable> "<help_text>" [value])` syntax.
 
 ```
 # Select which Abstraction Layer to build
@@ -305,16 +344,16 @@ option(BUILD_VALIDATION   "Build validation utilities"                     OFF)
 
 Examples:
 
-* If your VEE Port doesn't have the FS Foundation Library, you can disable BUILD_FS.
+* If your VEE Port doesn't need the FS Foundation Library, you can disable BUILD_FS.
 * BUILD_VALIDATION is only used to validate the core architecture.
 
 To disable a feature, simply add the following line in the project_options.cmake file of your VEE Port project:
 
 ```
-set(BUILD_XXX         "Build XXX Abstraction Layer"                   OFF)
+set(BUILD_FS OFF)
 ```
 
-#### Abstraction Layers Specific Configurations
+#### Module Specific Configurations
 
 ```
 # Set specific features
@@ -381,6 +420,6 @@ N/A
 None.
 
 ---
-
-_Copyright 2024 MicroEJ Corp. All rights reserved._  
+_Markdown_  
+_Copyright 2024-2025 MicroEJ Corp. All rights reserved._  
 _Use of this source code is governed by a BSD-style license that can be found with this software._  

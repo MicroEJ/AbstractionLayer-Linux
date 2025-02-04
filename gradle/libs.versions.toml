@@ -1,0 +1,12 @@
+# Copyright 2023-2024 MicroEJ Corp. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be found with this software.
+
+# This catalog will be used instead of the VEE Port gradle/libs.versions.toml
+# This is done to ensure compatiblity with the Abstraction Layer
+[libraries]
+# Packs
+pack-device =           { group = "com.microej.pack.device", name = "device-pack", version = "1.2.0" }
+pack-ecom-network =     { group = "com.microej.pack.ecom-network", name = "ecom-network-pack", version = "1.0.0" }
+pack-fs =               { group = "com.microej.pack", name = "fs", version = "6.0.4" }
+pack-net =              { group = "com.microej.pack.net", name = "net-pack", version = "11.1.0" }
+

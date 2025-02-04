@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2025-01-04
+
+### Changed
+
+- Migrate to SDK6 folder structure
+- Packs versions: switch from ANT properties to Gradle's version catalog (TOML)
+- Cmake: rebuild only updated files
+- Update headers files to align with architecture version 8.3.0
+- add possibility to build with docker
+
+### Fixed
+
+- Fixed a SCP compatibility issue with Dropbear SSH servers
+- Fixed a minor gcc warning with OpenSSL 1.1.1u
+
 ## [2.0.2] - 2024-11-15
 
 ### Changed
@@ -40,5 +55,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - DRM framebuffer implementation
 
 ---
-_Copyright 2024 MicroEJ Corp. All rights reserved._\
-_Use of this source code is governed by a BSD-style license that can be found with this software._
+_Markdown_  
+_Copyright 2024-2025 MicroEJ Corp. All rights reserved._  
+_Use of this source code is governed by a BSD-style license that can be found with this software._  
