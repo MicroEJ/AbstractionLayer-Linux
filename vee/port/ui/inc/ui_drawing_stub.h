@@ -1,12 +1,14 @@
 /*
- * Copyright 2023-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2023-2025 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 
 #ifndef UI_DRAWING_STUB_H
 #define UI_DRAWING_STUB_H
+
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 /*
@@ -16,7 +18,7 @@ extern "C" {
  * stub a drawing on a custom destination (custom GraphicsContext format not supported by the Graphics
  * Engine).
  * @author MicroEJ Developer Team
- * @version 4.1.0
+ * @version 14.3.2
  */
 
 // --------------------------------------------------------------------------------
@@ -114,6 +116,30 @@ DRAWING_Status UI_DRAWING_STUB_drawCircle(MICROUI_GraphicsContext *gc, jint x, j
  * @brief Stubbed implementation of fillCircle. See ui_drawing.h
  */
 DRAWING_Status UI_DRAWING_STUB_fillCircle(MICROUI_GraphicsContext *gc, jint x, jint y, jint diameter);
+
+/**
+ * @brief Stub implementation of drawString. See ui_drawing.h.
+ */
+DRAWING_Status UI_DRAWING_STUB_drawString(MICROUI_GraphicsContext *gc, jchar *chars, jint length, MICROUI_Font *font,
+                                          jint x, jint y);
+
+/**
+ * @brief Stub implementation of stringWidth. See ui_drawing.h.
+ */
+jint UI_DRAWING_STUB_stringWidth(jchar *chars, jint length, MICROUI_Font *font);
+
+/**
+ * @brief Stub implementation of initializeRenderableStringSNIContext. See ui_drawing.h.
+ */
+jint UI_DRAWING_STUB_initializeRenderableStringSNIContext(jchar *chars, jint length, MICROUI_Font *font,
+                                                          MICROUI_RenderableString *renderableString);
+
+/**
+ * @brief Stub implementation of drawRenderableString. See ui_drawing.h.
+ */
+DRAWING_Status UI_DRAWING_STUB_drawRenderableString(MICROUI_GraphicsContext *gc, jchar *chars, jint length,
+                                                    MICROUI_Font *font, jint width,
+                                                    MICROUI_RenderableString *renderableString, jint x, jint y);
 
 /*
  * @brief Stubbed implementation of drawImage. See ui_drawing.h
@@ -221,6 +247,35 @@ DRAWING_Status UI_DRAWING_STUB_drawScaledImageNearestNeighbor(MICROUI_GraphicsCo
 DRAWING_Status UI_DRAWING_STUB_drawScaledImageBilinear(MICROUI_GraphicsContext *gc, MICROUI_Image *img, jint x, jint y,
                                                        jfloat factorX, jfloat factorY, jint alpha);
 
+/*
+ * @brief Stubbed implementation of drawScaledStringBilinear. See ui_drawing.h
+ */
+DRAWING_Status UI_DRAWING_STUB_drawScaledStringBilinear(MICROUI_GraphicsContext *gc, jchar *chars, jint length,
+                                                        MICROUI_Font *font, jint x, jint y, jfloat xRatio,
+                                                        jfloat yRatio);
+
+/*
+ * @brief Stubbed implementation of drawScaledRenderableStringBilinear. See ui_drawing.h
+ */
+DRAWING_Status UI_DRAWING_STUB_drawScaledRenderableStringBilinear(MICROUI_GraphicsContext *gc, jchar *chars,
+                                                                  jint length, MICROUI_Font *font, jint width,
+                                                                  MICROUI_RenderableString *renderableString, jint x,
+                                                                  jint y, jfloat xRatio, jfloat yRatio);
+
+/*
+ * @brief Stubbed implementation of drawCharWithRotationBilinear. See ui_drawing.h
+ */
+DRAWING_Status UI_DRAWING_STUB_drawCharWithRotationBilinear(MICROUI_GraphicsContext *gc, jchar c, MICROUI_Font *font,
+                                                            jint x, jint y, jint xRotation, jint yRotation,
+                                                            jfloat angle, jint alpha);
+
+/*
+ * @brief Stubbed implementation of drawCharWithRotationNearestNeighbor. See ui_drawing.h
+ */
+DRAWING_Status UI_DRAWING_STUB_drawCharWithRotationNearestNeighbor(MICROUI_GraphicsContext *gc, jchar c,
+                                                                   MICROUI_Font *font, jint x, jint y, jint xRotation,
+                                                                   jint yRotation, jfloat angle, jint alpha);
+
 // --------------------------------------------------------------------------------
 // EOF
 // --------------------------------------------------------------------------------
@@ -228,4 +283,5 @@ DRAWING_Status UI_DRAWING_STUB_drawScaledImageBilinear(MICROUI_GraphicsContext *
 #ifdef __cplusplus
 }
 #endif
+
 #endif // UI_DRAWING_STUB_H

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2023-2025 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 
@@ -7,13 +7,13 @@
  * @file
  * @brief This file implements all the LLUI_DISPLAY_impl.h functions relating to the
  * display buffer strategy (BRS) "legacy"
- * @see UI_DISPLAY_BRS_LEGACY comment
+ * @see UI_FEATURE_BRS_LEGACY comment
  * @author MicroEJ Developer Team
- * @version 4.1.0
+ * @version 14.3.2
  */
 
 #include "ui_display_brs.h"
-#if defined UI_DISPLAY_BRS && UI_DISPLAY_BRS == UI_DISPLAY_BRS_LEGACY
+#if defined UI_FEATURE_BRS && UI_FEATURE_BRS == UI_FEATURE_BRS_LEGACY
 
 // --------------------------------------------------------------------------------
 // Private fields
@@ -61,4 +61,4 @@ DRAWING_Status LLUI_DISPLAY_IMPL_refresh(MICROUI_GraphicsContext *gc, uint8_t fl
 // EOF
 // --------------------------------------------------------------------------------
 
-#endif // UI_DISPLAY_BRS_LEGACY
+#endif // UI_FEATURE_BRS_LEGACY

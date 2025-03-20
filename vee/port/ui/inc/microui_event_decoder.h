@@ -1,7 +1,7 @@
 /*
  * C
  *
- * Copyright 2021-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2021-2025 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 
@@ -9,12 +9,20 @@
  * @file
  * @brief See microui_event_decoder.c.
  * @author MicroEJ Developer Team
- * @version 4.1.0
+ * @version 14.3.2
  * @since MicroEJ UI Pack 13.1.0
  */
 
 #if !defined MICROUI_EVENT_DECODER_H
 #define MICROUI_EVENT_DECODER_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include "ui_configuration.h"
+
+#if defined(UI_FEATURE_EVENT_DECODER)
 
 // -----------------------------------------------------------------------------
 // Includes
@@ -23,14 +31,6 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
-
-#include "microui_event_decoder_conf.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#ifdef MICROUIEVENTDECODER_ENABLED
 
 // -----------------------------------------------------------------------------
 // Types
@@ -90,13 +90,14 @@ void MICROUI_EVENT_DECODER_drop_data(uint32_t data, uint32_t index);
 void MICROUI_EVENT_DECODER_decode_event(uint32_t event, uint32_t index,
                                         MICROUI_EVENT_DECODER_decode_event_data *fct_data_decoder);
 
-#endif // MICROUIEVENTDECODER_ENABLED
-
 // -----------------------------------------------------------------------------
 // EOF
 // -----------------------------------------------------------------------------
 
+#endif // UI_FEATURE_EVENT_DECODER
+
 #ifdef __cplusplus
 }
 #endif
+
 #endif // MICROUI_EVENT_DECODER_H

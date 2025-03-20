@@ -1,12 +1,16 @@
 /*
  * C
  *
- * Copyright 2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2024-2025 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 
 #ifndef UI_RECT_UTIL_H
 #define UI_RECT_UTIL_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*
  * @file
@@ -15,12 +19,8 @@
  * @see ui_rect_t
  *
  * @author MicroEJ Developer Team
- * @version 4.1.0
+ * @version 14.3.2
  */
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 // --------------------------------------------------------------------------------
 // Includes

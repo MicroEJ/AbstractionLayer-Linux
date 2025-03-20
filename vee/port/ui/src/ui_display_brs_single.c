@@ -1,5 +1,5 @@
 /*
- * Copyright 2023-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2023-2025 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 
@@ -7,13 +7,13 @@
  * @file
  * @brief This file implements all the LLUI_DISPLAY_impl.h functions relating to the
  * display buffer strategy (BRS) "single"
- * @see UI_DISPLAY_BRS_SINGLE comment
+ * @see UI_FEATURE_BRS_SINGLE comment
  * @author MicroEJ Developer Team
- * @version 4.1.0
+ * @version 14.3.2
  */
 
 #include "ui_display_brs.h"
-#if defined UI_DISPLAY_BRS && UI_DISPLAY_BRS == UI_DISPLAY_BRS_SINGLE
+#if defined UI_FEATURE_BRS && UI_FEATURE_BRS == UI_FEATURE_BRS_SINGLE
 
 // --------------------------------------------------------------------------------
 // Includes
@@ -27,9 +27,9 @@
 
 /*
  * @brief This strategy uses only one buffer
- * @see the comment of UI_DISPLAY_BRS_SINGLE.
+ * @see the comment of UI_FEATURE_BRS_SINGLE.
  */
-#if defined UI_DISPLAY_BRS_DRAWING_BUFFER_COUNT && UI_DISPLAY_BRS_DRAWING_BUFFER_COUNT != 1
+#if defined UI_FEATURE_BRS_DRAWING_BUFFER_COUNT && UI_FEATURE_BRS_DRAWING_BUFFER_COUNT != 1
 #error "This strategy uses always the same back buffer."
 #endif
 
@@ -37,14 +37,14 @@
 // Private fields
 // --------------------------------------------------------------------------------
 
-#ifndef UI_DISPLAY_BRS_FLUSH_SINGLE_RECTANGLE
+#ifndef UI_FEATURE_BRS_FLUSH_SINGLE_RECTANGLE
 
 /*
  * @brief A collection of rectangles to transmit to the LCD
  */
 static ui_rect_collection_t dirty_regions;
 
-#else // UI_DISPLAY_BRS_FLUSH_SINGLE_RECTANGLE
+#else // UI_FEATURE_BRS_FLUSH_SINGLE_RECTANGLE
 
 /*
  * @brief Rectangle given to LLUI_DISPLAY_IMPL_flush(): it includes all dirty regions since
@@ -57,7 +57,7 @@ static ui_rect_t flush_bounds = {
 	.y2 = 0,
 };
 
-#endif // UI_DISPLAY_BRS_FLUSH_SINGLE_RECTANGLE
+#endif // UI_FEATURE_BRS_FLUSH_SINGLE_RECTANGLE
 
 // --------------------------------------------------------------------------------
 // LLUI_DISPLAY_impl.h API
@@ -73,7 +73,7 @@ DRAWING_Status LLUI_DISPLAY_IMPL_newDrawingRegion(MICROUI_GraphicsContext *gc, u
 
 	LOG_REGION(UI_LOG_BRS_NewDrawing, region);
 
-#ifndef UI_DISPLAY_BRS_FLUSH_SINGLE_RECTANGLE
+#ifndef UI_FEATURE_BRS_FLUSH_SINGLE_RECTANGLE
 
 	ui_rect_t *previous = UI_RECT_COLLECTION_get_last(&dirty_regions);
 	if ((NULL == previous) || !UI_RECT_contains_rect(previous, region)) {
@@ -91,7 +91,7 @@ DRAWING_Status LLUI_DISPLAY_IMPL_newDrawingRegion(MICROUI_GraphicsContext *gc, u
 		LOG_REGION(UI_LOG_BRS_AddRegion, &new_region);
 		UI_RECT_COLLECTION_add_rect(&dirty_regions, new_region);
 	}
-#else // UI_DISPLAY_BRS_FLUSH_SINGLE_RECTANGLE
+#else // UI_FEATURE_BRS_FLUSH_SINGLE_RECTANGLE
 	(void)gc;
 
 	flush_bounds.x1 = MIN(flush_bounds.x1, region->x1);
@@ -99,7 +99,7 @@ DRAWING_Status LLUI_DISPLAY_IMPL_newDrawingRegion(MICROUI_GraphicsContext *gc, u
 	flush_bounds.x2 = MAX(flush_bounds.x2, region->x2);
 	flush_bounds.y2 = MAX(flush_bounds.y2, region->y2);
 
-#endif // UI_DISPLAY_BRS_FLUSH_SINGLE_RECTANGLE
+#endif // UI_FEATURE_BRS_FLUSH_SINGLE_RECTANGLE
 
 	return DRAWING_DONE;
 }
@@ -110,7 +110,7 @@ DRAWING_Status LLUI_DISPLAY_IMPL_newDrawingRegion(MICROUI_GraphicsContext *gc, u
  * This function calls LLUI_DISPLAY_IMPL_flush() with the rectangle that includes all dirty regions.
  */
 DRAWING_Status LLUI_DISPLAY_IMPL_refresh(MICROUI_GraphicsContext *gc, uint8_t flushIdentifier) {
-#ifndef UI_DISPLAY_BRS_FLUSH_SINGLE_RECTANGLE
+#ifndef UI_FEATURE_BRS_FLUSH_SINGLE_RECTANGLE
 
 	size_t size = UI_RECT_COLLECTION_get_length(&dirty_regions);
 	if (1u == size) {
@@ -126,7 +126,7 @@ DRAWING_Status LLUI_DISPLAY_IMPL_refresh(MICROUI_GraphicsContext *gc, uint8_t fl
 	LLUI_DISPLAY_IMPL_flush(gc, flushIdentifier, dirty_regions.data, UI_RECT_COLLECTION_get_length(&dirty_regions));
 	UI_RECT_COLLECTION_clear(&dirty_regions);
 
-#else // UI_DISPLAY_BRS_FLUSH_SINGLE_RECTANGLE
+#else // UI_FEATURE_BRS_FLUSH_SINGLE_RECTANGLE
 
 	LLTRACE_record_event_u32x6(LLUI_EVENT_group, LLUI_EVENT_offset + UI_LOG_BRS_FlushSingle, flushIdentifier,
 	                           (uint32_t)LLUI_DISPLAY_getBufferAddress(&gc->image), flush_bounds.x1, flush_bounds.y1,
@@ -141,12 +141,12 @@ DRAWING_Status LLUI_DISPLAY_IMPL_refresh(MICROUI_GraphicsContext *gc, uint8_t fl
 	flush_bounds.x2 = 0;
 	flush_bounds.y2 = 0;
 
-#endif // UI_DISPLAY_BRS_FLUSH_SINGLE_RECTANGLE
+#endif // UI_FEATURE_BRS_FLUSH_SINGLE_RECTANGLE
 
 	return DRAWING_DONE;
 }
 
-#endif // UI_DISPLAY_BRS_PREDRAW
+#endif // UI_FEATURE_BRS_SINGLE
 
 // --------------------------------------------------------------------------------
 // EOF

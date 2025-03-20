@@ -1,10 +1,11 @@
 /*
- * Copyright 2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2024-2025 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 
 #if !defined UI_LOG_H
 #define UI_LOG_H
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -28,7 +29,7 @@ extern "C" {
  * 		LLTRACE_record_event_u32(LLUI_EVENT_group, LLUI_EVENT_offset + MY_EVENT_OFFSET, my_event_data);
  *
  * @author MicroEJ Developer Team
- * @version 4.1.0
+ * @version 14.3.2
  */
 
 // --------------------------------------------------------------------------------
@@ -109,4 +110,5 @@ extern int32_t LLUI_EVENT_offset;
 #ifdef __cplusplus
 }
 #endif
+
 #endif // UI_LOG_H

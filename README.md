@@ -22,7 +22,7 @@ This Abstraction Layer is compliant with Architecture `8.x` and the following Pa
 | ECOM-NETWORK | 1.0.0    |
 | FS           | 6.0.4    |
 | NET          | 11.1.0   |
-| UI           | 14.0.2   |
+| UI           | 14.3.2   |
 
 ### Architecture
 

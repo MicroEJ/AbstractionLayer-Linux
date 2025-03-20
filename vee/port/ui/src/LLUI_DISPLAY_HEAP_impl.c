@@ -1,7 +1,7 @@
 /*
  * C
  *
- * Copyright 2021-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2021-2025 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 
@@ -13,9 +13,14 @@
  *
  * @see LLUI_DISPLAY_impl.h file comment
  * @author MicroEJ Developer Team
- * @version 4.1.0
+ * @version 14.3.2
  * @since MicroEJ UI Pack 13.1.0
  */
+
+#include "ui_configuration.h"
+
+#if defined(UI_FEATURE_ALLOCATOR) && defined(UI_FEATURE_ALLOCATOR_BESTFIT) && \
+	(UI_FEATURE_ALLOCATOR == UI_FEATURE_ALLOCATOR_BESTFIT)
 
 // -----------------------------------------------------------------------------
 // Includes
@@ -79,7 +84,7 @@ void LLUI_DISPLAY_IMPL_imageHeapInitialize(uint8_t *heap_start, uint8_t *heap_li
 uint8_t * LLUI_DISPLAY_IMPL_imageHeapAllocate(uint32_t size) {
 	uint8_t *addr = (uint8_t *)BESTFIT_ALLOCATOR_allocate(&image_heap, (int32_t)size);
 
-	if ((uint8_t *)0 != addr) {
+	if (NULL != addr) {
 		free_space -= BESTFITALLOCATOR_BLOCK_SIZE(addr);
 		allocated_blocks_number++;
 	}
@@ -95,3 +100,5 @@ void LLUI_DISPLAY_IMPL_imageHeapFree(uint8_t *block) {
 // --------------------------------------------------------------------------------
 // EOF
 // --------------------------------------------------------------------------------
+
+#endif // UI_FEATURE_ALLOCATOR

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2023-2025 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 
@@ -7,13 +7,13 @@
  * @file
  * @brief This file implements all the LLUI_DISPLAY_impl.h functions relating to the
  * display buffer strategy (BRS) "pre draw"
- * @see UI_DISPLAY_BRS_PREDRAW comment
+ * @see UI_FEATURE_BRS_PREDRAW comment
  * @author MicroEJ Developer Team
- * @version 4.1.0
+ * @version 14.3.2
  */
 
 #include "ui_display_brs.h"
-#if defined UI_DISPLAY_BRS && UI_DISPLAY_BRS == UI_DISPLAY_BRS_PREDRAW
+#if defined UI_FEATURE_BRS && UI_FEATURE_BRS == UI_FEATURE_BRS_PREDRAW
 
 // --------------------------------------------------------------------------------
 // Includes
@@ -28,11 +28,11 @@
 
 /*
  * @brief This strategy requires the available number of back buffers.
- * @see the comment of UI_DISPLAY_BRS_PREDRAW.
+ * @see the comment of UI_FEATURE_BRS_PREDRAW.
  */
-#ifndef UI_DISPLAY_BRS_DRAWING_BUFFER_COUNT
+#ifndef UI_FEATURE_BRS_DRAWING_BUFFER_COUNT
 #error "Require the available number of display buffers (back and front buffers)."
-#elif UI_DISPLAY_BRS_DRAWING_BUFFER_COUNT < 2
+#elif UI_FEATURE_BRS_DRAWING_BUFFER_COUNT < 2
 #warning "This strategy is not optimized for less than two buffers."
 #endif
 
@@ -43,8 +43,8 @@
 /*
  * @brief A collection of dirty regions is kept for each back buffers.
  */
-#if UI_DISPLAY_BRS_DRAWING_BUFFER_COUNT > 1u
-static ui_rect_collection_t dirty_regions[UI_DISPLAY_BRS_DRAWING_BUFFER_COUNT - 1u] = { 0 };
+#if UI_FEATURE_BRS_DRAWING_BUFFER_COUNT > 1u
+static ui_rect_collection_t dirty_regions[UI_FEATURE_BRS_DRAWING_BUFFER_COUNT - 1u] = { 0 };
 #else
 static ui_rect_collection_t dirty_regions[1u] = { 0 };
 #endif
@@ -58,7 +58,7 @@ static bool backbuffer_ready = true;
 
 ui_rect_t diff[4] = { UI_RECT_EMPTY, UI_RECT_EMPTY, UI_RECT_EMPTY, UI_RECT_EMPTY };
 
-#ifdef UI_DISPLAY_BRS_FLUSH_SINGLE_RECTANGLE
+#ifdef UI_FEATURE_BRS_FLUSH_SINGLE_RECTANGLE
 
 /*
  * @brief Rectangle given to LLUI_DISPLAY_IMPL_flush(): it includes all dirty regions since
@@ -71,7 +71,7 @@ static ui_rect_t flush_bounds = {
 	.y2 = 0,
 };
 
-#endif // UI_DISPLAY_BRS_FLUSH_SINGLE_RECTANGLE
+#endif // UI_FEATURE_BRS_FLUSH_SINGLE_RECTANGLE
 
 // --------------------------------------------------------------------------------
 // Private functions
@@ -84,7 +84,7 @@ static ui_rect_t flush_bounds = {
 static void _remove_drawing_regions(MICROUI_GraphicsContext *gc, ui_rect_t *region) {
 	(void)gc;
 
-	for (uint32_t i = 0u; i < (UI_DISPLAY_BRS_DRAWING_BUFFER_COUNT - 1u); i++) {
+	for (uint32_t i = 0u; i < (UI_FEATURE_BRS_DRAWING_BUFFER_COUNT - 1u); i++) {
 		ui_rect_t *r = dirty_regions[i].data;
 		while (r != UI_RECT_COLLECTION_get_end(&dirty_regions[i])) {
 			if (!UI_RECT_is_empty(r) && UI_RECT_contains_rect(region, r)) {
@@ -101,7 +101,7 @@ static void _remove_drawing_regions(MICROUI_GraphicsContext *gc, ui_rect_t *regi
  * This function adds the region to the regions to restore.
  */
 static void _add_drawing_region(MICROUI_GraphicsContext *gc, ui_rect_t *region) {
-	for (uint32_t i = 0u; i < (UI_DISPLAY_BRS_DRAWING_BUFFER_COUNT - 1u); i++) {
+	for (uint32_t i = 0u; i < (UI_FEATURE_BRS_DRAWING_BUFFER_COUNT - 1u); i++) {
 		ui_rect_t *previous = UI_RECT_COLLECTION_get_last(&dirty_regions[i]);
 		if ((NULL == previous) || !UI_RECT_contains_rect(previous, region)) {
 			// add the dirty region if and only if previous dirty region does not
@@ -120,12 +120,12 @@ static void _add_drawing_region(MICROUI_GraphicsContext *gc, ui_rect_t *region) 
 		}
 	}
 
-#ifdef UI_DISPLAY_BRS_FLUSH_SINGLE_RECTANGLE
+#ifdef UI_FEATURE_BRS_FLUSH_SINGLE_RECTANGLE
 	flush_bounds.x1 = MIN(flush_bounds.x1, region->x1);
 	flush_bounds.y1 = MIN(flush_bounds.y1, region->y1);
 	flush_bounds.x2 = MAX(flush_bounds.x2, region->x2);
 	flush_bounds.y2 = MAX(flush_bounds.y2, region->y2);
-#endif // UI_DISPLAY_BRS_FLUSH_SINGLE_RECTANGLE
+#endif // UI_FEATURE_BRS_FLUSH_SINGLE_RECTANGLE
 }
 
 /*
@@ -249,9 +249,9 @@ static DRAWING_Status _prepare_back_buffer(MICROUI_GraphicsContext *gc, ui_rect_
 
 	if (clear_past) {
 		UI_RECT_COLLECTION_clear(&dirty_regions[index_dirty_region_to_restore]);
-#if UI_DISPLAY_BRS_DRAWING_BUFFER_COUNT > 1
+#if UI_FEATURE_BRS_DRAWING_BUFFER_COUNT > 1
 		index_dirty_region_to_restore++;
-		index_dirty_region_to_restore %= (uint32_t)UI_DISPLAY_BRS_DRAWING_BUFFER_COUNT - 1u;
+		index_dirty_region_to_restore %= (uint32_t)UI_FEATURE_BRS_DRAWING_BUFFER_COUNT - 1u;
 #endif
 	}
 
@@ -299,7 +299,7 @@ DRAWING_Status LLUI_DISPLAY_IMPL_newDrawingRegion(MICROUI_GraphicsContext *gc, u
  * This function calls LLUI_DISPLAY_IMPL_flush() with the rectangle that includes all dirty regions.
  */
 DRAWING_Status LLUI_DISPLAY_IMPL_refresh(MICROUI_GraphicsContext *gc, uint8_t flushIdentifier) {
-#ifdef UI_DISPLAY_BRS_FLUSH_SINGLE_RECTANGLE
+#ifdef UI_FEATURE_BRS_FLUSH_SINGLE_RECTANGLE
 
 	LLTRACE_record_event_u32x6(LLUI_EVENT_group, LLUI_EVENT_offset + UI_LOG_BRS_FlushSingle, flushIdentifier,
 	                           (uint32_t)LLUI_DISPLAY_getBufferAddress(&gc->image), flush_bounds.x1, flush_bounds.y1,
@@ -314,7 +314,7 @@ DRAWING_Status LLUI_DISPLAY_IMPL_refresh(MICROUI_GraphicsContext *gc, uint8_t fl
 	flush_bounds.x2 = 0;
 	flush_bounds.y2 = 0;
 
-#else // UI_DISPLAY_BRS_FLUSH_SINGLE_RECTANGLE
+#else // UI_FEATURE_BRS_FLUSH_SINGLE_RECTANGLE
 
 	size_t size = UI_RECT_COLLECTION_get_length(&dirty_regions[index_dirty_region_to_restore]);
 	if (1u == size) {
@@ -330,13 +330,13 @@ DRAWING_Status LLUI_DISPLAY_IMPL_refresh(MICROUI_GraphicsContext *gc, uint8_t fl
 	LLUI_DISPLAY_IMPL_flush(gc, flushIdentifier, dirty_regions[index_dirty_region_to_restore].data,
 	                        UI_RECT_COLLECTION_get_length(&dirty_regions[index_dirty_region_to_restore]));
 
-#endif // UI_DISPLAY_BRS_FLUSH_SINGLE_RECTANGLE
+#endif // UI_FEATURE_BRS_FLUSH_SINGLE_RECTANGLE
 
 	backbuffer_ready = false;
 	return DRAWING_DONE;
 }
 
-#endif // UI_DISPLAY_BRS_PREDRAW
+#endif // UI_FEATURE_BRS_PREDRAW
 
 // --------------------------------------------------------------------------------
 // EOF

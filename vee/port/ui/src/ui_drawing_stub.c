@@ -1,7 +1,7 @@
 /*
  * C
  *
- * Copyright 2023-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2023-2025 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 
@@ -9,7 +9,7 @@
  * @file
  * @brief Implementation of all drawing functions of ui_drawing_stub.h.
  * @author MicroEJ Developer Team
- * @version 4.1.0
+ * @version 14.3.2
  * @see ui_drawing_stub.h
  */
 
@@ -17,9 +17,12 @@
 // Includes
 // --------------------------------------------------------------------------------
 
+#include <stddef.h>
+
 #include <LLUI_DISPLAY.h>
 
 #include "ui_drawing_stub.h"
+#include "ui_font_drawing.h"
 
 // --------------------------------------------------------------------------------
 // Private functions
@@ -202,6 +205,42 @@ DRAWING_Status UI_DRAWING_STUB_fillCircle(MICROUI_GraphicsContext *gc, jint x, j
 	(void)y;
 	(void)diameter;
 	return not_implemented(gc);
+}
+
+// See the header file for the function documentation
+DRAWING_Status UI_DRAWING_STUB_drawString(MICROUI_GraphicsContext *gc, jchar *chars, jint length, MICROUI_Font *font,
+                                          jint x, jint y) {
+	(void)gc;
+	(void)chars;
+	(void)length;
+	(void)font;
+	(void)x;
+	(void)y;
+	return not_implemented(gc);
+}
+
+// See the header file for the function documentation
+jint UI_DRAWING_STUB_stringWidth(jchar *chars, jint length, MICROUI_Font *font) {
+	(void)chars;
+	(void)length;
+	(void)font;
+	return 0;
+}
+
+// See the header file for the function documentation
+jint UI_DRAWING_STUB_initializeRenderableStringSNIContext(jchar *chars, jint length, MICROUI_Font *font,
+                                                          MICROUI_RenderableString *renderableString) {
+	(void)renderableString;
+	return UI_FONT_DRAWING_stringWidth(chars, length, font);
+}
+
+// See the header file for the function documentation
+DRAWING_Status UI_DRAWING_STUB_drawRenderableString(MICROUI_GraphicsContext *gc, jchar *chars, jint length,
+                                                    MICROUI_Font *font, jint width,
+                                                    MICROUI_RenderableString *renderableString, jint x, jint y) {
+	(void)width;
+	(void)renderableString;
+	return UI_FONT_DRAWING_drawString(gc, chars, length, font, x, y);
 }
 
 // See the header file for the function documentation
@@ -432,6 +471,63 @@ DRAWING_Status UI_DRAWING_STUB_drawScaledImageBilinear(MICROUI_GraphicsContext *
 	(void)y;
 	(void)factorX;
 	(void)factorY;
+	(void)alpha;
+	return not_implemented(gc);
+}
+
+// See the header file for the function documentation
+DRAWING_Status UI_DRAWING_STUB_drawScaledStringBilinear(MICROUI_GraphicsContext *gc, jchar *chars, jint length,
+                                                        MICROUI_Font *font, jint x, jint y, jfloat xRatio,
+                                                        jfloat yRatio) {
+	(void)gc;
+	(void)chars;
+	(void)length;
+	(void)font;
+	(void)x;
+	(void)y;
+	(void)xRatio;
+	(void)yRatio;
+	return not_implemented(gc);
+}
+
+// See the header file for the function documentation
+DRAWING_Status UI_DRAWING_STUB_drawScaledRenderableStringBilinear(MICROUI_GraphicsContext *gc, jchar *chars,
+                                                                  jint length, MICROUI_Font *font, jint width,
+                                                                  MICROUI_RenderableString *renderableString, jint x,
+                                                                  jint y, jfloat xRatio, jfloat yRatio) {
+	(void)width;
+	(void)renderableString;
+	return UI_FONT_DRAWING_drawScaledStringBilinear(gc, chars, length, font, x, y, xRatio, yRatio);
+}
+
+// See the header file for the function documentation
+DRAWING_Status UI_DRAWING_STUB_drawCharWithRotationBilinear(MICROUI_GraphicsContext *gc, jchar c, MICROUI_Font *font,
+                                                            jint x, jint y, jint xRotation, jint yRotation,
+                                                            jfloat angle, jint alpha) {
+	(void)gc;
+	(void)c;
+	(void)font;
+	(void)x;
+	(void)y;
+	(void)xRotation;
+	(void)yRotation;
+	(void)angle;
+	(void)alpha;
+	return not_implemented(gc);
+}
+
+// See the header file for the function documentation
+DRAWING_Status UI_DRAWING_STUB_drawCharWithRotationNearestNeighbor(MICROUI_GraphicsContext *gc, jchar c,
+                                                                   MICROUI_Font *font, jint x, jint y, jint xRotation,
+                                                                   jint yRotation, jfloat angle, jint alpha) {
+	(void)gc;
+	(void)c;
+	(void)font;
+	(void)x;
+	(void)y;
+	(void)xRotation;
+	(void)yRotation;
+	(void)angle;
 	(void)alpha;
 	return not_implemented(gc);
 }

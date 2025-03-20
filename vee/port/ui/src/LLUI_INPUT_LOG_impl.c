@@ -1,7 +1,7 @@
 /*
  * C
  *
- * Copyright 2021-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2021-2025 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 
@@ -17,9 +17,13 @@
  *
  * @see LLUI_INPUT_impl.h file comment
  * @author MicroEJ Developer Team
- * @version 4.1.0
+ * @version 14.3.2
  * @since MicroEJ UI Pack 13.1.0
  */
+
+#include "ui_configuration.h"
+
+#if defined(UI_FEATURE_EVENT_DECODER)
 
 // -----------------------------------------------------------------------------
 // Includes
@@ -33,8 +37,6 @@
 
 // deport event description to another file
 #include "microui_event_decoder.h"
-
-#ifdef MICROUIEVENTDECODER_ENABLED
 
 // -----------------------------------------------------------------------------
 // Macros and Defines
@@ -166,8 +168,8 @@ void LLUI_INPUT_IMPL_log_dump(bool log_type, uint32_t log, uint32_t index) {
 	}
 }
 
-#endif // MICROUIEVENTDECODER_ENABLED
-
 // -----------------------------------------------------------------------------
 // EOF
 // -----------------------------------------------------------------------------
+
+#endif // UI_FEATURE_EVENT_DECODER

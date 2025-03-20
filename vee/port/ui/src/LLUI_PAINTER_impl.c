@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2020-2025 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 
@@ -8,7 +8,7 @@
  * @brief This file implements all MicroUI drawing native functions.
  * @see LLUI_PAINTER_impl.h file comment
  * @author MicroEJ Developer Team
- * @version 4.1.0
+ * @version 14.3.2
  * @since MicroEJ UI Pack 13.0.0
  */
 
@@ -66,6 +66,8 @@
 #define LOG_DRAW_fillCircle 17
 #define LOG_DRAW_drawARGB 18
 #define LOG_DRAW_drawImage 19
+#define LOG_DRAW_drawString 20
+#define LOG_DRAW_stringWidth 21
 
 // --------------------------------------------------------------------------------
 // Private functions
@@ -426,7 +428,7 @@ void LLUI_PAINTER_IMPL_drawImage(MICROUI_GraphicsContext *gc, MICROUI_Image *img
 		LOG_DRAW_START(drawImage);
 
 		// tests on parameters and clip are performed after suspend to prevent to perform it several times
-		if (!LLUI_DISPLAY_isClosed(img) && (alpha > 0)) {
+		if (!LLUI_DISPLAY_isImageClosed(img) && (alpha > 0)) {
 			// sanity check on opacity
 			jint l_alpha = (alpha > 255) ? 255 : alpha;
 
@@ -467,6 +469,51 @@ void LLUI_PAINTER_IMPL_drawImage(MICROUI_GraphicsContext *gc, MICROUI_Image *img
 		// else: nothing to do
 
 		// requestDrawing() has been called and accepted: notify the end of empty drawing
+		LLUI_DISPLAY_setDrawingStatus(status);
+		LOG_DRAW_END(status);
+	}
+}
+
+// See the header file for the function documentation
+void LLUI_PAINTER_IMPL_drawString(MICROUI_GraphicsContext *gc, jchar *chars, jint offset, jint length,
+                                  MICROUI_Font *font, jint x, jint y) {
+	if ((length > 0) && LLUI_DISPLAY_requestDrawing(gc, (SNI_callback)LLUI_PAINTER_IMPL_drawString)) {
+		LOG_DRAW_START(drawString);
+		DRAWING_Status status = UI_DRAWING_drawString(gc, chars + offset, length, font, x, y);
+		LLUI_DISPLAY_setDrawingStatus(status);
+		LOG_DRAW_END(status);
+	}
+}
+
+// See the header file for the function documentation
+jint LLUI_PAINTER_IMPL_stringWidth(jchar *chars, jint offset, jint length, MICROUI_Font *font) {
+	jint ret = 0;
+	if (length > 0) {
+		LOG_DRAW_START(stringWidth);
+		ret = UI_DRAWING_stringWidth(chars + offset, length, font);
+		LOG_DRAW_END(DRAWING_DONE);
+	}
+	return ret;
+}
+
+// See the header file for the function documentation
+jint LLUI_PAINTER_IMPL_initializeRenderableStringSNIContext(jchar *chars, jint offset, jint length, MICROUI_Font *font,
+                                                            MICROUI_RenderableString *renderableString) {
+	jint ret = 0;
+	if (length > 0) {
+		ret = UI_DRAWING_initializeRenderableStringSNIContext(chars + offset, length, font, renderableString);
+	}
+	return ret;
+}
+
+// See the header file for the function documentation
+void LLUI_PAINTER_IMPL_drawRenderableString(MICROUI_GraphicsContext *gc, jchar *chars, jint offset, jint length,
+                                            MICROUI_Font *font, jint width, MICROUI_RenderableString *renderableString,
+                                            jint x, jint y) {
+	if ((length > 0) && LLUI_DISPLAY_requestDrawing(gc, (SNI_callback)LLUI_PAINTER_IMPL_drawRenderableString)) {
+		LOG_DRAW_START(drawString);
+		DRAWING_Status status =
+			UI_DRAWING_drawRenderableString(gc, chars + offset, length, font, width, renderableString, x, y);
 		LLUI_DISPLAY_setDrawingStatus(status);
 		LOG_DRAW_END(status);
 	}

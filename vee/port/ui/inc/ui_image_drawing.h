@@ -1,10 +1,11 @@
 /*
- * Copyright 2023-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2023-2025 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 
 #if !defined UI_IMAGE_DRAWING_H
 #define UI_IMAGE_DRAWING_H
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -42,7 +43,7 @@ extern "C" {
  * functions to draw the image: it has to call the stub implementation.
  *
  * @author MicroEJ Developer Team
- * @version 4.1.0
+ * @version 14.3.2
  */
 
 // --------------------------------------------------------------------------------
@@ -120,4 +121,5 @@ DRAWING_Status UI_IMAGE_DRAWING_drawScaledBilinear(MICROUI_GraphicsContext *gc, 
 #ifdef __cplusplus
 }
 #endif
+
 #endif // UI_IMAGE_DRAWING_H

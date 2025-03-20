@@ -56,7 +56,9 @@ fi
 cmake_build_dir="${origin}/../build"
 mkdir -p "${cmake_build_dir}"
 cd "${cmake_build_dir}" || exit
-cmake --toolchain ./scripts/toolchain.cmake "${origin}/.."
+
+cmake -DCMAKE_TOOLCHAIN_FILE=scripts/toolchain.cmake "${origin}/.."
+
 #make -j VERBOSE=1
 make -j"$(nproc)"
 

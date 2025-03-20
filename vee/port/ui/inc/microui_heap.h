@@ -1,30 +1,36 @@
 /*
  * C
  *
- * Copyright 2021-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2021-2025 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 
-/*
+/**
  * @file
- * @brief See LLUI_DISPLAY_HEAP_impl.c.
+ * @brief Provides some API to analyse the MicroUI image heap. The default allocator available in the
+ * Graphics Engine does not implement this file contrary to the allocator "LLUI_DISPLAY_HEAP_impl.c".
+ * @see The option UI_FEATURE_ALLOCATOR in ui_configuration.h
  * @author MicroEJ Developer Team
- * @version 4.1.0
+ * @version 14.3.2
  * @since MicroEJ UI Pack 13.1.0
  */
 
 #if !defined MICROUI_HEAP_H
 #define MICROUI_HEAP_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include "ui_configuration.h"
+
+#if defined(UI_FEATURE_ALLOCATOR)
+
 // -----------------------------------------------------------------------------
 // Includes
 // -----------------------------------------------------------------------------
 
 #include <stdint.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 // -----------------------------------------------------------------------------
 // API
@@ -61,7 +67,10 @@ uint32_t MICROUI_HEAP_number_of_allocated_blocks(void);
 // EOF
 // -----------------------------------------------------------------------------
 
+#endif // UI_FEATURE_ALLOCATOR
+
 #ifdef __cplusplus
 }
 #endif
+
 #endif // MICROUI_HEAP_H

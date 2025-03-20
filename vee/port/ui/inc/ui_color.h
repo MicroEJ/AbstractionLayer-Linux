@@ -1,7 +1,7 @@
 /*
  * C
  *
- * Copyright 2020-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2020-2025 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 
@@ -16,7 +16,7 @@ extern "C" {
  * @brief  Provides macros to manipulate the color channels of the ARGB8888 pixel
  * format.
  * @author MicroEJ Developer Team
- * @version 4.1.0
+ * @version 14.3.2
  */
 
 // -----------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 /*
  * C
  *
- * Copyright 2023-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2023-2025 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 
@@ -9,7 +9,7 @@
  * @file
  * @brief Implementation of all drawing functions of ui_image_drawing.h.
  * @author MicroEJ Developer Team
- * @version 4.1.0
+ * @version 14.3.2
  * @see ui_image_drawing.h
  */
 
@@ -23,9 +23,10 @@
 #include "ui_drawing_soft.h"
 #include "dw_drawing_soft.h"
 #include "ui_drawing_stub.h"
+#include "ui_configuration.h"
 #include "bsp_util.h"
 
-#if defined(LLUI_IMAGE_CUSTOM_FORMATS)
+#if defined(UI_FEATURE_IMAGE_CUSTOM_FORMATS)
 
 /*
  * VEE Port supports several images formats: standard (ARGB8888, A8, etc) and one or
@@ -389,7 +390,7 @@ static const UI_IMAGE_DRAWING_drawScaledBilinear_t UI_IMAGE_DRAWING_drawScaledBi
 static inline uint32_t _get_table_index(MICROUI_GraphicsContext *gc, MICROUI_Image *img) {
 	uint32_t index;
 	if (!LLUI_DISPLAY_isCustomFormat(img->format)) {
-#if !defined(LLUI_GC_SUPPORTED_FORMATS) || (LLUI_GC_SUPPORTED_FORMATS <= 1)
+#if !defined(UI_GC_SUPPORTED_FORMATS) || (UI_GC_SUPPORTED_FORMATS <= 1)
 		(void)gc;
 		// standard image in display GC -> can use soft algo
 		index = TABLE_INDEX_SOFT;
@@ -974,7 +975,7 @@ BSP_DECLARE_WEAK_FCNT DRAWING_Status UI_IMAGE_DRAWING_drawScaledBilinear_custom7
 	return UI_DRAWING_STUB_drawScaledImageBilinear(gc, img, x, y, factorX, factorY, alpha);
 }
 
-#else // #if defined(LLUI_IMAGE_CUSTOM_FORMATS)
+#else // #if defined(UI_FEATURE_IMAGE_CUSTOM_FORMATS)
 
 /*
  * VEE Port supports only standard images formats: standard (ARGB8888, A8, etc). The
@@ -992,7 +993,7 @@ BSP_DECLARE_WEAK_FCNT DRAWING_Status UI_IMAGE_DRAWING_drawScaledBilinear_custom7
 // --------------------------------------------------------------------------------
 
 static inline bool _can_call_soft_algo(MICROUI_GraphicsContext *gc) {
-#if !defined(LLUI_GC_SUPPORTED_FORMATS) || (LLUI_GC_SUPPORTED_FORMATS <= 1)
+#if !defined(UI_GC_SUPPORTED_FORMATS) || (UI_GC_SUPPORTED_FORMATS <= 1)
 	(void)gc;
 	// standard image in display GC -> can use soft algo
 	return true;
@@ -1071,7 +1072,7 @@ DRAWING_Status UI_IMAGE_DRAWING_drawScaledBilinear(MICROUI_GraphicsContext *gc, 
 	        : UI_DRAWING_STUB_drawScaledImageBilinear(gc, img, x, y, factorX, factorY, alpha);
 }
 
-#endif // #if defined(LLUI_IMAGE_CUSTOM_FORMATS)
+#endif // #if defined(UI_FEATURE_IMAGE_CUSTOM_FORMATS)
 
 // --------------------------------------------------------------------------------
 // EOF

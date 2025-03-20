@@ -1,24 +1,24 @@
 /*
  * C
  *
- * Copyright 2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2024-2025 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 
 #ifndef UI_UTIL_H
 #define UI_UTIL_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * @file
  * @brief Utility functions
  *
  * @author MicroEJ Developer Team
- * @version 4.1.0
+ * @version @CCO_VERSION@
  */
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 // -----------------------------------------------------------------------------
 // Macros and defines

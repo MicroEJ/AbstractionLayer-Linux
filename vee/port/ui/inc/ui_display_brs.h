@@ -1,5 +1,5 @@
 /*
- * Copyright 2023-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2023-2025 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 
@@ -23,11 +23,11 @@ extern "C" {
  * front buffer (double or triple buffer management).
  * - ensures the coherence of the back buffer's content before and after a flush.
  *
- * Several BRS are available in ui_display_brs_configuration.h (the implementation has
+ * Several BRS are available in ui_configuration.h (the implementation has
  * to select one of them).
  *
  * @author MicroEJ Developer Team
- * @version 4.1.0
+ * @version 14.3.2
  */
 
 // -----------------------------------------------------------------------------
@@ -37,28 +37,8 @@ extern "C" {
 #include <LLUI_DISPLAY_impl.h>
 
 #include "ui_util.h"
-#include "ui_display_brs_configuration.h"
+#include "ui_configuration.h"
 #include "ui_log.h"
-
-// -----------------------------------------------------------------------------
-// Configuration Sanity Check
-// -----------------------------------------------------------------------------
-
-/**
- * Sanity check between the expected version of the configuration and the actual version of
- * the configuration.
- * If an error is raised here, it means that a new version of the CCO has been installed and
- * the configuration ui_display_brs_configuration.h must be updated based on the one provided
- * by the new CCO version.
- */
-
-#if !defined UI_DISPLAY_BRS_CONFIGURATION_VERSION
-#error "Undefined UI_DISPLAY_BRS_CONFIGURATION_VERSION, it must be defined in ui_display_brs_configuration.h"
-#endif
-
-#if defined UI_DISPLAY_BRS_CONFIGURATION_VERSION && UI_DISPLAY_BRS_CONFIGURATION_VERSION != 1
-#error "Version of the configuration file ui_display_brs_configuration.h is not compatible with this implementation."
-#endif
 
 // -----------------------------------------------------------------------------
 // Macros and defines
@@ -102,4 +82,5 @@ DRAWING_Status UI_DISPLAY_BRS_restore(MICROUI_GraphicsContext *gc, MICROUI_Image
 #ifdef __cplusplus
 }
 #endif
+
 #endif // UI_DISPLAY_BRS_H

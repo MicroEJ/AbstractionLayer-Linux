@@ -1,12 +1,13 @@
 /*
  * C
  *
- * Copyright 2023-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2023-2025 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 
 #ifndef UI_RECT_COLLECTION_H
 #define UI_RECT_COLLECTION_H
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -22,17 +23,7 @@ extern "C" {
 #include <assert.h>
 
 #include "ui_rect.h"
-
-// --------------------------------------------------------------------------------
-// Defines
-// --------------------------------------------------------------------------------
-
-/*
- * @brief Defines the number of rectangles that collections can contain.
- */
-#ifndef UI_RECT_COLLECTION_MAX_LENGTH
-#define UI_RECT_COLLECTION_MAX_LENGTH 8u
-#endif
+#include "ui_configuration.h"
 
 // --------------------------------------------------------------------------------
 // Typedefs
@@ -158,6 +149,7 @@ static inline void UI_RECT_COLLECTION_remove_rect(ui_rect_collection_t *collecti
  * @param[in] collection the collection
  */
 static inline void UI_RECT_COLLECTION_remove_empty_rects(ui_rect_collection_t *collection) {
+	// cppcheck-suppress [misra-c2012-14.2] do not increment i systematically
 	for (size_t i = 0; i < collection->length;) {
 		if (UI_RECT_is_empty(&collection->data[i])) {
 			UI_RECT_COLLECTION_remove_rect(collection, &collection->data[i]);
@@ -174,4 +166,5 @@ static inline void UI_RECT_COLLECTION_remove_empty_rects(ui_rect_collection_t *c
 #ifdef __cplusplus
 }
 #endif
+
 #endif // UI_RECT_COLLECTION_H

@@ -1,7 +1,7 @@
 /*
  * C
  *
- * Copyright 2023-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2023-2025 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 
@@ -30,8 +30,8 @@
  * function is not overridden for a given destination format, the default weak implementation
  * is used. This implementation uses the stub implementation.
  *
- * The BSP should specify the define "LLUI_GC_SUPPORTED_FORMATS". When not set or smaller than
- * "2", this file considers only one destination format is available: the same format than
+ * The BSP has to set the define "UI_GC_SUPPORTED_FORMATS". When not set or smaller than
+ * "2", this file considers only one destination format is available: the same format as
  * the buffer of the display.
  *
  * When this define is "2" or "3", this file uses the tables indirections. The format "0" is
@@ -44,13 +44,15 @@
  * format "3".
  *
  * @author MicroEJ Developer Team
- * @version 4.1.0
+ * @version 14.3.2
  * @see ui_drawing.h
  */
 
 // -----------------------------------------------------------------------------
 // Includes
 // -----------------------------------------------------------------------------
+
+#include <assert.h>
 
 #include <LLUI_DISPLAY.h>
 
@@ -59,17 +61,19 @@
 #include "ui_drawing_soft.h"
 #include "dw_drawing_soft.h"
 #include "ui_image_drawing.h"
+#include "ui_font_drawing.h"
+#include "ui_configuration.h"
 #include "bsp_util.h"
 
 // --------------------------------------------------------------------------------
 // Defines
 // --------------------------------------------------------------------------------
 
-#if !defined(LLUI_GC_SUPPORTED_FORMATS) || (LLUI_GC_SUPPORTED_FORMATS <= 1)
+#if !defined(UI_GC_SUPPORTED_FORMATS) || (UI_GC_SUPPORTED_FORMATS <= 1)
 
 /*
- * The functions UI_DRAWING_DEFAULT_xxx() are directly called by LLUI_DISPLAY_impl.c,
- * LLUI_PAINTER_impl.c and LLDW_PAINTER_impl.c. Other files can override each weak
+ * The functions UI_DRAWING_DEFAULT_xxx() are directly called by LLUI_DISPLAY_impl.c, LLUI_PAINTER_impl.c and
+ * LLDW_PAINTER_impl.c. Other files can override each weak
  * function independently to use a GPU.
  */
 
@@ -89,6 +93,8 @@
 #define UI_DRAWING_DEFAULT_fillEllipse UI_DRAWING_fillEllipse
 #define UI_DRAWING_DEFAULT_drawCircle UI_DRAWING_drawCircle
 #define UI_DRAWING_DEFAULT_fillCircle UI_DRAWING_fillCircle
+#define UI_DRAWING_DEFAULT_drawString UI_DRAWING_drawString
+#define UI_DRAWING_DEFAULT_drawRenderableString UI_DRAWING_drawRenderableString
 #define UI_DRAWING_DEFAULT_drawImage UI_DRAWING_drawImage
 #define UI_DRAWING_DEFAULT_copyImage UI_DRAWING_copyImage
 #define UI_DRAWING_DEFAULT_drawRegion UI_DRAWING_drawRegion
@@ -107,8 +113,12 @@
 #define UI_DRAWING_DEFAULT_drawRotatedImageBilinear UI_DRAWING_drawRotatedImageBilinear
 #define UI_DRAWING_DEFAULT_drawScaledImageNearestNeighbor UI_DRAWING_drawScaledImageNearestNeighbor
 #define UI_DRAWING_DEFAULT_drawScaledImageBilinear UI_DRAWING_drawScaledImageBilinear
+#define UI_DRAWING_DEFAULT_drawScaledStringBilinear UI_DRAWING_drawScaledStringBilinear
+#define UI_DRAWING_DEFAULT_drawScaledRenderableStringBilinear UI_DRAWING_drawScaledRenderableStringBilinear
+#define UI_DRAWING_DEFAULT_drawCharWithRotationBilinear UI_DRAWING_drawCharWithRotationBilinear
+#define UI_DRAWING_DEFAULT_drawCharWithRotationNearestNeighbor UI_DRAWING_drawCharWithRotationNearestNeighbor
 
-#else // !defined(LLUI_GC_SUPPORTED_FORMATS) || (LLUI_GC_SUPPORTED_FORMATS <= 1)
+#else // !defined(UI_GC_SUPPORTED_FORMATS) || (UI_GC_SUPPORTED_FORMATS <= 1)
 
 /*
  * The functions UI_DRAWING_DEFAULT_xxx() are indirectly called through some tables.
@@ -132,6 +142,8 @@
 #define UI_DRAWING_DEFAULT_fillEllipse UI_DRAWING_fillEllipse_0
 #define UI_DRAWING_DEFAULT_drawCircle UI_DRAWING_drawCircle_0
 #define UI_DRAWING_DEFAULT_fillCircle UI_DRAWING_fillCircle_0
+#define UI_DRAWING_DEFAULT_drawString UI_DRAWING_drawString_0
+#define UI_DRAWING_DEFAULT_drawRenderableString UI_DRAWING_drawRenderableString_0
 #define UI_DRAWING_DEFAULT_drawImage UI_DRAWING_drawImage_0
 #define UI_DRAWING_DEFAULT_copyImage UI_DRAWING_copyImage_0
 #define UI_DRAWING_DEFAULT_drawRegion UI_DRAWING_drawRegion_0
@@ -150,14 +162,18 @@
 #define UI_DRAWING_DEFAULT_drawRotatedImageBilinear UI_DRAWING_drawRotatedImageBilinear_0
 #define UI_DRAWING_DEFAULT_drawScaledImageNearestNeighbor UI_DRAWING_drawScaledImageNearestNeighbor_0
 #define UI_DRAWING_DEFAULT_drawScaledImageBilinear UI_DRAWING_drawScaledImageBilinear_0
+#define UI_DRAWING_DEFAULT_drawScaledStringBilinear UI_DRAWING_drawScaledStringBilinear_0
+#define UI_DRAWING_DEFAULT_drawScaledRenderableStringBilinear UI_DRAWING_drawScaledRenderableStringBilinear_0
+#define UI_DRAWING_DEFAULT_drawCharWithRotationBilinear UI_DRAWING_drawCharWithRotationBilinear_0
+#define UI_DRAWING_DEFAULT_drawCharWithRotationNearestNeighbor UI_DRAWING_drawCharWithRotationNearestNeighbor_0
 
-#endif // !defined(LLUI_GC_SUPPORTED_FORMATS) || (LLUI_GC_SUPPORTED_FORMATS <= 1)
+#endif // !defined(UI_GC_SUPPORTED_FORMATS) || (UI_GC_SUPPORTED_FORMATS <= 1)
 
 // --------------------------------------------------------------------------------
 // Extern functions
 // --------------------------------------------------------------------------------
 
-#if defined(LLUI_GC_SUPPORTED_FORMATS) && (LLUI_GC_SUPPORTED_FORMATS > 1)
+#if defined(UI_GC_SUPPORTED_FORMATS) && (UI_GC_SUPPORTED_FORMATS > 1)
 
 /*
  * @brief Set of drawing functions according to the index of the destination format in
@@ -166,7 +182,7 @@
  * These functions must be declared in other H files.
  */
 
-#if (LLUI_GC_SUPPORTED_FORMATS > 3)
+#if (UI_GC_SUPPORTED_FORMATS > 3)
 #error "Increase the number of following functions and update the next tables"
 #endif
 
@@ -193,6 +209,11 @@ extern DRAWING_Status UI_DRAWING_drawEllipse_0(MICROUI_GraphicsContext *gc, jint
 extern DRAWING_Status UI_DRAWING_fillEllipse_0(MICROUI_GraphicsContext *gc, jint x, jint y, jint width, jint height);
 extern DRAWING_Status UI_DRAWING_drawCircle_0(MICROUI_GraphicsContext *gc, jint x, jint y, jint diameter);
 extern DRAWING_Status UI_DRAWING_fillCircle_0(MICROUI_GraphicsContext *gc, jint x, jint y, jint diameter);
+extern DRAWING_Status UI_DRAWING_drawString_0(MICROUI_GraphicsContext *gc, jchar *chars, jint length,
+                                              MICROUI_Font *font, jint x, jint y);
+extern DRAWING_Status UI_DRAWING_drawRenderableString_0(MICROUI_GraphicsContext *gc, jchar *chars, jint length,
+                                                        MICROUI_Font *font, jint width,
+                                                        MICROUI_RenderableString *renderableString, jint x, jint y);
 extern DRAWING_Status UI_DRAWING_drawImage_0(MICROUI_GraphicsContext *gc, MICROUI_Image *img, jint regionX,
                                              jint regionY, jint width, jint height, jint x, jint y, jint alpha);
 extern DRAWING_Status UI_DRAWING_copyImage_0(MICROUI_GraphicsContext *gc, MICROUI_Image *img, jint regionX,
@@ -233,6 +254,20 @@ extern DRAWING_Status UI_DRAWING_drawScaledImageNearestNeighbor_0(MICROUI_Graphi
                                                                   jint alpha);
 extern DRAWING_Status UI_DRAWING_drawScaledImageBilinear_0(MICROUI_GraphicsContext *gc, MICROUI_Image *img, jint x,
                                                            jint y, jfloat factorX, jfloat factorY, jint alpha);
+extern DRAWING_Status UI_DRAWING_drawScaledStringBilinear_0(MICROUI_GraphicsContext *gc, jchar *chars, jint length,
+                                                            MICROUI_Font *font, jint x, jint y, jfloat xRatio,
+                                                            jfloat yRatio);
+extern DRAWING_Status UI_DRAWING_drawScaledRenderableStringBilinear_0(MICROUI_GraphicsContext *gc, jchar *chars,
+                                                                      jint length, MICROUI_Font *font, jint width,
+                                                                      MICROUI_RenderableString *renderableString,
+                                                                      jint x, jint y, jfloat xRatio, jfloat yRatio);
+extern DRAWING_Status UI_DRAWING_drawCharWithRotationBilinear_0(MICROUI_GraphicsContext *gc, jchar c,
+                                                                MICROUI_Font *font, jint x, jint y, jint xRotation,
+                                                                jint yRotation, jfloat angle, jint alpha);
+extern DRAWING_Status UI_DRAWING_drawCharWithRotationNearestNeighbor_0(MICROUI_GraphicsContext *gc, jchar c,
+                                                                       MICROUI_Font *font, jint x, jint y,
+                                                                       jint xRotation, jint yRotation, jfloat angle,
+                                                                       jint alpha);
 
 extern uint32_t UI_DRAWING_getNewImageStrideInBytes_1(jbyte image_format, uint32_t width, uint32_t height,
                                                       uint32_t default_stride);
@@ -263,6 +298,11 @@ extern DRAWING_Status UI_DRAWING_drawEllipse_1(MICROUI_GraphicsContext *gc, jint
 extern DRAWING_Status UI_DRAWING_fillEllipse_1(MICROUI_GraphicsContext *gc, jint x, jint y, jint width, jint height);
 extern DRAWING_Status UI_DRAWING_drawCircle_1(MICROUI_GraphicsContext *gc, jint x, jint y, jint diameter);
 extern DRAWING_Status UI_DRAWING_fillCircle_1(MICROUI_GraphicsContext *gc, jint x, jint y, jint diameter);
+extern DRAWING_Status UI_DRAWING_drawString_1(MICROUI_GraphicsContext *gc, jchar *chars, jint length,
+                                              MICROUI_Font *font, jint x, jint y);
+extern DRAWING_Status UI_DRAWING_drawRenderableString_1(MICROUI_GraphicsContext *gc, jchar *chars, jint length,
+                                                        MICROUI_Font *font, jint width,
+                                                        MICROUI_RenderableString *renderableString, jint x, jint y);
 extern DRAWING_Status UI_DRAWING_drawImage_1(MICROUI_GraphicsContext *gc, MICROUI_Image *img, jint regionX,
                                              jint regionY, jint width, jint height, jint x, jint y, jint alpha);
 extern DRAWING_Status UI_DRAWING_copyImage_1(MICROUI_GraphicsContext *gc, MICROUI_Image *img, jint regionX,
@@ -303,8 +343,22 @@ extern DRAWING_Status UI_DRAWING_drawScaledImageNearestNeighbor_1(MICROUI_Graphi
                                                                   jint alpha);
 extern DRAWING_Status UI_DRAWING_drawScaledImageBilinear_1(MICROUI_GraphicsContext *gc, MICROUI_Image *img, jint x,
                                                            jint y, jfloat factorX, jfloat factorY, jint alpha);
+extern DRAWING_Status UI_DRAWING_drawScaledStringBilinear_1(MICROUI_GraphicsContext *gc, jchar *chars, jint length,
+                                                            MICROUI_Font *font, jint x, jint y, jfloat xRatio,
+                                                            jfloat yRatio);
+extern DRAWING_Status UI_DRAWING_drawScaledRenderableStringBilinear_1(MICROUI_GraphicsContext *gc, jchar *chars,
+                                                                      jint length, MICROUI_Font *font, jint width,
+                                                                      MICROUI_RenderableString *renderableString,
+                                                                      jint x, jint y, jfloat xRatio, jfloat yRatio);
+extern DRAWING_Status UI_DRAWING_drawCharWithRotationBilinear_1(MICROUI_GraphicsContext *gc, jchar c,
+                                                                MICROUI_Font *font, jint x, jint y, jint xRotation,
+                                                                jint yRotation, jfloat angle, jint alpha);
+extern DRAWING_Status UI_DRAWING_drawCharWithRotationNearestNeighbor_1(MICROUI_GraphicsContext *gc, jchar c,
+                                                                       MICROUI_Font *font, jint x, jint y,
+                                                                       jint xRotation, jint yRotation, jfloat angle,
+                                                                       jint alpha);
 
-#if (LLUI_GC_SUPPORTED_FORMATS > 2)
+#if (UI_GC_SUPPORTED_FORMATS > 2)
 extern uint32_t UI_DRAWING_getNewImageStrideInBytes_2(jbyte image_format, uint32_t width, uint32_t height,
                                                       uint32_t default_stride);
 extern void UI_DRAWING_adjustNewImageCharacteristics_2(jbyte image_format, uint32_t width, uint32_t height,
@@ -334,6 +388,11 @@ extern DRAWING_Status UI_DRAWING_drawEllipse_2(MICROUI_GraphicsContext *gc, jint
 extern DRAWING_Status UI_DRAWING_fillEllipse_2(MICROUI_GraphicsContext *gc, jint x, jint y, jint width, jint height);
 extern DRAWING_Status UI_DRAWING_drawCircle_2(MICROUI_GraphicsContext *gc, jint x, jint y, jint diameter);
 extern DRAWING_Status UI_DRAWING_fillCircle_2(MICROUI_GraphicsContext *gc, jint x, jint y, jint diameter);
+extern DRAWING_Status UI_DRAWING_drawString_2(MICROUI_GraphicsContext *gc, jchar *chars, jint length,
+                                              MICROUI_Font *font, jint x, jint y);
+extern DRAWING_Status UI_DRAWING_drawRenderableString_2(MICROUI_GraphicsContext *gc, jchar *chars, jint length,
+                                                        MICROUI_Font *font, jint width,
+                                                        MICROUI_RenderableString *renderableString, jint x, jint y);
 extern DRAWING_Status UI_DRAWING_drawImage_2(MICROUI_GraphicsContext *gc, MICROUI_Image *img, jint regionX,
                                              jint regionY, jint width, jint height, jint x, jint y, jint alpha);
 extern DRAWING_Status UI_DRAWING_copyImage_2(MICROUI_GraphicsContext *gc, MICROUI_Image *img, jint regionX,
@@ -374,109 +433,141 @@ extern DRAWING_Status UI_DRAWING_drawScaledImageNearestNeighbor_2(MICROUI_Graphi
                                                                   jint alpha);
 extern DRAWING_Status UI_DRAWING_drawScaledImageBilinear_2(MICROUI_GraphicsContext *gc, MICROUI_Image *img, jint x,
                                                            jint y, jfloat factorX, jfloat factorY, jint alpha);
-#endif // (LLUI_GC_SUPPORTED_FORMATS > 2)
+extern DRAWING_Status UI_DRAWING_drawScaledStringBilinear_2(MICROUI_GraphicsContext *gc, jchar *chars, jint length,
+                                                            MICROUI_Font *font, jint x, jint y, jfloat xRatio,
+                                                            jfloat yRatio);
+extern DRAWING_Status UI_DRAWING_drawScaledRenderableStringBilinear_2(MICROUI_GraphicsContext *gc, jchar *chars,
+                                                                      jint length, MICROUI_Font *font, jint width,
+                                                                      MICROUI_RenderableString *renderableString,
+                                                                      jint x, jint y, jfloat xRatio, jfloat yRatio);
+extern DRAWING_Status UI_DRAWING_drawCharWithRotationBilinear_2(MICROUI_GraphicsContext *gc, jchar c,
+                                                                MICROUI_Font *font, jint x, jint y, jint xRotation,
+                                                                jint yRotation, jfloat angle, jint alpha);
+extern DRAWING_Status UI_DRAWING_drawCharWithRotationNearestNeighbor_2(MICROUI_GraphicsContext *gc, jchar c,
+                                                                       MICROUI_Font *font, jint x, jint y,
+                                                                       jint xRotation, jint yRotation, jfloat angle,
+                                                                       jint alpha);
 
-#endif // defined(LLUI_GC_SUPPORTED_FORMATS) && (LLUI_GC_SUPPORTED_FORMATS > 1)
+#endif // (UI_GC_SUPPORTED_FORMATS > 2)
+
+#endif // defined(UI_GC_SUPPORTED_FORMATS) && (UI_GC_SUPPORTED_FORMATS > 1)
 
 // --------------------------------------------------------------------------------
 // Typedef of drawing functions
 // --------------------------------------------------------------------------------
 
-#if defined(LLUI_GC_SUPPORTED_FORMATS) && (LLUI_GC_SUPPORTED_FORMATS > 1)
+#if defined(UI_GC_SUPPORTED_FORMATS) && (UI_GC_SUPPORTED_FORMATS > 1)
 
 /*
  * @brief Typedef used by next tables. See the function comments in ui_drawing.h
  */
 
-typedef uint32_t (* UI_DRAWING_getNewImageStrideInBytes_t) (jbyte image_format, uint32_t width, uint32_t height,
-                                                            uint32_t default_stride);
-typedef void (* UI_DRAWING_adjustNewImageCharacteristics_t) (jbyte image_format, uint32_t width, uint32_t height,
-                                                             uint32_t *data_size, uint32_t *data_alignment);
-typedef void (* UI_DRAWING_initializeNewImage_t) (MICROUI_Image *image);
-typedef void (* UI_DRAWING_freeImageResources_t) (MICROUI_Image *image);
-typedef DRAWING_Status (* UI_DRAWING_writePixel_t) (MICROUI_GraphicsContext *gc, jint x, jint y);
-typedef DRAWING_Status (* UI_DRAWING_drawLine_t) (MICROUI_GraphicsContext *gc, jint startX, jint startY, jint endX,
-                                                  jint endY);
-typedef DRAWING_Status (* UI_DRAWING_drawHorizontalLine_t) (MICROUI_GraphicsContext *gc, jint x1, jint x2, jint y);
-typedef DRAWING_Status (* UI_DRAWING_drawVerticalLine_t) (MICROUI_GraphicsContext *gc, jint x, jint y1, jint y2);
-typedef DRAWING_Status (* UI_DRAWING_drawRectangle_t) (MICROUI_GraphicsContext *gc, jint x1, jint y1, jint x2, jint y2);
-typedef DRAWING_Status (* UI_DRAWING_fillRectangle_t) (MICROUI_GraphicsContext *gc, jint x1, jint y1, jint x2, jint y2);
-typedef DRAWING_Status (* UI_DRAWING_drawRoundedRectangle_t) (MICROUI_GraphicsContext *gc, jint x, jint y, jint width,
-                                                              jint height, jint cornerEllipseWidth,
-                                                              jint cornerEllipseHeight);
-typedef DRAWING_Status (* UI_DRAWING_fillRoundedRectangle_t) (MICROUI_GraphicsContext *gc, jint x, jint y, jint width,
-                                                              jint height, jint cornerEllipseWidth,
-                                                              jint cornerEllipseHeight);
-typedef DRAWING_Status (* UI_DRAWING_drawCircleArc_t) (MICROUI_GraphicsContext *gc, jint x, jint y, jint diameter,
-                                                       jfloat startAngle, jfloat arcAngle);
-typedef DRAWING_Status (* UI_DRAWING_drawEllipseArc_t) (MICROUI_GraphicsContext *gc, jint x, jint y, jint width,
-                                                        jint height, jfloat startAngle, jfloat arcAngle);
-typedef DRAWING_Status (* UI_DRAWING_fillCircleArc_t) (MICROUI_GraphicsContext *gc, jint x, jint y, jint diameter,
-                                                       jfloat startAngle, jfloat arcAngle);
-typedef DRAWING_Status (* UI_DRAWING_fillEllipseArc_t) (MICROUI_GraphicsContext *gc, jint x, jint y, jint width,
-                                                        jint height, jfloat startAngle, jfloat arcAngle);
-typedef DRAWING_Status (* UI_DRAWING_drawEllipse_t) (MICROUI_GraphicsContext *gc, jint x, jint y, jint width,
-                                                     jint height);
-typedef DRAWING_Status (* UI_DRAWING_fillEllipse_t) (MICROUI_GraphicsContext *gc, jint x, jint y, jint width,
-                                                     jint height);
-typedef DRAWING_Status (* UI_DRAWING_drawCircle_t) (MICROUI_GraphicsContext *gc, jint x, jint y, jint diameter);
-typedef DRAWING_Status (* UI_DRAWING_fillCircle_t) (MICROUI_GraphicsContext *gc, jint x, jint y, jint diameter);
-typedef DRAWING_Status (* UI_DRAWING_drawImage_t) (MICROUI_GraphicsContext *gc, MICROUI_Image *img, jint regionX,
-                                                   jint regionY, jint width, jint height, jint x, jint y, jint alpha);
-typedef DRAWING_Status (* UI_DRAWING_copyImage_t) (MICROUI_GraphicsContext *gc, MICROUI_Image *img, jint regionX,
-                                                   jint regionY, jint width, jint height, jint x, jint y);
-typedef DRAWING_Status (* UI_DRAWING_drawRegion_t) (MICROUI_GraphicsContext *gc, jint regionX, jint regionY, jint width,
-                                                    jint height, jint x, jint y, jint alpha);
-typedef DRAWING_Status (* UI_DRAWING_drawThickFadedPoint_t) (MICROUI_GraphicsContext *gc, jint x, jint y,
-                                                             jint thickness, jint fade);
-typedef DRAWING_Status (* UI_DRAWING_drawThickFadedLine_t) (MICROUI_GraphicsContext *gc, jint startX, jint startY,
-                                                            jint endX, jint endY, jint thickness, jint fade,
-                                                            DRAWING_Cap startCap, DRAWING_Cap endCap);
-typedef DRAWING_Status (* UI_DRAWING_drawThickFadedCircle_t) (MICROUI_GraphicsContext *gc, jint x, jint y,
-                                                              jint diameter, jint thickness, jint fade);
-typedef DRAWING_Status (* UI_DRAWING_drawThickFadedCircleArc_t) (MICROUI_GraphicsContext *gc, jint x, jint y,
-                                                                 jint diameter, jfloat startAngle, jfloat arcAngle,
-                                                                 jint thickness, jint fade, DRAWING_Cap start,
-                                                                 DRAWING_Cap end);
-typedef DRAWING_Status (* UI_DRAWING_drawThickFadedEllipse_t) (MICROUI_GraphicsContext *gc, jint x, jint y, jint width,
-                                                               jint height, jint thickness, jint fade);
-typedef DRAWING_Status (* UI_DRAWING_drawThickLine_t) (MICROUI_GraphicsContext *gc, jint startX, jint startY, jint endX,
-                                                       jint endY, jint thickness);
-typedef DRAWING_Status (* UI_DRAWING_drawThickCircle_t) (MICROUI_GraphicsContext *gc, jint x, jint y, jint diameter,
-                                                         jint thickness);
-typedef DRAWING_Status (* UI_DRAWING_drawThickEllipse_t) (MICROUI_GraphicsContext *gc, jint x, jint y, jint width,
-                                                          jint height, jint thickness);
-typedef DRAWING_Status (* UI_DRAWING_drawThickCircleArc_t) (MICROUI_GraphicsContext *gc, jint x, jint y, jint diameter,
-                                                            jfloat startAngle, jfloat arcAngle, jint thickness);
-typedef DRAWING_Status (* UI_DRAWING_drawFlippedImage_t) (MICROUI_GraphicsContext *gc, MICROUI_Image *img, jint regionX,
-                                                          jint regionY, jint width, jint height, jint x, jint y,
-                                                          DRAWING_Flip transformation, jint alpha);
-typedef DRAWING_Status (* UI_DRAWING_drawRotatedImageNearestNeighbor_t) (MICROUI_GraphicsContext *gc,
-                                                                         MICROUI_Image *img, jint x, jint y,
-                                                                         jint rotationX, jint rotationY, jfloat angle,
-                                                                         jint alpha);
-typedef DRAWING_Status (* UI_DRAWING_drawRotatedImageBilinear_t) (MICROUI_GraphicsContext *gc, MICROUI_Image *img,
-                                                                  jint x, jint y, jint rotationX, jint rotationY,
-                                                                  jfloat angle, jint alpha);
-typedef DRAWING_Status (* UI_DRAWING_drawScaledImageNearestNeighbor_t) (MICROUI_GraphicsContext *gc, MICROUI_Image *img,
-                                                                        jint x, jint y, jfloat factorX, jfloat factorY,
-                                                                        jint alpha);
-typedef DRAWING_Status (* UI_DRAWING_drawScaledImageBilinear_t) (MICROUI_GraphicsContext *gc, MICROUI_Image *img,
-                                                                 jint x, jint y, jfloat factorX, jfloat factorY,
-                                                                 jint alpha);
+typedef uint32_t (*UI_DRAWING_getNewImageStrideInBytes_t)(jbyte image_format, uint32_t width, uint32_t height,
+                                                          uint32_t default_stride);
+typedef void (*UI_DRAWING_adjustNewImageCharacteristics_t)(jbyte image_format, uint32_t width, uint32_t height,
+                                                           uint32_t *data_size, uint32_t *data_alignment);
+typedef void (*UI_DRAWING_initializeNewImage_t)(MICROUI_Image *image);
+typedef void (*UI_DRAWING_freeImageResources_t)(MICROUI_Image *image);
+typedef DRAWING_Status (*UI_DRAWING_writePixel_t)(MICROUI_GraphicsContext *gc, jint x, jint y);
+typedef DRAWING_Status (*UI_DRAWING_drawLine_t)(MICROUI_GraphicsContext *gc, jint startX, jint startY, jint endX,
+                                                jint endY);
+typedef DRAWING_Status (*UI_DRAWING_drawHorizontalLine_t)(MICROUI_GraphicsContext *gc, jint x1, jint x2, jint y);
+typedef DRAWING_Status (*UI_DRAWING_drawVerticalLine_t)(MICROUI_GraphicsContext *gc, jint x, jint y1, jint y2);
+typedef DRAWING_Status (*UI_DRAWING_drawRectangle_t)(MICROUI_GraphicsContext *gc, jint x1, jint y1, jint x2, jint y2);
+typedef DRAWING_Status (*UI_DRAWING_fillRectangle_t)(MICROUI_GraphicsContext *gc, jint x1, jint y1, jint x2, jint y2);
+typedef DRAWING_Status (*UI_DRAWING_drawRoundedRectangle_t)(MICROUI_GraphicsContext *gc, jint x, jint y, jint width,
+                                                            jint height, jint cornerEllipseWidth,
+                                                            jint cornerEllipseHeight);
+typedef DRAWING_Status (*UI_DRAWING_fillRoundedRectangle_t)(MICROUI_GraphicsContext *gc, jint x, jint y, jint width,
+                                                            jint height, jint cornerEllipseWidth,
+                                                            jint cornerEllipseHeight);
+typedef DRAWING_Status (*UI_DRAWING_drawCircleArc_t)(MICROUI_GraphicsContext *gc, jint x, jint y, jint diameter,
+                                                     jfloat startAngle, jfloat arcAngle);
+typedef DRAWING_Status (*UI_DRAWING_drawEllipseArc_t)(MICROUI_GraphicsContext *gc, jint x, jint y, jint width,
+                                                      jint height, jfloat startAngle, jfloat arcAngle);
+typedef DRAWING_Status (*UI_DRAWING_fillCircleArc_t)(MICROUI_GraphicsContext *gc, jint x, jint y, jint diameter,
+                                                     jfloat startAngle, jfloat arcAngle);
+typedef DRAWING_Status (*UI_DRAWING_fillEllipseArc_t)(MICROUI_GraphicsContext *gc, jint x, jint y, jint width,
+                                                      jint height, jfloat startAngle, jfloat arcAngle);
+typedef DRAWING_Status (*UI_DRAWING_drawEllipse_t)(MICROUI_GraphicsContext *gc, jint x, jint y, jint width,
+                                                   jint height);
+typedef DRAWING_Status (*UI_DRAWING_fillEllipse_t)(MICROUI_GraphicsContext *gc, jint x, jint y, jint width,
+                                                   jint height);
+typedef DRAWING_Status (*UI_DRAWING_drawCircle_t)(MICROUI_GraphicsContext *gc, jint x, jint y, jint diameter);
+typedef DRAWING_Status (*UI_DRAWING_fillCircle_t)(MICROUI_GraphicsContext *gc, jint x, jint y, jint diameter);
+typedef DRAWING_Status (*UI_DRAWING_drawImage_t)(MICROUI_GraphicsContext *gc, MICROUI_Image *img, jint regionX,
+                                                 jint regionY, jint width, jint height, jint x, jint y, jint alpha);
+typedef DRAWING_Status (*UI_DRAWING_copyImage_t)(MICROUI_GraphicsContext *gc, MICROUI_Image *img, jint regionX,
+                                                 jint regionY, jint width, jint height, jint x, jint y);
+typedef DRAWING_Status (*UI_DRAWING_drawRegion_t)(MICROUI_GraphicsContext *gc, jint regionX, jint regionY, jint width,
+                                                  jint height, jint x, jint y, jint alpha);
+typedef DRAWING_Status (*UI_DRAWING_drawString_t)(MICROUI_GraphicsContext *gc, jchar *chars, jint length,
+                                                  MICROUI_Font *font, jint x, jint y);
+typedef DRAWING_Status (*UI_DRAWING_drawRenderableString_t)(MICROUI_GraphicsContext *gc, jchar *chars, jint length,
+                                                            MICROUI_Font *font, jint width,
+                                                            MICROUI_RenderableString *renderableString, jint x, jint y);
+typedef DRAWING_Status (*UI_DRAWING_drawThickFadedPoint_t)(MICROUI_GraphicsContext *gc, jint x, jint y, jint thickness,
+                                                           jint fade);
+typedef DRAWING_Status (*UI_DRAWING_drawThickFadedLine_t)(MICROUI_GraphicsContext *gc, jint startX, jint startY,
+                                                          jint endX, jint endY, jint thickness, jint fade,
+                                                          DRAWING_Cap startCap, DRAWING_Cap endCap);
+typedef DRAWING_Status (*UI_DRAWING_drawThickFadedCircle_t)(MICROUI_GraphicsContext *gc, jint x, jint y, jint diameter,
+                                                            jint thickness, jint fade);
+typedef DRAWING_Status (*UI_DRAWING_drawThickFadedCircleArc_t)(MICROUI_GraphicsContext *gc, jint x, jint y,
+                                                               jint diameter, jfloat startAngle, jfloat arcAngle,
+                                                               jint thickness, jint fade, DRAWING_Cap start,
+                                                               DRAWING_Cap end);
+typedef DRAWING_Status (*UI_DRAWING_drawThickFadedEllipse_t)(MICROUI_GraphicsContext *gc, jint x, jint y, jint width,
+                                                             jint height, jint thickness, jint fade);
+typedef DRAWING_Status (*UI_DRAWING_drawThickLine_t)(MICROUI_GraphicsContext *gc, jint startX, jint startY, jint endX,
+                                                     jint endY, jint thickness);
+typedef DRAWING_Status (*UI_DRAWING_drawThickCircle_t)(MICROUI_GraphicsContext *gc, jint x, jint y, jint diameter,
+                                                       jint thickness);
+typedef DRAWING_Status (*UI_DRAWING_drawThickEllipse_t)(MICROUI_GraphicsContext *gc, jint x, jint y, jint width,
+                                                        jint height, jint thickness);
+typedef DRAWING_Status (*UI_DRAWING_drawThickCircleArc_t)(MICROUI_GraphicsContext *gc, jint x, jint y, jint diameter,
+                                                          jfloat startAngle, jfloat arcAngle, jint thickness);
+typedef DRAWING_Status (*UI_DRAWING_drawFlippedImage_t)(MICROUI_GraphicsContext *gc, MICROUI_Image *img, jint regionX,
+                                                        jint regionY, jint width, jint height, jint x, jint y,
+                                                        DRAWING_Flip transformation, jint alpha);
+typedef DRAWING_Status (*UI_DRAWING_drawRotatedImageNearestNeighbor_t)(MICROUI_GraphicsContext *gc, MICROUI_Image *img,
+                                                                       jint x, jint y, jint rotationX, jint rotationY,
+                                                                       jfloat angle, jint alpha);
+typedef DRAWING_Status (*UI_DRAWING_drawRotatedImageBilinear_t)(MICROUI_GraphicsContext *gc, MICROUI_Image *img, jint x,
+                                                                jint y, jint rotationX, jint rotationY, jfloat angle,
+                                                                jint alpha);
+typedef DRAWING_Status (*UI_DRAWING_drawScaledImageNearestNeighbor_t)(MICROUI_GraphicsContext *gc, MICROUI_Image *img,
+                                                                      jint x, jint y, jfloat factorX, jfloat factorY,
+                                                                      jint alpha);
+typedef DRAWING_Status (*UI_DRAWING_drawScaledImageBilinear_t)(MICROUI_GraphicsContext *gc, MICROUI_Image *img, jint x,
+                                                               jint y, jfloat factorX, jfloat factorY, jint alpha);
+typedef DRAWING_Status (*UI_DRAWING_drawScaledStringBilinear_t)(MICROUI_GraphicsContext *gc, jchar *chars, jint length,
+                                                                MICROUI_Font *font, jint x, jint y, jfloat xRatio,
+                                                                jfloat yRatio);
+typedef DRAWING_Status (*UI_DRAWING_drawScaledRenderableStringBilinear_t)(MICROUI_GraphicsContext *gc, jchar *chars,
+                                                                          jint length, MICROUI_Font *font, jint width,
+                                                                          MICROUI_RenderableString *renderableString,
+                                                                          jint x, jint y, jfloat xRatio, jfloat yRatio);
+typedef DRAWING_Status (*UI_DRAWING_drawCharWithRotationBilinear_t)(MICROUI_GraphicsContext *gc, jchar c,
+                                                                    MICROUI_Font *font, jint x, jint y, jint xRotation,
+                                                                    jint yRotation, jfloat angle, jint alpha);
+typedef DRAWING_Status (*UI_DRAWING_drawCharWithRotationNearestNeighbor_t)(MICROUI_GraphicsContext *gc, jchar c,
+                                                                           MICROUI_Font *font, jint x, jint y,
+                                                                           jint xRotation, jint yRotation, jfloat angle,
+                                                                           jint alpha);
 
-#endif // #if defined(LLUI_GC_SUPPORTED_FORMATS) && (LLUI_GC_SUPPORTED_FORMATS > 1)
+#endif // #if defined(UI_GC_SUPPORTED_FORMATS) && (UI_GC_SUPPORTED_FORMATS > 1)
 
 // --------------------------------------------------------------------------------
 // Tables according to the destination format.
 // --------------------------------------------------------------------------------
 
-#if defined(LLUI_GC_SUPPORTED_FORMATS) && (LLUI_GC_SUPPORTED_FORMATS > 1)
+#if defined(UI_GC_SUPPORTED_FORMATS) && (UI_GC_SUPPORTED_FORMATS > 1)
 
 static const UI_DRAWING_getNewImageStrideInBytes_t UI_DRAWER_getNewImageStrideInBytes[] = {
 	&UI_DRAWING_getNewImageStrideInBytes,
 	&UI_DRAWING_getNewImageStrideInBytes_1,
-#if (LLUI_GC_SUPPORTED_FORMATS > 2)
+#if (UI_GC_SUPPORTED_FORMATS > 2)
 	&UI_DRAWING_getNewImageStrideInBytes_2,
 #endif
 };
@@ -484,7 +575,7 @@ static const UI_DRAWING_getNewImageStrideInBytes_t UI_DRAWER_getNewImageStrideIn
 static const UI_DRAWING_adjustNewImageCharacteristics_t UI_DRAWER_adjustNewImageCharacteristics[] = {
 	&UI_DRAWING_adjustNewImageCharacteristics,
 	&UI_DRAWING_adjustNewImageCharacteristics_1,
-#if (LLUI_GC_SUPPORTED_FORMATS > 2)
+#if (UI_GC_SUPPORTED_FORMATS > 2)
 	&UI_DRAWING_adjustNewImageCharacteristics_2,
 #endif
 };
@@ -492,7 +583,7 @@ static const UI_DRAWING_adjustNewImageCharacteristics_t UI_DRAWER_adjustNewImage
 static const UI_DRAWING_initializeNewImage_t UI_DRAWER_initializeNewImage[] = {
 	&UI_DRAWING_initializeNewImage,
 	&UI_DRAWING_initializeNewImage_1,
-#if (LLUI_GC_SUPPORTED_FORMATS > 2)
+#if (UI_GC_SUPPORTED_FORMATS > 2)
 	&UI_DRAWING_initializeNewImage_2,
 #endif
 };
@@ -500,7 +591,7 @@ static const UI_DRAWING_initializeNewImage_t UI_DRAWER_initializeNewImage[] = {
 static const UI_DRAWING_freeImageResources_t UI_DRAWER_freeImageResources[] = {
 	&UI_DRAWING_freeImageResources,
 	&UI_DRAWING_freeImageResources_1,
-#if (LLUI_GC_SUPPORTED_FORMATS > 2)
+#if (UI_GC_SUPPORTED_FORMATS > 2)
 	&UI_DRAWING_freeImageResources_2,
 #endif
 };
@@ -508,7 +599,7 @@ static const UI_DRAWING_freeImageResources_t UI_DRAWER_freeImageResources[] = {
 static const UI_DRAWING_writePixel_t UI_DRAWER_writePixel[] = {
 	&UI_DRAWING_writePixel_0,
 	&UI_DRAWING_writePixel_1,
-#if (LLUI_GC_SUPPORTED_FORMATS > 2)
+#if (UI_GC_SUPPORTED_FORMATS > 2)
 	&UI_DRAWING_writePixel_2,
 #endif
 };
@@ -516,7 +607,7 @@ static const UI_DRAWING_writePixel_t UI_DRAWER_writePixel[] = {
 static const UI_DRAWING_drawLine_t UI_DRAWER_drawLine[] = {
 	&UI_DRAWING_drawLine_0,
 	&UI_DRAWING_drawLine_1,
-#if (LLUI_GC_SUPPORTED_FORMATS > 2)
+#if (UI_GC_SUPPORTED_FORMATS > 2)
 	&UI_DRAWING_drawLine_2,
 #endif
 };
@@ -524,7 +615,7 @@ static const UI_DRAWING_drawLine_t UI_DRAWER_drawLine[] = {
 static const UI_DRAWING_drawHorizontalLine_t UI_DRAWER_drawHorizontalLine[] = {
 	&UI_DRAWING_drawHorizontalLine_0,
 	&UI_DRAWING_drawHorizontalLine_1,
-#if (LLUI_GC_SUPPORTED_FORMATS > 2)
+#if (UI_GC_SUPPORTED_FORMATS > 2)
 	&UI_DRAWING_drawHorizontalLine_2,
 #endif
 };
@@ -532,7 +623,7 @@ static const UI_DRAWING_drawHorizontalLine_t UI_DRAWER_drawHorizontalLine[] = {
 static const UI_DRAWING_drawVerticalLine_t UI_DRAWER_drawVerticalLine[] = {
 	&UI_DRAWING_drawVerticalLine_0,
 	&UI_DRAWING_drawVerticalLine_1,
-#if (LLUI_GC_SUPPORTED_FORMATS > 2)
+#if (UI_GC_SUPPORTED_FORMATS > 2)
 	&UI_DRAWING_drawVerticalLine_2,
 #endif
 };
@@ -540,7 +631,7 @@ static const UI_DRAWING_drawVerticalLine_t UI_DRAWER_drawVerticalLine[] = {
 static const UI_DRAWING_drawRectangle_t UI_DRAWER_drawRectangle[] = {
 	&UI_DRAWING_drawRectangle_0,
 	&UI_DRAWING_drawRectangle_1,
-#if (LLUI_GC_SUPPORTED_FORMATS > 2)
+#if (UI_GC_SUPPORTED_FORMATS > 2)
 	&UI_DRAWING_drawRectangle_2,
 #endif
 };
@@ -548,7 +639,7 @@ static const UI_DRAWING_drawRectangle_t UI_DRAWER_drawRectangle[] = {
 static const UI_DRAWING_fillRectangle_t UI_DRAWER_fillRectangle[] = {
 	&UI_DRAWING_fillRectangle_0,
 	&UI_DRAWING_fillRectangle_1,
-#if (LLUI_GC_SUPPORTED_FORMATS > 2)
+#if (UI_GC_SUPPORTED_FORMATS > 2)
 	&UI_DRAWING_fillRectangle_2,
 #endif
 };
@@ -556,7 +647,7 @@ static const UI_DRAWING_fillRectangle_t UI_DRAWER_fillRectangle[] = {
 static const UI_DRAWING_drawRoundedRectangle_t UI_DRAWER_drawRoundedRectangle[] = {
 	&UI_DRAWING_drawRoundedRectangle_0,
 	&UI_DRAWING_drawRoundedRectangle_1,
-#if (LLUI_GC_SUPPORTED_FORMATS > 2)
+#if (UI_GC_SUPPORTED_FORMATS > 2)
 	&UI_DRAWING_drawRoundedRectangle_2,
 #endif
 };
@@ -564,7 +655,7 @@ static const UI_DRAWING_drawRoundedRectangle_t UI_DRAWER_drawRoundedRectangle[] 
 static const UI_DRAWING_fillRoundedRectangle_t UI_DRAWER_fillRoundedRectangle[] = {
 	&UI_DRAWING_fillRoundedRectangle_0,
 	&UI_DRAWING_fillRoundedRectangle_1,
-#if (LLUI_GC_SUPPORTED_FORMATS > 2)
+#if (UI_GC_SUPPORTED_FORMATS > 2)
 	&UI_DRAWING_fillRoundedRectangle_2,
 #endif
 };
@@ -572,7 +663,7 @@ static const UI_DRAWING_fillRoundedRectangle_t UI_DRAWER_fillRoundedRectangle[] 
 static const UI_DRAWING_drawCircleArc_t UI_DRAWER_drawCircleArc[] = {
 	&UI_DRAWING_drawCircleArc_0,
 	&UI_DRAWING_drawCircleArc_1,
-#if (LLUI_GC_SUPPORTED_FORMATS > 2)
+#if (UI_GC_SUPPORTED_FORMATS > 2)
 	&UI_DRAWING_drawCircleArc_2,
 #endif
 };
@@ -580,7 +671,7 @@ static const UI_DRAWING_drawCircleArc_t UI_DRAWER_drawCircleArc[] = {
 static const UI_DRAWING_drawEllipseArc_t UI_DRAWER_drawEllipseArc[] = {
 	&UI_DRAWING_drawEllipseArc_0,
 	&UI_DRAWING_drawEllipseArc_1,
-#if (LLUI_GC_SUPPORTED_FORMATS > 2)
+#if (UI_GC_SUPPORTED_FORMATS > 2)
 	&UI_DRAWING_drawEllipseArc_2,
 #endif
 };
@@ -588,7 +679,7 @@ static const UI_DRAWING_drawEllipseArc_t UI_DRAWER_drawEllipseArc[] = {
 static const UI_DRAWING_fillCircleArc_t UI_DRAWER_fillCircleArc[] = {
 	&UI_DRAWING_fillCircleArc_0,
 	&UI_DRAWING_fillCircleArc_1,
-#if (LLUI_GC_SUPPORTED_FORMATS > 2)
+#if (UI_GC_SUPPORTED_FORMATS > 2)
 	&UI_DRAWING_fillCircleArc_2,
 #endif
 };
@@ -596,7 +687,7 @@ static const UI_DRAWING_fillCircleArc_t UI_DRAWER_fillCircleArc[] = {
 static const UI_DRAWING_fillEllipseArc_t UI_DRAWER_fillEllipseArc[] = {
 	&UI_DRAWING_fillEllipseArc_0,
 	&UI_DRAWING_fillEllipseArc_1,
-#if (LLUI_GC_SUPPORTED_FORMATS > 2)
+#if (UI_GC_SUPPORTED_FORMATS > 2)
 	&UI_DRAWING_fillEllipseArc_2,
 #endif
 };
@@ -604,7 +695,7 @@ static const UI_DRAWING_fillEllipseArc_t UI_DRAWER_fillEllipseArc[] = {
 static const UI_DRAWING_drawEllipse_t UI_DRAWER_drawEllipse[] = {
 	&UI_DRAWING_drawEllipse_0,
 	&UI_DRAWING_drawEllipse_1,
-#if (LLUI_GC_SUPPORTED_FORMATS > 2)
+#if (UI_GC_SUPPORTED_FORMATS > 2)
 	&UI_DRAWING_drawEllipse_2,
 #endif
 };
@@ -612,7 +703,7 @@ static const UI_DRAWING_drawEllipse_t UI_DRAWER_drawEllipse[] = {
 static const UI_DRAWING_fillEllipse_t UI_DRAWER_fillEllipse[] = {
 	&UI_DRAWING_fillEllipse_0,
 	&UI_DRAWING_fillEllipse_1,
-#if (LLUI_GC_SUPPORTED_FORMATS > 2)
+#if (UI_GC_SUPPORTED_FORMATS > 2)
 	&UI_DRAWING_fillEllipse_2,
 #endif
 };
@@ -620,7 +711,7 @@ static const UI_DRAWING_fillEllipse_t UI_DRAWER_fillEllipse[] = {
 static const UI_DRAWING_drawCircle_t UI_DRAWER_drawCircle[] = {
 	&UI_DRAWING_drawCircle_0,
 	&UI_DRAWING_drawCircle_1,
-#if (LLUI_GC_SUPPORTED_FORMATS > 2)
+#if (UI_GC_SUPPORTED_FORMATS > 2)
 	&UI_DRAWING_drawCircle_2,
 #endif
 };
@@ -628,7 +719,7 @@ static const UI_DRAWING_drawCircle_t UI_DRAWER_drawCircle[] = {
 static const UI_DRAWING_fillCircle_t UI_DRAWER_fillCircle[] = {
 	&UI_DRAWING_fillCircle_0,
 	&UI_DRAWING_fillCircle_1,
-#if (LLUI_GC_SUPPORTED_FORMATS > 2)
+#if (UI_GC_SUPPORTED_FORMATS > 2)
 	&UI_DRAWING_fillCircle_2,
 #endif
 };
@@ -636,7 +727,7 @@ static const UI_DRAWING_fillCircle_t UI_DRAWER_fillCircle[] = {
 static const UI_DRAWING_drawImage_t UI_DRAWER_drawImage[] = {
 	&UI_DRAWING_drawImage_0,
 	&UI_DRAWING_drawImage_1,
-#if (LLUI_GC_SUPPORTED_FORMATS > 2)
+#if (UI_GC_SUPPORTED_FORMATS > 2)
 	&UI_DRAWING_drawImage_2,
 #endif
 };
@@ -644,7 +735,7 @@ static const UI_DRAWING_drawImage_t UI_DRAWER_drawImage[] = {
 static const UI_DRAWING_copyImage_t UI_DRAWER_copyImage[] = {
 	&UI_DRAWING_copyImage_0,
 	&UI_DRAWING_copyImage_1,
-#if (LLUI_GC_SUPPORTED_FORMATS > 2)
+#if (UI_GC_SUPPORTED_FORMATS > 2)
 	&UI_DRAWING_copyImage_2,
 #endif
 };
@@ -652,15 +743,31 @@ static const UI_DRAWING_copyImage_t UI_DRAWER_copyImage[] = {
 static const UI_DRAWING_drawRegion_t UI_DRAWER_drawRegion[] = {
 	&UI_DRAWING_drawRegion_0,
 	&UI_DRAWING_drawRegion_1,
-#if (LLUI_GC_SUPPORTED_FORMATS > 2)
+#if (UI_GC_SUPPORTED_FORMATS > 2)
 	&UI_DRAWING_drawRegion_2,
+#endif
+};
+
+static const UI_DRAWING_drawString_t UI_DRAWER_drawString[] = {
+	UI_DRAWING_drawString_0,
+	UI_DRAWING_drawString_1,
+#if (UI_GC_SUPPORTED_FORMATS > 2)
+	UI_DRAWING_drawString_2,
+#endif
+};
+
+static const UI_DRAWING_drawRenderableString_t UI_DRAWER_drawRenderableString[] = {
+	UI_DRAWING_drawRenderableString_0,
+	UI_DRAWING_drawRenderableString_1,
+#if (UI_GC_SUPPORTED_FORMATS > 2)
+	UI_DRAWING_drawRenderableString_2,
 #endif
 };
 
 static const UI_DRAWING_drawThickFadedPoint_t UI_DRAWER_drawThickFadedPoint[] = {
 	&UI_DRAWING_drawThickFadedPoint_0,
 	&UI_DRAWING_drawThickFadedPoint_1,
-#if (LLUI_GC_SUPPORTED_FORMATS > 2)
+#if (UI_GC_SUPPORTED_FORMATS > 2)
 	&UI_DRAWING_drawThickFadedPoint_2,
 #endif
 };
@@ -668,7 +775,7 @@ static const UI_DRAWING_drawThickFadedPoint_t UI_DRAWER_drawThickFadedPoint[] = 
 static const UI_DRAWING_drawThickFadedLine_t UI_DRAWER_drawThickFadedLine[] = {
 	&UI_DRAWING_drawThickFadedLine_0,
 	&UI_DRAWING_drawThickFadedLine_1,
-#if (LLUI_GC_SUPPORTED_FORMATS > 2)
+#if (UI_GC_SUPPORTED_FORMATS > 2)
 	&UI_DRAWING_drawThickFadedLine_2,
 #endif
 };
@@ -676,7 +783,7 @@ static const UI_DRAWING_drawThickFadedLine_t UI_DRAWER_drawThickFadedLine[] = {
 static const UI_DRAWING_drawThickFadedCircle_t UI_DRAWER_drawThickFadedCircle[] = {
 	&UI_DRAWING_drawThickFadedCircle_0,
 	&UI_DRAWING_drawThickFadedCircle_1,
-#if (LLUI_GC_SUPPORTED_FORMATS > 2)
+#if (UI_GC_SUPPORTED_FORMATS > 2)
 	&UI_DRAWING_drawThickFadedCircle_2,
 #endif
 };
@@ -684,7 +791,7 @@ static const UI_DRAWING_drawThickFadedCircle_t UI_DRAWER_drawThickFadedCircle[] 
 static const UI_DRAWING_drawThickFadedCircleArc_t UI_DRAWER_drawThickFadedCircleArc[] = {
 	&UI_DRAWING_drawThickFadedCircleArc_0,
 	&UI_DRAWING_drawThickFadedCircleArc_1,
-#if (LLUI_GC_SUPPORTED_FORMATS > 2)
+#if (UI_GC_SUPPORTED_FORMATS > 2)
 	&UI_DRAWING_drawThickFadedCircleArc_2,
 #endif
 };
@@ -692,7 +799,7 @@ static const UI_DRAWING_drawThickFadedCircleArc_t UI_DRAWER_drawThickFadedCircle
 static const UI_DRAWING_drawThickFadedEllipse_t UI_DRAWER_drawThickFadedEllipse[] = {
 	&UI_DRAWING_drawThickFadedEllipse_0,
 	&UI_DRAWING_drawThickFadedEllipse_1,
-#if (LLUI_GC_SUPPORTED_FORMATS > 2)
+#if (UI_GC_SUPPORTED_FORMATS > 2)
 	&UI_DRAWING_drawThickFadedEllipse_2,
 #endif
 };
@@ -700,7 +807,7 @@ static const UI_DRAWING_drawThickFadedEllipse_t UI_DRAWER_drawThickFadedEllipse[
 static const UI_DRAWING_drawThickLine_t UI_DRAWER_drawThickLine[] = {
 	&UI_DRAWING_drawThickLine_0,
 	&UI_DRAWING_drawThickLine_1,
-#if (LLUI_GC_SUPPORTED_FORMATS > 2)
+#if (UI_GC_SUPPORTED_FORMATS > 2)
 	&UI_DRAWING_drawThickLine_2,
 #endif
 };
@@ -708,7 +815,7 @@ static const UI_DRAWING_drawThickLine_t UI_DRAWER_drawThickLine[] = {
 static const UI_DRAWING_drawThickCircle_t UI_DRAWER_drawThickCircle[] = {
 	&UI_DRAWING_drawThickCircle_0,
 	&UI_DRAWING_drawThickCircle_1,
-#if (LLUI_GC_SUPPORTED_FORMATS > 2)
+#if (UI_GC_SUPPORTED_FORMATS > 2)
 	&UI_DRAWING_drawThickCircle_2,
 #endif
 };
@@ -716,7 +823,7 @@ static const UI_DRAWING_drawThickCircle_t UI_DRAWER_drawThickCircle[] = {
 static const UI_DRAWING_drawThickEllipse_t UI_DRAWER_drawThickEllipse[] = {
 	&UI_DRAWING_drawThickEllipse_0,
 	&UI_DRAWING_drawThickEllipse_1,
-#if (LLUI_GC_SUPPORTED_FORMATS > 2)
+#if (UI_GC_SUPPORTED_FORMATS > 2)
 	&UI_DRAWING_drawThickEllipse_2,
 #endif
 };
@@ -724,7 +831,7 @@ static const UI_DRAWING_drawThickEllipse_t UI_DRAWER_drawThickEllipse[] = {
 static const UI_DRAWING_drawThickCircleArc_t UI_DRAWER_drawThickCircleArc[] = {
 	&UI_DRAWING_drawThickCircleArc_0,
 	&UI_DRAWING_drawThickCircleArc_1,
-#if (LLUI_GC_SUPPORTED_FORMATS > 2)
+#if (UI_GC_SUPPORTED_FORMATS > 2)
 	&UI_DRAWING_drawThickCircleArc_2,
 #endif
 };
@@ -732,7 +839,7 @@ static const UI_DRAWING_drawThickCircleArc_t UI_DRAWER_drawThickCircleArc[] = {
 static const UI_DRAWING_drawFlippedImage_t UI_DRAWER_drawFlippedImage[] = {
 	&UI_DRAWING_drawFlippedImage_0,
 	&UI_DRAWING_drawFlippedImage_1,
-#if (LLUI_GC_SUPPORTED_FORMATS > 2)
+#if (UI_GC_SUPPORTED_FORMATS > 2)
 	&UI_DRAWING_drawFlippedImage_2,
 #endif
 };
@@ -740,7 +847,7 @@ static const UI_DRAWING_drawFlippedImage_t UI_DRAWER_drawFlippedImage[] = {
 static const UI_DRAWING_drawRotatedImageNearestNeighbor_t UI_DRAWER_drawRotatedImageNearestNeighbor[] = {
 	&UI_DRAWING_drawRotatedImageNearestNeighbor_0,
 	&UI_DRAWING_drawRotatedImageNearestNeighbor_1,
-#if (LLUI_GC_SUPPORTED_FORMATS > 2)
+#if (UI_GC_SUPPORTED_FORMATS > 2)
 	&UI_DRAWING_drawRotatedImageNearestNeighbor_2,
 #endif
 };
@@ -748,7 +855,7 @@ static const UI_DRAWING_drawRotatedImageNearestNeighbor_t UI_DRAWER_drawRotatedI
 static const UI_DRAWING_drawRotatedImageBilinear_t UI_DRAWER_drawRotatedImageBilinear[] = {
 	&UI_DRAWING_drawRotatedImageBilinear_0,
 	&UI_DRAWING_drawRotatedImageBilinear_1,
-#if (LLUI_GC_SUPPORTED_FORMATS > 2)
+#if (UI_GC_SUPPORTED_FORMATS > 2)
 	&UI_DRAWING_drawRotatedImageBilinear_2,
 #endif
 };
@@ -756,7 +863,7 @@ static const UI_DRAWING_drawRotatedImageBilinear_t UI_DRAWER_drawRotatedImageBil
 static const UI_DRAWING_drawScaledImageNearestNeighbor_t UI_DRAWER_drawScaledImageNearestNeighbor[] = {
 	&UI_DRAWING_drawScaledImageNearestNeighbor_0,
 	&UI_DRAWING_drawScaledImageNearestNeighbor_1,
-#if (LLUI_GC_SUPPORTED_FORMATS > 2)
+#if (UI_GC_SUPPORTED_FORMATS > 2)
 	&UI_DRAWING_drawScaledImageNearestNeighbor_2,
 #endif
 };
@@ -764,19 +871,51 @@ static const UI_DRAWING_drawScaledImageNearestNeighbor_t UI_DRAWER_drawScaledIma
 static const UI_DRAWING_drawScaledImageBilinear_t UI_DRAWER_drawScaledImageBilinear[] = {
 	&UI_DRAWING_drawScaledImageBilinear_0,
 	&UI_DRAWING_drawScaledImageBilinear_1,
-#if (LLUI_GC_SUPPORTED_FORMATS > 2)
+#if (UI_GC_SUPPORTED_FORMATS > 2)
 	&UI_DRAWING_drawScaledImageBilinear_2,
 #endif
 };
 
-#endif // defined(LLUI_GC_SUPPORTED_FORMATS) && (LLUI_GC_SUPPORTED_FORMATS > 1)
+static const UI_DRAWING_drawScaledStringBilinear_t UI_DRAWER_drawScaledStringBilinear[] = {
+	UI_DRAWING_drawScaledStringBilinear_0,
+	UI_DRAWING_drawScaledStringBilinear_1,
+#if (UI_GC_SUPPORTED_FORMATS > 2)
+	UI_DRAWING_drawScaledStringBilinear_2,
+#endif
+};
+
+static const UI_DRAWING_drawScaledRenderableStringBilinear_t UI_DRAWER_drawScaledRenderableStringBilinear[] = {
+	UI_DRAWING_drawScaledRenderableStringBilinear_0,
+	UI_DRAWING_drawScaledRenderableStringBilinear_1,
+#if (UI_GC_SUPPORTED_FORMATS > 2)
+	UI_DRAWING_drawScaledRenderableStringBilinear_2,
+#endif
+};
+
+static const UI_DRAWING_drawCharWithRotationBilinear_t UI_DRAWER_drawCharWithRotationBilinear[] = {
+	UI_DRAWING_drawCharWithRotationBilinear_0,
+	UI_DRAWING_drawCharWithRotationBilinear_1,
+#if (UI_GC_SUPPORTED_FORMATS > 2)
+	UI_DRAWING_drawCharWithRotationBilinear_2,
+#endif
+};
+
+static const UI_DRAWING_drawCharWithRotationNearestNeighbor_t UI_DRAWER_drawCharWithRotationNearestNeighbor[] = {
+	UI_DRAWING_drawCharWithRotationNearestNeighbor_0,
+	UI_DRAWING_drawCharWithRotationNearestNeighbor_1,
+#if (UI_GC_SUPPORTED_FORMATS > 2)
+	UI_DRAWING_drawCharWithRotationNearestNeighbor_2,
+#endif
+};
+
+#endif // defined(UI_GC_SUPPORTED_FORMATS) && (UI_GC_SUPPORTED_FORMATS > 1)
 
 // --------------------------------------------------------------------------------
 // LLUI_DISPLAY_impl.h functions that depend on image format
 // (the functions are redirected to ui_drawing.h)
 // --------------------------------------------------------------------------------
 
-#if !defined(LLUI_GC_SUPPORTED_FORMATS) || (LLUI_GC_SUPPORTED_FORMATS <= 1)
+#if !defined(UI_GC_SUPPORTED_FORMATS) || (UI_GC_SUPPORTED_FORMATS <= 1)
 
 /*
  * The VEE port supports only one destination format: the display buffer format. The
@@ -814,7 +953,7 @@ void LLUI_DISPLAY_IMPL_freeImageResources(MICROUI_Image *image) {
 	UI_DRAWING_freeImageResources(image);
 }
 
-#else // #if !defined(LLUI_GC_SUPPORTED_FORMATS) || (LLUI_GC_SUPPORTED_FORMATS <= 1)
+#else // #if !defined(UI_GC_SUPPORTED_FORMATS) || (UI_GC_SUPPORTED_FORMATS <= 1)
 
 /*
  * The VEE port supports several destination formats. All drawing functions use a
@@ -833,7 +972,7 @@ int32_t LLUI_DISPLAY_IMPL_getDrawerIdentifier(jbyte image_format) {
 		index = 0;
 	} else if (UI_DRAWING_is_drawer_1(image_format)) {
 		index = 1;
-#if (LLUI_GC_SUPPORTED_FORMATS > 2)
+#if (UI_GC_SUPPORTED_FORMATS > 2)
 	} else if (UI_DRAWING_is_drawer_2(image_format)) {
 		index = 2;
 #endif
@@ -895,7 +1034,7 @@ void LLUI_DISPLAY_IMPL_freeImageResources(MICROUI_Image *image) {
 	(*UI_DRAWER_freeImageResources[drawer])(image);
 }
 
-#endif // #if !defined(LLUI_GC_SUPPORTED_FORMATS) || (LLUI_GC_SUPPORTED_FORMATS <= 1)
+#endif // #if !defined(UI_GC_SUPPORTED_FORMATS) || (UI_GC_SUPPORTED_FORMATS <= 1)
 
 // --------------------------------------------------------------------------------
 // ui_drawing.h functions
@@ -933,6 +1072,28 @@ BSP_DECLARE_WEAK_FCNT void UI_DRAWING_initializeNewImage(MICROUI_Image *image) {
 BSP_DECLARE_WEAK_FCNT void UI_DRAWING_freeImageResources(MICROUI_Image *image) {
 	(void)image;
 	// nothing to initialize by default
+}
+
+// See the header file for the function documentation
+BSP_DECLARE_WEAK_FCNT jint UI_DRAWING_stringWidth(jchar *chars, jint length, MICROUI_Font *font) {
+#if !defined(UI_FEATURE_FONT_CUSTOM_FORMATS)
+	assert(!LLUI_DISPLAY_isCustomFormat(font->format));
+	return UI_DRAWING_SOFT_stringWidth(chars, length, font);
+#else
+	return UI_FONT_DRAWING_stringWidth(chars, length, font);
+#endif
+}
+
+// See the header file for the function documentation
+BSP_DECLARE_WEAK_FCNT jint UI_DRAWING_initializeRenderableStringSNIContext(jchar *chars, jint length,
+                                                                           MICROUI_Font *font,
+                                                                           MICROUI_RenderableString *renderableString) {
+#if !defined(UI_FEATURE_FONT_CUSTOM_FORMATS)
+	assert(!LLUI_DISPLAY_isCustomFormat(font->format));
+	return UI_DRAWING_SOFT_initializeRenderableStringSNIContext(chars, length, font, renderableString);
+#else
+	return UI_FONT_DRAWING_initializeRenderableStringSNIContext(chars, length, font, renderableString);
+#endif
 }
 
 // --------------------------------------------------------------------------------
@@ -1047,7 +1208,7 @@ BSP_DECLARE_WEAK_FCNT DRAWING_Status UI_DRAWING_DEFAULT_fillCircle(MICROUI_Graph
 BSP_DECLARE_WEAK_FCNT DRAWING_Status UI_DRAWING_DEFAULT_drawImage(MICROUI_GraphicsContext *gc, MICROUI_Image *img,
                                                                   jint regionX, jint regionY, jint width, jint height,
                                                                   jint x, jint y, jint alpha) {
-#if !defined(LLUI_IMAGE_CUSTOM_FORMATS)
+#if !defined(UI_FEATURE_IMAGE_CUSTOM_FORMATS)
 	return UI_DRAWING_SOFT_drawImage(gc, img, regionX, regionY, width, height, x, y, alpha);
 #else
 	return UI_IMAGE_DRAWING_draw(gc, img, regionX, regionY, width, height, x, y, alpha);
@@ -1058,7 +1219,7 @@ BSP_DECLARE_WEAK_FCNT DRAWING_Status UI_DRAWING_DEFAULT_drawImage(MICROUI_Graphi
 BSP_DECLARE_WEAK_FCNT DRAWING_Status UI_DRAWING_DEFAULT_copyImage(MICROUI_GraphicsContext *gc, MICROUI_Image *img,
                                                                   jint regionX, jint regionY, jint width, jint height,
                                                                   jint x, jint y) {
-#if !defined(LLUI_IMAGE_CUSTOM_FORMATS)
+#if !defined(UI_FEATURE_IMAGE_CUSTOM_FORMATS)
 	return UI_DRAWING_SOFT_copyImage(gc, img, regionX, regionY, width, height, x, y);
 #else
 	return UI_IMAGE_DRAWING_copy(gc, img, regionX, regionY, width, height, x, y);
@@ -1069,10 +1230,35 @@ BSP_DECLARE_WEAK_FCNT DRAWING_Status UI_DRAWING_DEFAULT_copyImage(MICROUI_Graphi
 BSP_DECLARE_WEAK_FCNT DRAWING_Status UI_DRAWING_DEFAULT_drawRegion(MICROUI_GraphicsContext *gc, jint regionX,
                                                                    jint regionY, jint width, jint height, jint x,
                                                                    jint y, jint alpha) {
-#if !defined(LLUI_IMAGE_CUSTOM_FORMATS)
+#if !defined(UI_FEATURE_IMAGE_CUSTOM_FORMATS)
 	return UI_DRAWING_SOFT_drawRegion(gc, regionX, regionY, width, height, x, y, alpha);
 #else
 	return UI_IMAGE_DRAWING_drawRegion(gc, regionX, regionY, width, height, x, y, alpha);
+#endif
+}
+
+// See the header file for the function documentation
+BSP_DECLARE_WEAK_FCNT DRAWING_Status UI_DRAWING_DEFAULT_drawString(MICROUI_GraphicsContext *gc, jchar *chars,
+                                                                   jint length, MICROUI_Font *font, jint x, jint y) {
+#if !defined(UI_FEATURE_FONT_CUSTOM_FORMATS)
+	assert(!LLUI_DISPLAY_isCustomFormat(font->format));
+	return UI_DRAWING_SOFT_drawString(gc, chars, length, font, x, y);
+#else
+	return UI_FONT_DRAWING_drawString(gc, chars, length, font, x, y);
+#endif
+}
+
+// See the header file for the function documentation
+BSP_DECLARE_WEAK_FCNT DRAWING_Status UI_DRAWING_DEFAULT_drawRenderableString(MICROUI_GraphicsContext *gc, jchar *chars,
+                                                                             jint length, MICROUI_Font *font,
+                                                                             jint width,
+                                                                             MICROUI_RenderableString *renderableString,
+                                                                             jint x, jint y) {
+#if !defined(UI_FEATURE_FONT_CUSTOM_FORMATS)
+	assert(!LLUI_DISPLAY_isCustomFormat(font->format));
+	return UI_DRAWING_SOFT_drawRenderableString(gc, chars, length, font, width, renderableString, x, y);
+#else
+	return UI_FONT_DRAWING_drawRenderableString(gc, chars, length, font, width, renderableString, x, y);
 #endif
 }
 
@@ -1145,7 +1331,7 @@ BSP_DECLARE_WEAK_FCNT DRAWING_Status UI_DRAWING_DEFAULT_drawFlippedImage(MICROUI
                                                                          MICROUI_Image *img, jint regionX, jint regionY,
                                                                          jint width, jint height, jint x, jint y,
                                                                          DRAWING_Flip transformation, jint alpha) {
-#if !defined(LLUI_IMAGE_CUSTOM_FORMATS)
+#if !defined(UI_FEATURE_IMAGE_CUSTOM_FORMATS)
 	return DW_DRAWING_SOFT_drawFlippedImage(gc, img, regionX, regionY, width, height, x, y, transformation, alpha);
 #else
 	return UI_IMAGE_DRAWING_drawFlipped(gc, img, regionX, regionY, width, height, x, y, transformation, alpha);
@@ -1158,7 +1344,7 @@ BSP_DECLARE_WEAK_FCNT DRAWING_Status UI_DRAWING_DEFAULT_drawRotatedImageNearestN
                                                                                         jint y, jint rotationX,
                                                                                         jint rotationY, jfloat angle,
                                                                                         jint alpha) {
-#if !defined(LLUI_IMAGE_CUSTOM_FORMATS)
+#if !defined(UI_FEATURE_IMAGE_CUSTOM_FORMATS)
 	return DW_DRAWING_SOFT_drawRotatedImageNearestNeighbor(gc, img, x, y, rotationX, rotationY, angle, alpha);
 #else
 	return UI_IMAGE_DRAWING_drawRotatedNearestNeighbor(gc, img, x, y, rotationX, rotationY, angle, alpha);
@@ -1170,7 +1356,7 @@ BSP_DECLARE_WEAK_FCNT DRAWING_Status UI_DRAWING_DEFAULT_drawRotatedImageBilinear
                                                                                  MICROUI_Image *img, jint x, jint y,
                                                                                  jint rotationX, jint rotationY,
                                                                                  jfloat angle, jint alpha) {
-#if !defined(LLUI_IMAGE_CUSTOM_FORMATS)
+#if !defined(UI_FEATURE_IMAGE_CUSTOM_FORMATS)
 	return DW_DRAWING_SOFT_drawRotatedImageBilinear(gc, img, x, y, rotationX, rotationY, angle, alpha);
 #else
 	return UI_IMAGE_DRAWING_drawRotatedBilinear(gc, img, x, y, rotationX, rotationY, angle, alpha);
@@ -1182,7 +1368,7 @@ BSP_DECLARE_WEAK_FCNT DRAWING_Status UI_DRAWING_DEFAULT_drawScaledImageNearestNe
                                                                                        MICROUI_Image *img, jint x,
                                                                                        jint y, jfloat factorX,
                                                                                        jfloat factorY, jint alpha) {
-#if !defined(LLUI_IMAGE_CUSTOM_FORMATS)
+#if !defined(UI_FEATURE_IMAGE_CUSTOM_FORMATS)
 	return DW_DRAWING_SOFT_drawScaledImageNearestNeighbor(gc, img, x, y, factorX, factorY, alpha);
 #else
 	return UI_IMAGE_DRAWING_drawScaledNearestNeighbor(gc, img, x, y, factorX, factorY, alpha);
@@ -1194,14 +1380,71 @@ BSP_DECLARE_WEAK_FCNT DRAWING_Status UI_DRAWING_DEFAULT_drawScaledImageBilinear(
                                                                                 MICROUI_Image *img, jint x, jint y,
                                                                                 jfloat factorX, jfloat factorY,
                                                                                 jint alpha) {
-#if !defined(LLUI_IMAGE_CUSTOM_FORMATS)
+#if !defined(UI_FEATURE_IMAGE_CUSTOM_FORMATS)
 	return DW_DRAWING_SOFT_drawScaledImageBilinear(gc, img, x, y, factorX, factorY, alpha);
 #else
 	return UI_IMAGE_DRAWING_drawScaledBilinear(gc, img, x, y, factorX, factorY, alpha);
 #endif
 }
 
-#if defined(LLUI_GC_SUPPORTED_FORMATS) && (LLUI_GC_SUPPORTED_FORMATS > 1)
+BSP_DECLARE_WEAK_FCNT DRAWING_Status UI_DRAWING_DEFAULT_drawScaledStringBilinear(MICROUI_GraphicsContext *gc,
+                                                                                 jchar *chars, jint length,
+                                                                                 MICROUI_Font *font, jint x, jint y,
+                                                                                 jfloat xRatio, jfloat yRatio) {
+#if !defined(UI_FEATURE_FONT_CUSTOM_FORMATS)
+	assert(!LLUI_DISPLAY_isCustomFormat(font->format));
+	return DW_DRAWING_SOFT_drawScaledStringBilinear(gc, chars, length, font, x, y, xRatio, yRatio);
+#else
+	return UI_FONT_DRAWING_drawScaledStringBilinear(gc, chars, length, font, x, y, xRatio, yRatio);
+#endif
+}
+
+BSP_DECLARE_WEAK_FCNT DRAWING_Status UI_DRAWING_DEFAULT_drawScaledRenderableStringBilinear(MICROUI_GraphicsContext *gc,
+                                                                                           jchar *chars, jint length,
+                                                                                           MICROUI_Font *font,
+                                                                                           jint width,
+                                                                                           MICROUI_RenderableString *
+                                                                                           renderableString, jint x,
+                                                                                           jint y, jfloat xRatio,
+                                                                                           jfloat yRatio) {
+#if !defined(UI_FEATURE_FONT_CUSTOM_FORMATS)
+	assert(!LLUI_DISPLAY_isCustomFormat(font->format));
+	return DW_DRAWING_SOFT_drawScaledRenderableStringBilinear(gc, chars, length, font, width, renderableString, x, y,
+	                                                          xRatio, yRatio);
+#else
+	return UI_FONT_DRAWING_drawScaledRenderableStringBilinear(gc, chars, length, font, width, renderableString, x, y,
+	                                                          xRatio, yRatio);
+#endif
+}
+
+BSP_DECLARE_WEAK_FCNT DRAWING_Status UI_DRAWING_DEFAULT_drawCharWithRotationBilinear(MICROUI_GraphicsContext *gc,
+                                                                                     jchar c, MICROUI_Font *font,
+                                                                                     jint x, jint y, jint xRotation,
+                                                                                     jint yRotation, jfloat angle,
+                                                                                     jint alpha) {
+#if !defined(UI_FEATURE_FONT_CUSTOM_FORMATS)
+	assert(!LLUI_DISPLAY_isCustomFormat(font->format));
+	return DW_DRAWING_SOFT_drawCharWithRotationBilinear(gc, c, font, x, y, xRotation, yRotation, angle, alpha);
+#else
+	return UI_FONT_DRAWING_drawCharWithRotationBilinear(gc, c, font, x, y, xRotation, yRotation, angle, alpha);
+#endif
+}
+
+BSP_DECLARE_WEAK_FCNT DRAWING_Status UI_DRAWING_DEFAULT_drawCharWithRotationNearestNeighbor(MICROUI_GraphicsContext *gc,
+                                                                                            jchar c, MICROUI_Font *font,
+                                                                                            jint x, jint y,
+                                                                                            jint xRotation,
+                                                                                            jint yRotation,
+                                                                                            jfloat angle, jint alpha) {
+#if !defined(UI_FEATURE_FONT_CUSTOM_FORMATS)
+	assert(!LLUI_DISPLAY_isCustomFormat(font->format));
+	return DW_DRAWING_SOFT_drawCharWithRotationNearestNeighbor(gc, c, font, x, y, xRotation, yRotation, angle, alpha);
+#else
+	return UI_FONT_DRAWING_drawCharWithRotationNearestNeighbor(gc, c, font, x, y, xRotation, yRotation, angle, alpha);
+#endif
+}
+
+#if defined(UI_GC_SUPPORTED_FORMATS) && (UI_GC_SUPPORTED_FORMATS > 1)
 
 /*
  * The VEE port supports several destination formats. All drawing functions use a
@@ -1299,6 +1542,19 @@ DRAWING_Status UI_DRAWING_drawCircle(MICROUI_GraphicsContext *gc, jint x, jint y
 // See the header file for the function documentation
 DRAWING_Status UI_DRAWING_fillCircle(MICROUI_GraphicsContext *gc, jint x, jint y, jint diameter) {
 	return (*UI_DRAWER_fillCircle[gc->drawer])(gc, x, y, diameter);
+}
+
+// See the header file for the function documentation
+DRAWING_Status UI_DRAWING_drawString(MICROUI_GraphicsContext *gc, jchar *chars, jint length, MICROUI_Font *font, jint x,
+                                     jint y) {
+	return (*UI_DRAWER_drawString[gc->drawer])(gc, chars, length, font, x, y);
+}
+
+// See the header file for the function documentation
+DRAWING_Status UI_DRAWING_drawRenderableString(MICROUI_GraphicsContext *gc, jchar *chars, jint length,
+                                               MICROUI_Font *font, jint width,
+                                               MICROUI_RenderableString *renderableString, jint x, jint y) {
+	return (*UI_DRAWER_drawRenderableString[gc->drawer])(gc, chars, length, font, width, renderableString, x, y);
 }
 
 // See the header file for the function documentation
@@ -1406,6 +1662,36 @@ DRAWING_Status UI_DRAWING_drawScaledImageNearestNeighbor(MICROUI_GraphicsContext
 DRAWING_Status UI_DRAWING_drawScaledImageBilinear(MICROUI_GraphicsContext *gc, MICROUI_Image *img, jint x, jint y,
                                                   jfloat factorX, jfloat factorY, jint alpha) {
 	return (*UI_DRAWER_drawScaledImageBilinear[gc->drawer])(gc, img, x, y, factorX, factorY, alpha);
+}
+
+// See the header file for the function documentation
+DRAWING_Status UI_DRAWING_drawScaledStringBilinear(MICROUI_GraphicsContext *gc, jchar *chars, jint length,
+                                                   MICROUI_Font *font, jint x, jint y, jfloat xRatio, jfloat yRatio) {
+	return (*UI_DRAWER_drawScaledStringBilinear[gc->drawer])(gc, chars, length, font, x, y, xRatio, yRatio);
+}
+
+// See the header file for the function documentation
+DRAWING_Status UI_DRAWING_drawScaledRenderableStringBilinear(MICROUI_GraphicsContext *gc, jchar *chars, jint length,
+                                                             MICROUI_Font *font, jint width,
+                                                             MICROUI_RenderableString *renderableString, jint x, jint y,
+                                                             jfloat xRatio, jfloat yRatio) {
+	return (*UI_DRAWER_drawScaledRenderableStringBilinear[gc->drawer])(gc, chars, length, font, width, renderableString,
+	                                                                   x, y, xRatio, yRatio);
+}
+
+// See the header file for the function documentation
+DRAWING_Status UI_DRAWING_drawCharWithRotationBilinear(MICROUI_GraphicsContext *gc, jchar c, MICROUI_Font *font, jint x,
+                                                       jint y, jint xRotation, jint yRotation, jfloat angle,
+                                                       jint alpha) {
+	return (*UI_DRAWER_drawCharWithRotationBilinear[gc->drawer])(gc, c, font, x, y, xRotation, yRotation, angle, alpha);
+}
+
+// See the header file for the function documentation
+DRAWING_Status UI_DRAWING_drawCharWithRotationNearestNeighbor(MICROUI_GraphicsContext *gc, jchar c, MICROUI_Font *font,
+                                                              jint x, jint y, jint xRotation, jint yRotation,
+                                                              jfloat angle, jint alpha) {
+	return (*UI_DRAWER_drawCharWithRotationNearestNeighbor[gc->drawer])(gc, c, font, x, y, xRotation, yRotation, angle,
+	                                                                    alpha);
 }
 
 /*
@@ -1563,6 +1849,20 @@ BSP_DECLARE_WEAK_FCNT DRAWING_Status UI_DRAWING_fillCircle_1(MICROUI_GraphicsCon
 }
 
 // See the header file for the function documentation
+BSP_DECLARE_WEAK_FCNT DRAWING_Status UI_DRAWING_drawString_1(MICROUI_GraphicsContext *gc, jchar *chars, jint length,
+                                                             MICROUI_Font *font, jint x, jint y) {
+	return UI_FONT_DRAWING_drawString(gc, chars, length, font, x, y);
+}
+
+// See the header file for the function documentation
+BSP_DECLARE_WEAK_FCNT DRAWING_Status UI_DRAWING_drawRenderableString_1(MICROUI_GraphicsContext *gc, jchar *chars,
+                                                                       jint length, MICROUI_Font *font, jint width,
+                                                                       MICROUI_RenderableString *renderableString,
+                                                                       jint x, jint y) {
+	return UI_FONT_DRAWING_drawRenderableString(gc, chars, length, font, width, renderableString, x, y);
+}
+
+// See the header file for the function documentation
 BSP_DECLARE_WEAK_FCNT DRAWING_Status UI_DRAWING_drawImage_1(MICROUI_GraphicsContext *gc, MICROUI_Image *img,
                                                             jint regionX, jint regionY, jint width, jint height, jint x,
                                                             jint y, jint alpha) {
@@ -1682,7 +1982,42 @@ BSP_DECLARE_WEAK_FCNT DRAWING_Status UI_DRAWING_drawScaledImageBilinear_1(MICROU
 	return UI_IMAGE_DRAWING_drawScaledBilinear(gc, img, x, y, factorX, factorY, alpha);
 }
 
-#if (LLUI_GC_SUPPORTED_FORMATS > 2)
+// See the header file for the function documentation
+BSP_DECLARE_WEAK_FCNT DRAWING_Status UI_DRAWING_drawScaledStringBilinear_1(MICROUI_GraphicsContext *gc, jchar *chars,
+                                                                           jint length, MICROUI_Font *font, jint x,
+                                                                           jint y, jfloat xRatio, jfloat yRatio) {
+	return UI_FONT_DRAWING_drawScaledStringBilinear(gc, chars, length, font, x, y, xRatio, yRatio);
+}
+
+// See the header file for the function documentation
+BSP_DECLARE_WEAK_FCNT DRAWING_Status UI_DRAWING_drawScaledRenderableStringBilinear_1(MICROUI_GraphicsContext *gc,
+                                                                                     jchar *chars, jint length,
+                                                                                     MICROUI_Font *font, jint width,
+                                                                                     MICROUI_RenderableString *
+                                                                                     renderableString, jint x, jint y,
+                                                                                     jfloat xRatio, jfloat yRatio) {
+	return UI_FONT_DRAWING_drawScaledRenderableStringBilinear(gc, chars, length, font, width, renderableString, x, y,
+	                                                          xRatio, yRatio);
+}
+
+// See the header file for the function documentation
+BSP_DECLARE_WEAK_FCNT DRAWING_Status UI_DRAWING_drawCharWithRotationBilinear_1(MICROUI_GraphicsContext *gc, jchar c,
+                                                                               MICROUI_Font *font, jint x, jint y,
+                                                                               jint xRotation, jint yRotation,
+                                                                               jfloat angle, jint alpha) {
+	return UI_FONT_DRAWING_drawCharWithRotationBilinear(gc, c, font, x, y, xRotation, yRotation, angle, alpha);
+}
+
+// See the header file for the function documentation
+BSP_DECLARE_WEAK_FCNT DRAWING_Status UI_DRAWING_drawCharWithRotationNearestNeighbor_1(MICROUI_GraphicsContext *gc,
+                                                                                      jchar c, MICROUI_Font *font,
+                                                                                      jint x, jint y, jint xRotation,
+                                                                                      jint yRotation, jfloat angle,
+                                                                                      jint alpha) {
+	return UI_FONT_DRAWING_drawCharWithRotationNearestNeighbor(gc, c, font, x, y, xRotation, yRotation, angle, alpha);
+}
+
+#if (UI_GC_SUPPORTED_FORMATS > 2)
 
 /*
  * The next functions are used as elements "2" of the tables. They call STUB functions and should be
@@ -1839,6 +2174,20 @@ BSP_DECLARE_WEAK_FCNT DRAWING_Status UI_DRAWING_fillCircle_2(MICROUI_GraphicsCon
 }
 
 // See the header file for the function documentation
+BSP_DECLARE_WEAK_FCNT DRAWING_Status UI_DRAWING_drawString_2(MICROUI_GraphicsContext *gc, jchar *chars, jint length,
+                                                             MICROUI_Font *font, jint x, jint y) {
+	return UI_FONT_DRAWING_drawString(gc, chars, length, font, x, y);
+}
+
+// See the header file for the function documentation
+BSP_DECLARE_WEAK_FCNT DRAWING_Status UI_DRAWING_drawRenderableString_2(MICROUI_GraphicsContext *gc, jchar *chars,
+                                                                       jint length, MICROUI_Font *font, jint width,
+                                                                       MICROUI_RenderableString *renderableString,
+                                                                       jint x, jint y) {
+	return UI_FONT_DRAWING_drawRenderableString(gc, chars, length, font, width, renderableString, x, y);
+}
+
+// See the header file for the function documentation
 BSP_DECLARE_WEAK_FCNT DRAWING_Status UI_DRAWING_drawImage_2(MICROUI_GraphicsContext *gc, MICROUI_Image *img,
                                                             jint regionX, jint regionY, jint width, jint height, jint x,
                                                             jint y, jint alpha) {
@@ -1958,9 +2307,44 @@ BSP_DECLARE_WEAK_FCNT DRAWING_Status UI_DRAWING_drawScaledImageBilinear_2(MICROU
 	return UI_IMAGE_DRAWING_drawScaledBilinear(gc, img, x, y, factorX, factorY, alpha);
 }
 
-#endif // (LLUI_GC_SUPPORTED_FORMATS > 2)
+// See the header file for the function documentation
+BSP_DECLARE_WEAK_FCNT DRAWING_Status UI_DRAWING_drawScaledStringBilinear_2(MICROUI_GraphicsContext *gc, jchar *chars,
+                                                                           jint length, MICROUI_Font *font, jint x,
+                                                                           jint y, jfloat xRatio, jfloat yRatio) {
+	return UI_FONT_DRAWING_drawScaledStringBilinear(gc, chars, length, font, x, y, xRatio, yRatio);
+}
 
-#else // #if defined(LLUI_GC_SUPPORTED_FORMATS) && (LLUI_GC_SUPPORTED_FORMATS > 1)
+// See the header file for the function documentation
+BSP_DECLARE_WEAK_FCNT DRAWING_Status UI_DRAWING_drawScaledRenderableStringBilinear_2(MICROUI_GraphicsContext *gc,
+                                                                                     jchar *chars, jint length,
+                                                                                     MICROUI_Font *font, jint width,
+                                                                                     MICROUI_RenderableString *
+                                                                                     renderableString, jint x, jint y,
+                                                                                     jfloat xRatio, jfloat yRatio) {
+	return UI_FONT_DRAWING_drawScaledRenderableStringBilinear(gc, chars, length, font, width, renderableString, x, y,
+	                                                          xRatio, yRatio);
+}
+
+// See the header file for the function documentation
+BSP_DECLARE_WEAK_FCNT DRAWING_Status UI_DRAWING_drawCharWithRotationBilinear_2(MICROUI_GraphicsContext *gc, jchar c,
+                                                                               MICROUI_Font *font, jint x, jint y,
+                                                                               jint xRotation, jint yRotation,
+                                                                               jfloat angle, jint alpha) {
+	return UI_FONT_DRAWING_drawCharWithRotationBilinear(gc, c, font, x, y, xRotation, yRotation, angle, alpha);
+}
+
+// See the header file for the function documentation
+BSP_DECLARE_WEAK_FCNT DRAWING_Status UI_DRAWING_drawCharWithRotationNearestNeighbor_2(MICROUI_GraphicsContext *gc,
+                                                                                      jchar c, MICROUI_Font *font,
+                                                                                      jint x, jint y, jint xRotation,
+                                                                                      jint yRotation, jfloat angle,
+                                                                                      jint alpha) {
+	return UI_FONT_DRAWING_drawCharWithRotationNearestNeighbor(gc, c, font, x, y, xRotation, yRotation, angle, alpha);
+}
+
+#endif // (UI_GC_SUPPORTED_FORMATS > 2)
+
+#else // #if defined(UI_GC_SUPPORTED_FORMATS) && (UI_GC_SUPPORTED_FORMATS > 1)
 
 /*
  * The VEE port supports only one destination format: the display buffer format. The
@@ -1973,7 +2357,7 @@ BSP_DECLARE_WEAK_FCNT DRAWING_Status UI_DRAWING_drawScaledImageBilinear_2(MICROU
  * array for instance.
  */
 
-#endif // #if defined(LLUI_GC_SUPPORTED_FORMATS) && (LLUI_GC_SUPPORTED_FORMATS > 1)
+#endif // #if defined(UI_GC_SUPPORTED_FORMATS) && (UI_GC_SUPPORTED_FORMATS > 1)
 
 // -----------------------------------------------------------------------------
 // EOF

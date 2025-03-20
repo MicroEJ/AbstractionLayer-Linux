@@ -1,10 +1,11 @@
 /*
- * Copyright 2020-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2020-2025 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 
 #if !defined UI_DRAWING_H
 #define UI_DRAWING_H
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -73,7 +74,7 @@ extern "C" {
  * the flush dirty region as explained in LLUI_PAINTER_impl.h.
  *
  * @author MicroEJ Developer Team
- * @version 4.1.0
+ * @version 14.3.2
  */
 
 // --------------------------------------------------------------------------------
@@ -82,6 +83,8 @@ extern "C" {
 
 #include <LLUI_PAINTER_impl.h>
 #include <LLDW_PAINTER_impl.h>
+
+#include "ui_configuration.h"
 
 // --------------------------------------------------------------------------------
 // Defines
@@ -99,7 +102,7 @@ extern "C" {
 // API
 // --------------------------------------------------------------------------------
 
-#if defined(LLUI_GC_SUPPORTED_FORMATS) && (LLUI_GC_SUPPORTED_FORMATS > 1)
+#if defined(UI_GC_SUPPORTED_FORMATS) && (UI_GC_SUPPORTED_FORMATS > 1)
 
 /*
  * @brief Tells if drawer "1" matches the destination format. The VEE port must implement
@@ -109,15 +112,15 @@ extern "C" {
  */
 bool UI_DRAWING_is_drawer_1(jbyte image_format);
 
-#if (LLUI_GC_SUPPORTED_FORMATS > 2)
+#if (UI_GC_SUPPORTED_FORMATS > 2)
 /*
  * @brief Tells drawer "2" matches the destination format. See UI_DRAWING_is_drawer_1.
  */
 bool UI_DRAWING_is_drawer_2(jbyte image_format);
 
-#endif // #if (LLUI_GC_SUPPORTED_FORMATS > 2)
+#endif // #if (UI_GC_SUPPORTED_FORMATS > 2)
 
-#endif // #if defined(LLUI_GC_SUPPORTED_FORMATS) && (LLUI_GC_SUPPORTED_FORMATS > 1)
+#endif // #if defined(UI_GC_SUPPORTED_FORMATS) && (UI_GC_SUPPORTED_FORMATS > 1)
 
 /*
  * @brief Returns the new image row stride in bytes.
@@ -142,8 +145,8 @@ uint32_t UI_DRAWING_getNewImageStrideInBytes(jbyte image_format, uint32_t image_
  * MICROUI_ImageFormat enumeration.
  * @param[in] width the new image width (in pixels).
  * @param[in] height the new image height (in pixels).
- * @param[in/out] data_size the minimal data size (in bytes).
- * @param[in/out] data_alignment the minimal data alignment to respect (in bytes).
+ * @param[in,out] data_size the minimal data size (in bytes).
+ * @param[in,out] data_alignment the minimal data alignment to respect (in bytes).
  *
  * @see LLUI_DISPLAY_IMPL_adjustNewImageCharacteristics()
  */
@@ -168,6 +171,28 @@ void UI_DRAWING_initializeNewImage(MICROUI_Image *image);
  * @see LLUI_DISPLAY_IMPL_freeImageResources()
  */
 void UI_DRAWING_freeImageResources(MICROUI_Image *image);
+
+/**
+ * @brief Computes the rendered width of a string.
+ *
+ * @param[in] chars a string of characters
+ * @param[in] length the number of characters
+ * @param[in] font the MicroUI Font used
+ * @return the width in pixels
+ */
+jint UI_DRAWING_stringWidth(jchar *chars, jint length, MICROUI_Font *font);
+
+/**
+ * @brief Computes the rendered width of a renderable string and fills its SNI context.
+ *
+ * @param[in] chars the renderable string of characters
+ * @param[in] length the number of characters
+ * @param[in] font the MicroUI Font to use
+ * @param[in,out] renderableString the SNI context of the renderable string
+ * @return the renderable string width in pixels
+ */
+jint UI_DRAWING_initializeRenderableStringSNIContext(jchar *chars, jint length, MICROUI_Font *font,
+                                                     MICROUI_RenderableString *renderableString);
 
 /*
  * @brief Draws a pixel at given position.
@@ -525,8 +550,8 @@ DRAWING_Status UI_DRAWING_drawImage(MICROUI_GraphicsContext *gc, MICROUI_Image *
  * limited to the image boundary. If the copied region goes out of the bounds of
  * the graphics context area, pixels out of the range will not be drawn.
  *
- * The image and the destination (MICROUI_GraphicsContext) may target the same image. By consequence,
- * the implementation has to check the "overlap" use-case: the region to copy overlaps the destination
+ * The image and the destination (MICROUI_GraphicsContext) may target the same image. By consequence, the
+ * implementation has to check the "overlap" use-case: the region to copy overlaps the destination
  * region.
  *
  * @param[in] gc the MicroUI GraphicsContext target.
@@ -569,6 +594,36 @@ DRAWING_Status UI_DRAWING_copyImage(MICROUI_GraphicsContext *gc, MICROUI_Image *
  */
 DRAWING_Status UI_DRAWING_drawRegion(MICROUI_GraphicsContext *gc, jint regionX, jint regionY, jint width, jint height,
                                      jint x, jint y, jint alpha);
+
+/**
+ * @brief Draws a string.
+ *
+ * @param[in] gc the targeted MicroUI GraphicsContext.
+ * @param[in] chars a string of characters
+ * @param[in] length the number of characters
+ * @param[in] font the MicroUI Font to use.
+ * @param[in] x the left coordinate
+ * @param[in] y the top coordinate
+ * @return the drawing status (always DRAWING_DONE)
+ */
+DRAWING_Status UI_DRAWING_drawString(MICROUI_GraphicsContext *gc, jchar *chars, jint length, MICROUI_Font *font, jint x,
+                                     jint y);
+
+/**
+ * @brief Draws a renderable string.
+ *
+ * @param[in] gc the targeted MicroUI GraphicsContext
+ * @param[in] chars the renderable string of characters
+ * @param[in] length the number of characters
+ * @param[in] font the MicroUI Font to use
+ * @param[in] width the renderable string width in pixels
+ * @param[in] renderableString the renderable string
+ * @param[in] x the left coordinate
+ * @param[in] y the top coordinate
+ */
+DRAWING_Status UI_DRAWING_drawRenderableString(MICROUI_GraphicsContext *gc, jchar *chars, jint length,
+                                               MICROUI_Font *font, jint width,
+                                               MICROUI_RenderableString *renderableString, jint x, jint y);
 
 /*
  * @brief Draws a thick point with fade at given position.
@@ -861,6 +916,86 @@ DRAWING_Status UI_DRAWING_drawScaledImageNearestNeighbor(MICROUI_GraphicsContext
 DRAWING_Status UI_DRAWING_drawScaledImageBilinear(MICROUI_GraphicsContext *gc, MICROUI_Image *img, jint x, jint y,
                                                   jfloat factorX, jfloat factorY, jint alpha);
 
+/**
+ * @brief Draws a string applying a scaling.
+ *
+ * This method uses the bilinear algorithm to render the characters. This algorithm performs better rendering than
+ * nearest neighbor algorithm but it is slower to apply.
+ *
+ * @param[in] gc the targeted MicroUI GraphicsContext
+ * @param[in] chars a string of characters
+ * @param[in] length the number of characters
+ * @param[in] font the MicroUI Font to use
+ * @param[in] x the left coordinate
+ * @param[in] y the top coordinate
+ * @param[in] xRatio the horizontal scaling ratio (1.0f meaning no scaling)
+ * @param[in] yRatio the vertical scaling ratio (1.0f meaning no scaling)
+ */
+DRAWING_Status UI_DRAWING_drawScaledStringBilinear(MICROUI_GraphicsContext *gc, jchar *chars, jint length,
+                                                   MICROUI_Font *font, jint x, jint y, jfloat xRatio, jfloat yRatio);
+
+/**
+ * @brief Draws a renderable string applying a scaling.
+ *
+ * This method uses the bilinear algorithm to render the characters. This algorithm performs better rendering than
+ * nearest neighbor algorithm but it is slower to apply.
+ *
+ * @param[in] gc the targeted MicroUI GraphicsContext
+ * @param[in] chars a string of characters
+ * @param[in] length the number of characters
+ * @param[in] font the MicroUI Font to use
+ * @param[in] width the renderable string width in pixels
+ * @param[in] renderableString the renderable string
+ * @param[in] x the left coordinate
+ * @param[in] y the top coordinate
+ * @param[in] xRatio the horizontal scaling ratio (1.0f meaning no scaling)
+ * @param[in] yRatio the vertical scaling ratio (1.0f meaning no scaling)
+ */
+DRAWING_Status UI_DRAWING_drawScaledRenderableStringBilinear(MICROUI_GraphicsContext *gc, jchar *chars, jint length,
+                                                             MICROUI_Font *font, jint width,
+                                                             MICROUI_RenderableString *renderableString, jint x, jint y,
+                                                             jfloat xRatio, jfloat yRatio);
+
+/**
+ * @brief Draws a character applying a rotation and an alpha value.
+ *
+ * This method uses the bilinear algorithm to render the character. This algorithm performs better rendering than
+ * nearest neighbor algorithm but it is slower to apply.
+ *
+ * @param[in] gc the targeted MicroUI GraphicsContext
+ * @param[in] c a character
+ * @param[in] font the MicroUI font to use
+ * @param[in] x the left coordinate
+ * @param[in] y the top coordinate
+ * @param[in] xRotation the horizontal coordinate of the rotation center
+ * @param[in] yRotation the vertical coordinate of the rotation center
+ * @param[in] angle the rotation angle, in degrees
+ * @param[in] alpha the alpha value to use
+ */
+DRAWING_Status UI_DRAWING_drawCharWithRotationBilinear(MICROUI_GraphicsContext *gc, jchar c, MICROUI_Font *font, jint x,
+                                                       jint y, jint xRotation, jint yRotation, jfloat angle,
+                                                       jint alpha);
+
+/**
+ * @brief Draws a character applying a rotation and an alpha value.
+ *
+ * This method uses the nearest neighbor algorithm to render the character. This algorithm performs faster rendering
+ * than nearest neighbor algorithm but gives a rougher result.
+ *
+ * @param[in] gc the targeted MicroUI GraphicsContext
+ * @param[in] c a character
+ * @param[in] font the MicroUI font to use
+ * @param[in] x the left coordinate
+ * @param[in] y the top coordinate
+ * @param[in] xRotation the horizontal coordinate of the rotation center
+ * @param[in] yRotation the vertical coordinate of the rotation center
+ * @param[in] angle the rotation angle, in degrees
+ * @param[in] alpha the alpha value to use
+ */
+DRAWING_Status UI_DRAWING_drawCharWithRotationNearestNeighbor(MICROUI_GraphicsContext *gc, jchar c, MICROUI_Font *font,
+                                                              jint x, jint y, jint xRotation, jint yRotation,
+                                                              jfloat angle, jint alpha);
+
 // --------------------------------------------------------------------------------
 // EOF
 // --------------------------------------------------------------------------------
@@ -868,4 +1003,5 @@ DRAWING_Status UI_DRAWING_drawScaledImageBilinear(MICROUI_GraphicsContext *gc, M
 #ifdef __cplusplus
 }
 #endif
+
 #endif // UI_DRAWING_H
