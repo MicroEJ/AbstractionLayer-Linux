@@ -9,7 +9,7 @@
  * @file
  * @brief Implementation of all drawing functions of ui_image_drawing.h.
  * @author MicroEJ Developer Team
- * @version 14.3.2
+ * @version 14.4.2
  * @see ui_image_drawing.h
  */
 

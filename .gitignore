@@ -1,8 +1,14 @@
 cppcheck/html-report/
-vee/build
+vee/build*
 vee/inc
 vee/lib
+vee/scripts/set_local_env.bat
+vee/scripts/set_local_env.sh
 
 # macOS
 .DS_Store
+
+### Git hooks ###
+.pre-commit-config.yaml
+
 

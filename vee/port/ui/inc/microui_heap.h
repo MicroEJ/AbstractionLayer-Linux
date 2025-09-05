@@ -11,7 +11,7 @@
  * Graphics Engine does not implement this file contrary to the allocator "LLUI_DISPLAY_HEAP_impl.c".
  * @see The option UI_FEATURE_ALLOCATOR in ui_configuration.h
  * @author MicroEJ Developer Team
- * @version 14.3.2
+ * @version 14.4.2
  * @since MicroEJ UI Pack 13.1.0
  */
 

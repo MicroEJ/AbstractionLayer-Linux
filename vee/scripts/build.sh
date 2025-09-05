@@ -13,14 +13,20 @@
 set -euo pipefail
 
 # Save application current directory
-current_dir=$(pwd)
+CURRENT_DIR=$(pwd)
 
-origin=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd) || exit
+SCRIPTS_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd) || exit
 
 unset LD_LIBRARY_PATH
 
+# Ensure we always return to the original directory
+function cleanup {
+    cd "${CURRENT_DIR}" || exit
+}
+trap cleanup EXIT
+
 # Setup build environment variables
-. "${origin}/set_project_env.sh"
+. "${SCRIPTS_DIR}/set_env.sh"
 
 # Run in Docker if requested
 if [ ! -f "/.dockerenv" ] && [ ! -f "${HOME}/.dockerenv" ]; then
@@ -41,34 +47,48 @@ if [ ! -f "/.dockerenv" ] && [ ! -f "${HOME}/.dockerenv" ]; then
 
         docker run -i \
                    -v"${ROOT_PROJECT_DIR}":"${ROOT_PROJECT_DIR}" \
-                   -v"${current_dir}":"${current_dir}" \
+                   -v"${CURRENT_DIR}":"${CURRENT_DIR}" \
                    -v"${TOOLCHAIN_DIR}":"${TOOLCHAIN_DIR}" \
-                   -w"${current_dir}" \
+                   -w"${CURRENT_DIR}" \
                    -e TOOLCHAIN_DIR="${TOOLCHAIN_DIR}" \
                    --net=host \
                    --platform linux/amd64 \
                    "${DOCKER_IMAGE}" \
-                   bash -c "${origin}/$(basename "${0}")" "$@"
+                   bash -c "${SCRIPTS_DIR}/$(basename "${0}")" "$@"
         exit $?
     fi
 fi
 
-cmake_build_dir="${origin}/../build"
-mkdir -p "${cmake_build_dir}"
-cd "${cmake_build_dir}" || exit
+# Create a cmake build folder, using the compiler name
+if [ -n "${CC:-""}" ]; then
+    compiler=$(basename "$CC")
+elif [[ -f "${SCRIPTS_DIR}/toolchain.cmake" ]]; then
+    compiler=$(grep -E '^[[:space:]]*set\s*\(\s*CMAKE_C_COMPILER' ${SCRIPTS_DIR}/toolchain.cmake | \
+               sed -E 's/.*set\s*\(\s*CMAKE_C_COMPILER\s+([^ )]+).*/\1/' | \
+               xargs basename)
+else
+    echo "Error: No compiler found (CC not set, and ${SCRIPTS_DIR}/toolchain.cmake missing)"
+    exit 1
+fi
 
-cmake -DCMAKE_TOOLCHAIN_FILE=scripts/toolchain.cmake "${origin}/.."
+BUILD_DIR="${SCRIPTS_DIR}/../build-${compiler}"
+mkdir -p "${BUILD_DIR}"
+cd "${BUILD_DIR}" || exit
+
+echo "CURRENT_DIR = ${CURRENT_DIR}"
+echo "SCRIPTS_DIR = ${SCRIPTS_DIR}"
+echo "BUILD_DIR = ${BUILD_DIR}"
+
+cmake -DCMAKE_TOOLCHAIN_FILE=scripts/toolchain.cmake "${SCRIPTS_DIR}/.."
 
 #make -j VERBOSE=1
 make -j"$(nproc)"
 
 # Copy the application file
-if [ "${origin}" != "${current_dir}" ]; then
-    cp "${origin}/application.out" "${current_dir}"
+if [ "${SCRIPTS_DIR}" != "${CURRENT_DIR}" ]; then
+    cp "${SCRIPTS_DIR}/application.out" "${CURRENT_DIR}"
 fi
 # Copy the map file
-cp "${cmake_build_dir}/microej_gcc.map" "${current_dir}/application.map"
+cp "${BUILD_DIR}/microej_gcc.map" "${CURRENT_DIR}/application.map"
 
-echo "The application executable file has been generated here: ${current_dir}/application.out"
-# Restore application directory
-cd "${current_dir}" || exit
+echo "The application executable file has been generated here: ${CURRENT_DIR}/application.out"

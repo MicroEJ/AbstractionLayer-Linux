@@ -17,7 +17,7 @@ extern "C" {
  * @brief Utility functions
  *
  * @author MicroEJ Developer Team
- * @version @CCO_VERSION@
+ * @version 14.4.2
  */
 
 // -----------------------------------------------------------------------------

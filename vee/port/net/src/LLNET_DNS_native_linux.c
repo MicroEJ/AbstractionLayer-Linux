@@ -58,17 +58,20 @@ int32_t LLNET_DNS_IMPL_getHostByNameAt(int32_t index, uint8_t *hostname, int32_t
 
 	// Set the hints address structure with the type of IP address we need
 
-// If IPv6 or IPv4+IPv6 configuration, then use IPv6. Otherwise (only IPv4 configuration) use IPv4.
-#if LLNET_AF & LLNET_AF_IPV6
-	hints.ai_family = AF_INET6;
-
-#if LLNET_AF == LLNET_AF_DUAL
-	// allow to map on IPv4 if no IPv6 available
-	hints.ai_flags = AI_V4MAPPED;
+#if LLNET_AF == LLNET_AF_IPV4 // only IPv4
+    hints.ai_family = AF_INET;
 #endif
 
-#else // only IPv4
-	hints.ai_family = AF_INET;
+#if LLNET_AF == LLNET_AF_IPV6 //only IPv6
+	hints.ai_family = AF_INET6;
+#endif
+
+    // IPv4+IPv6 configuration: request addresses for any address family
+#if LLNET_AF == LLNET_AF_DUAL
+    //either IPv4 or IPv6
+    hints.ai_family = AF_UNSPEC;
+	// allow to map on IPv4 if no IPv6 available
+	hints.ai_flags = AI_V4MAPPED;
 #endif
 
 	r = getaddrinfo(hostname, NULL, &hints, &addrinfos);
@@ -130,17 +133,20 @@ int32_t LLNET_DNS_IMPL_getHostByNameCount(uint8_t *hostname, int32_t hostname_le
 
 	// Set the hints address structure with the type of IP address we need
 
-// If IPv6 or IPv4+IPv6 configuration, then use IPv6. Otherwise (only IPv4 configuration) use IPv4.
-#if LLNET_AF & LLNET_AF_IPV6
-	hints.ai_family = AF_INET6;
-
-#if LLNET_AF == LLNET_AF_DUAL
-	// allow to map on IPv4 if no IPv6 available
-	hints.ai_flags = AI_V4MAPPED;
+#if LLNET_AF == LLNET_AF_IPV4 // only IPv4
+    hints.ai_family = AF_INET;
 #endif
 
-#else // only IPv4
-	hints.ai_family = AF_INET;
+#if LLNET_AF == LLNET_AF_IPV6 //only IPv6
+	hints.ai_family = AF_INET6;
+#endif
+
+    // IPv4+IPv6 configuration: request addresses for any address family
+#if LLNET_AF == LLNET_AF_DUAL
+    //either IPv4 or IPv6
+    hints.ai_family = AF_UNSPEC;
+	// allow to map on IPv4 if no IPv6 available
+	hints.ai_flags = AI_V4MAPPED;
 #endif
 
 	r = getaddrinfo(hostname, NULL, &hints, &addrinfos);

@@ -9,7 +9,7 @@
  * @file
  * @brief Implementation of all drawing functions of ui_font_drawing.h.
  * @author MicroEJ Developer Team
- * @version @CCO_VERSION@
+ * @version 14.4.2
  * @see ui_font_drawing.h
  */
 

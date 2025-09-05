@@ -13,9 +13,15 @@
 set -euo pipefail
 
 # Save application current directory
-current_dir=$(pwd)
+CURRENT_DIR=$(pwd)
 
-origin=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd) || exit
+SCRIPTS_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd) || exit
+
+# Ensure we always return to the original directory
+function cleanup {
+    cd "${CURRENT_DIR}" || exit
+}
+trap cleanup EXIT
 
 if [ -z "${1:-""}" ]; then
     application_file="$(pwd)/application.out"
@@ -23,44 +29,26 @@ else
     application_file="$(cd $(dirname $1) ; pwd)/$(basename "$1")"
 fi
 
-cd "${origin}"
+cd "${SCRIPTS_DIR}"
 
 if [ ! -e "${application_file}" ]; then
     echo "FAILED - file '${application_file}' does not exist"
     exit 1
 fi
 
-project_env_file="${origin}/set_project_env.sh"
-if [ -f "${project_env_file}" ]; then
-    # shellcheck source=set_project_env.sh
-    . "${project_env_file}"
-else
-    echo ""
-    echo "ERROR: Missing set_project_env.sh script."
-    echo ""
-    exit 1
-fi
+# Setup build environment variables
+. "${SCRIPTS_DIR}/set_env.sh"
 
-local_env_file="${origin}/set_local_env.sh"
-if [ -f "${local_env_file}" ]; then
-    # shellcheck source=set_local_env.sh
-    . "${local_env_file}"
-else
-    echo ""
-    echo "ERROR: Missing set_local_env.sh script."
-    echo "For local build, please create it using set_local_env.sh.tpl as example."
-    echo ""
-    exit 1
-fi
-
-#### Run application locally (X86 only) if the project has set LOCAL_DEPLOY=yes
+# Run application locally (X86 only) if the project has set LOCAL_DEPLOY=yes
 if [ "${LOCAL_DEPLOY:-""}" = "yes" ]; then
     chmod +x "${application_file}"
-    ${application_file}
+    killall -q application.out || true
+    cp -p "${application_file}" "${LOCAL_DEPLOY_TMP_DIRECTORY}/application.out"
+    "${LOCAL_DEPLOY_TMP_DIRECTORY}/application.out"
     exit $?
 fi
 
-#### Run application on target
+# Run application on target
 if [ -z "${SSH_HOSTNAME:-""}" ]; then
     echo "ERROR: Missing SSH_HOSTNAME environment variable"
     echo "Please set the SSH_HOSTNAME in your shell environment variables or in set_local_env.sh script"
@@ -95,9 +83,6 @@ ${ssh_password_option} ssh -oStrictHostKeyChecking=no "${SSH_USER}@${SSH_HOSTNAM
 # kill old process if any
 ${ssh_password_option} ssh -oStrictHostKeyChecking=no "${SSH_USER}@${SSH_HOSTNAME}" "killall -q startup.out || killall -q application.out || true"
 
-${ssh_password_option} scp -O -oStrictHostKeyChecking=no "${application_file}" "${SSH_USER}@${SSH_HOSTNAME}:${ssh_remote_application}"
+${ssh_password_option} scp -O -C -oStrictHostKeyChecking=no "${application_file}" "${SSH_USER}@${SSH_HOSTNAME}:${ssh_remote_application}"
 
 ${ssh_password_option} ssh -oStrictHostKeyChecking=no "${SSH_USER}@${SSH_HOSTNAME}" "chmod +x ${ssh_remote_application} &&  LLDISPLAY_USE_VSYNC=1 exec ${ssh_remote_application}"
-
-# Restore application directory
-cd "${current_dir}" || exit

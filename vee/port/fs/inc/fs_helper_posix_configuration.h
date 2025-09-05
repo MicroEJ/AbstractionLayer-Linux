@@ -1,7 +1,7 @@
 /*
  * C
  *
- * Copyright 2020-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2020-2025 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  *
  */
@@ -13,12 +13,11 @@
  * @file
  * @brief LLFS configuration.
  * @author MicroEJ Developer Team
- * @version 3.0.3
- * @date 21 July 2023
+ * @version 3.0.6
  */
 
 #ifdef __cplusplus
-	extern "C" {
+extern "C" {
 #endif
 
 /**
@@ -27,10 +26,10 @@
  * is compatible with the implementation.
  *
  * This value must not be changed by the user of the CCO.
- * This value must be incremented by the implementor of the CCO when a configuration define is added, deleted or modified.
+ * This value must be incremented by the implementor of the CCO when a configuration define is added, deleted or
+ * modified.
  */
 #define FS_HELPER_POSIX_CONFIGURATION_H_VERSION (1)
-
 
 /**
  * @brief Enable or disable the buffering mode for fread/fwrite operations.
@@ -60,9 +59,8 @@
 #define FS_LARGE_FILE_MAX_OFFSET (0xFFFFFFFEFFF)
 #endif
 
-
 #ifdef __cplusplus
-	}
+}
 #endif
 
 #endif // FS_HELPER_POSIX_CONFIGURATION_H

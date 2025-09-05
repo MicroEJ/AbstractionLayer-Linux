@@ -1,7 +1,7 @@
 /*
  * C
  *
- * Copyright 2014-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2014-2025 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  *
  */
@@ -66,6 +66,7 @@ int lldisplay_fb_drm_getscreeninfo(int fd, lldisplay_screeninfo_t* display_scree
 			break;
 		}
 		drmModeFreeConnector(connector);
+		connector = NULL;
 	}
 
 	/* check if we found a monitor connected */

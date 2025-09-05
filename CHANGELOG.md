@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.0] - 2025-09-05
+
+### Fixed
+
+- Fixed run.sh script for application.out deployment
+- Fixed run.bat script for application.out deployment
+- Fixed Windows paths in .bat scripts
+- Fixed double free when using UI without a screen
+- Fixed Cpp warnings
+- Fixed a FS modified time issue when DST is active
+
+### Changed
+
+- Cmake binary dir is now named after the C compiler (allows multiple builds)
+- Added a trap in build.sh script in case of build errors
+- Updated to MicroUI implementation 14.4.2
+- Create the set_local_env scripts from the template, and gitignore them.
+- Updated to async-worker 0.6.0
+- Updated to osal headers 1.0.3
+- Updated to FS llimpl 3.0.6
+
+## [3.2.0] - 2025-05-28
+
+### Added
+
+- Added Event queue implementation on posix
+
+### Fixed
+
+- Fixed a timeout in osal posix
+- Fixed not implemented Device natives
+- Fixed DNS resolution in dual stack mode
+
 ## [3.1.0] - 2025-03-20
 
 ### Changed

@@ -43,7 +43,7 @@ extern "C" {
  * functions to draw the image: it has to call the stub implementation.
  *
  * @author MicroEJ Developer Team
- * @version 14.3.2
+ * @version 14.4.2
  */
 
 // --------------------------------------------------------------------------------

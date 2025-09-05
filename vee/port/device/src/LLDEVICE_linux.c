@@ -125,6 +125,30 @@ static int32_t LLDEVICE_IMPL_getId_linux(uint8_t* buffer, int32_t buffer_size) {
 	return buffer_size;
 }
 
+/**
+ * Fills the given buffer with the Version of the device as
+ * a null-terminated string.
+ *
+ * @param buffer the buffer to fill with the Version.
+ */
+void LLDEVICE_IMPL_getVersion(uint8_t* buffer) {
+    (void)SNI_throwNativeException(-1, "Not implemented");
+}
+
+/**
+ * Reboots the device.
+ */
+void LLDEVICE_IMPL_reboot(void) {
+    (void)SNI_throwNativeException(-1, "Not implemented");
+}
+
+/**
+ * Shutdown the device.
+ */
+void LLDEVICE_IMPL_shutdown(void) {
+    (void)SNI_throwNativeException(-1, "Not implemented");
+}
+
 #ifdef __cplusplus
 	}
 #endif

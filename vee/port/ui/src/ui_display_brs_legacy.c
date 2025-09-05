@@ -9,7 +9,7 @@
  * display buffer strategy (BRS) "legacy"
  * @see UI_FEATURE_BRS_LEGACY comment
  * @author MicroEJ Developer Team
- * @version 14.3.2
+ * @version 14.4.2
  */
 
 #include "ui_display_brs.h"
@@ -42,9 +42,8 @@ DRAWING_Status LLUI_DISPLAY_IMPL_newDrawingRegion(MICROUI_GraphicsContext *gc, u
 }
 
 DRAWING_Status LLUI_DISPLAY_IMPL_refresh(MICROUI_GraphicsContext *gc, uint8_t flushIdentifier) {
-	LLTRACE_record_event_u32x6(LLUI_EVENT_group, LLUI_EVENT_offset + UI_LOG_BRS_FlushSingle, flushIdentifier,
-	                           (uint32_t)LLUI_DISPLAY_getBufferAddress(&gc->image), flush_bounds.x1, flush_bounds.y1,
-	                           flush_bounds.x2, flush_bounds.y2);
+	UI_LOG_START(BRS_FlushSingle, flushIdentifier, UI_LOG_BUFFER(&gc->image), flush_bounds.x1, flush_bounds.y1,
+			UI_RECT_get_width(&flush_bounds), UI_RECT_get_height(&flush_bounds));
 
 	LLUI_DISPLAY_IMPL_flush(gc, flushIdentifier, &flush_bounds, 1);
 

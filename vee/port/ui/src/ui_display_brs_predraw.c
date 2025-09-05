@@ -9,7 +9,7 @@
  * display buffer strategy (BRS) "pre draw"
  * @see UI_FEATURE_BRS_PREDRAW comment
  * @author MicroEJ Developer Team
- * @version 14.3.2
+ * @version 14.4.2
  */
 
 #include "ui_display_brs.h"
@@ -89,7 +89,6 @@ static void _remove_drawing_regions(MICROUI_GraphicsContext *gc, ui_rect_t *regi
 		while (r != UI_RECT_COLLECTION_get_end(&dirty_regions[i])) {
 			if (!UI_RECT_is_empty(r) && UI_RECT_contains_rect(region, r)) {
 				// this region will be re-drawn: remove it from the restoration array
-				LOG_REGION(UI_LOG_BRS_RemoveRegion, r);
 				UI_RECT_mark_empty(r);
 			}
 			r++;
@@ -111,11 +110,9 @@ static void _add_drawing_region(MICROUI_GraphicsContext *gc, ui_rect_t *region) 
 				new_region = *region;
 			} else {
 				// too many rectangles: replace them by only one whose fits the full display
-				LLTRACE_record_event_void(LLUI_EVENT_group, LLUI_EVENT_offset + UI_LOG_BRS_ClearList);
 				UI_RECT_COLLECTION_clear(&dirty_regions[i]);
 				new_region = UI_RECT_new_xyxy(0, 0, gc->image.width - 1, gc->image.height - 1);
 			}
-			LOG_REGION(UI_LOG_BRS_AddRegion, &new_region);
 			UI_RECT_COLLECTION_add_rect(&dirty_regions[i], new_region);
 		}
 	}
@@ -190,7 +187,7 @@ static DRAWING_Status _restore_sub_rect(MICROUI_GraphicsContext *gc, MICROUI_Ima
 	do {
 		ui_rect_t *r = &diff[ri];
 		if (!UI_RECT_is_empty(r)) {
-			LOG_REGION(UI_LOG_BRS_RestoreRegion, r);
+			UI_LOG_START(BRS_RestoreRegion, r->x1, r->y1, UI_RECT_get_width(r), UI_RECT_get_height(r));
 			restore_status = UI_DISPLAY_BRS_restore(gc, previous_buffer, r);
 			UI_RECT_mark_empty(r);
 		}
@@ -255,14 +252,6 @@ static DRAWING_Status _prepare_back_buffer(MICROUI_GraphicsContext *gc, ui_rect_
 #endif
 	}
 
-	if (DRAWING_DONE == restore_status) {
-		// back buffer is considered as ready when it is fully restored
-		backbuffer_ready = true;
-
-		// add the new region as a region to restore
-		_add_drawing_region(gc, dirty_region);
-	}
-
 	return restore_status;
 }
 
@@ -276,17 +265,28 @@ static DRAWING_Status _prepare_back_buffer(MICROUI_GraphicsContext *gc, ui_rect_
  * region to restore after next call to flush().
  */
 DRAWING_Status LLUI_DISPLAY_IMPL_newDrawingRegion(MICROUI_GraphicsContext *gc, ui_rect_t *region, bool drawing_now) {
-	LOG_REGION(UI_LOG_BRS_NewDrawing, region);
 
 	DRAWING_Status ret = DRAWING_DONE;
 
 	if (!backbuffer_ready) {
+		// first region after a flush
 		if (!drawing_now) {
+			// region without drawing: no need to restore its content (it will be erased later)
 			_remove_drawing_regions(gc, region);
 		} else {
+			// region with drawing: have to restore
 			ret = _prepare_back_buffer(gc, region);
+
+			if (DRAWING_DONE == ret) {
+				// back buffer is considered as ready when it is fully restored
+				backbuffer_ready = true;
+
+				// add the new region as a region to restore
+				_add_drawing_region(gc, region);
+			}
 		}
 	} else {
+		// new region: add it to the pool of regions to restore after next flush
 		_add_drawing_region(gc, region); // don't care if drawing now or not
 	}
 
@@ -301,9 +301,8 @@ DRAWING_Status LLUI_DISPLAY_IMPL_newDrawingRegion(MICROUI_GraphicsContext *gc, u
 DRAWING_Status LLUI_DISPLAY_IMPL_refresh(MICROUI_GraphicsContext *gc, uint8_t flushIdentifier) {
 #ifdef UI_FEATURE_BRS_FLUSH_SINGLE_RECTANGLE
 
-	LLTRACE_record_event_u32x6(LLUI_EVENT_group, LLUI_EVENT_offset + UI_LOG_BRS_FlushSingle, flushIdentifier,
-	                           (uint32_t)LLUI_DISPLAY_getBufferAddress(&gc->image), flush_bounds.x1, flush_bounds.y1,
-	                           flush_bounds.x2, flush_bounds.y2);
+	UI_LOG_START(BRS_FlushSingle, flushIdentifier, UI_LOG_BUFFER(&gc->image), flush_bounds.x1, flush_bounds.y1,
+			UI_RECT_get_width(&flush_bounds), UI_RECT_get_height(&flush_bounds));
 
 	// refresh the LCD; use the flush_bounds as dirty region (includes all dirty regions)
 	LLUI_DISPLAY_IMPL_flush(gc, flushIdentifier, &flush_bounds, 1);
@@ -319,12 +318,10 @@ DRAWING_Status LLUI_DISPLAY_IMPL_refresh(MICROUI_GraphicsContext *gc, uint8_t fl
 	size_t size = UI_RECT_COLLECTION_get_length(&dirty_regions[index_dirty_region_to_restore]);
 	if (1u == size) {
 		ui_rect_t *rect = &dirty_regions[index_dirty_region_to_restore].data[0];
-		LLTRACE_record_event_u32x6(LLUI_EVENT_group, LLUI_EVENT_offset + UI_LOG_BRS_FlushSingle, flushIdentifier,
-		                           (uint32_t)LLUI_DISPLAY_getBufferAddress(&gc->image), rect->x1, rect->y1, rect->x2,
-		                           rect->y2);
+		UI_LOG_START(BRS_FlushSingle, flushIdentifier, UI_LOG_BUFFER(&gc->image), rect->x1, rect->y1, UI_RECT_get_width(rect),
+				UI_RECT_get_height(rect));
 	} else {
-		LLTRACE_record_event_u32x3(LLUI_EVENT_group, LLUI_EVENT_offset + UI_LOG_BRS_FlushMulti, flushIdentifier,
-		                           (uint32_t)LLUI_DISPLAY_getBufferAddress(&gc->image), size);
+		UI_LOG_START(BRS_FlushMulti, flushIdentifier, UI_LOG_BUFFER(&gc->image), size);
 	}
 
 	LLUI_DISPLAY_IMPL_flush(gc, flushIdentifier, dirty_regions[index_dirty_region_to_restore].data,

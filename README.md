@@ -20,9 +20,10 @@ This Abstraction Layer is compliant with Architecture `8.x` and the following Pa
 | ------------ | -------- |
 | DEVICE       | 1.2.0    |
 | ECOM-NETWORK | 1.0.0    |
+| EVENT        | 2.1.0    |
 | FS           | 6.0.4    |
 | NET          | 11.1.0   |
-| UI           | 14.3.2   |
+| UI           | 14.4.2   |
 
 ### Architecture
 
@@ -158,8 +159,7 @@ The ``.bat`` and ``.sh`` scripts are meant to run in a Windows and Linux environ
 
 - The ``run*`` scripts are used to send and execute a MicroEJ executable (``application.out``) on a device, over SSH.
 
-The environment variables can be defined globally by the user or in the ``set_local_env*`` scripts.  When the ``.bat`` (``.sh``) scripts are executed, the ``set_local_env.bat`` (``set_local_env.sh``) script is executed if it exists.
-You can edit these files to customize the environment locally.
+The environment variables can be defined globally by the user or in the ``set_local_env*`` scripts. You can edit these files to customize the environment locally.
 
 ## Host Configuration
 

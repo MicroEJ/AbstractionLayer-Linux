@@ -9,7 +9,7 @@
  * display buffer strategy (BRS) "single"
  * @see UI_FEATURE_BRS_SINGLE comment
  * @author MicroEJ Developer Team
- * @version 14.3.2
+ * @version 14.4.2
  */
 
 #include "ui_display_brs.h"
@@ -71,8 +71,6 @@ static ui_rect_t flush_bounds = {
 DRAWING_Status LLUI_DISPLAY_IMPL_newDrawingRegion(MICROUI_GraphicsContext *gc, ui_rect_t *region, bool drawing_now) {
 	(void)drawing_now;
 
-	LOG_REGION(UI_LOG_BRS_NewDrawing, region);
-
 #ifndef UI_FEATURE_BRS_FLUSH_SINGLE_RECTANGLE
 
 	ui_rect_t *previous = UI_RECT_COLLECTION_get_last(&dirty_regions);
@@ -84,11 +82,9 @@ DRAWING_Status LLUI_DISPLAY_IMPL_newDrawingRegion(MICROUI_GraphicsContext *gc, u
 			new_region = *region;
 		} else {
 			// too many rectangles: replace them by only one whose fits the full display
-			LLTRACE_record_event_void(LLUI_EVENT_group, LLUI_EVENT_offset + UI_LOG_BRS_ClearList);
 			UI_RECT_COLLECTION_clear(&dirty_regions);
 			new_region = UI_RECT_new_xyxy(0, 0, gc->image.width - 1, gc->image.height - 1);
 		}
-		LOG_REGION(UI_LOG_BRS_AddRegion, &new_region);
 		UI_RECT_COLLECTION_add_rect(&dirty_regions, new_region);
 	}
 #else // UI_FEATURE_BRS_FLUSH_SINGLE_RECTANGLE
@@ -115,12 +111,10 @@ DRAWING_Status LLUI_DISPLAY_IMPL_refresh(MICROUI_GraphicsContext *gc, uint8_t fl
 	size_t size = UI_RECT_COLLECTION_get_length(&dirty_regions);
 	if (1u == size) {
 		ui_rect_t *rect = &dirty_regions.data[0];
-		LLTRACE_record_event_u32x6(LLUI_EVENT_group, LLUI_EVENT_offset + UI_LOG_BRS_FlushSingle, flushIdentifier,
-		                           (uint32_t)LLUI_DISPLAY_getBufferAddress(&gc->image), rect->x1, rect->y1, rect->x2,
-		                           rect->y2);
+		UI_LOG_START(BRS_FlushSingle, flushIdentifier, UI_LOG_BUFFER(&gc->image), rect->x1, rect->y1, UI_RECT_get_width(rect),
+				UI_RECT_get_height(rect));
 	} else {
-		LLTRACE_record_event_u32x3(LLUI_EVENT_group, LLUI_EVENT_offset + UI_LOG_BRS_FlushMulti, flushIdentifier,
-		                           (uint32_t)LLUI_DISPLAY_getBufferAddress(&gc->image), size);
+		UI_LOG_START(BRS_FlushMulti, flushIdentifier, UI_LOG_BUFFER(&gc->image), size);
 	}
 
 	LLUI_DISPLAY_IMPL_flush(gc, flushIdentifier, dirty_regions.data, UI_RECT_COLLECTION_get_length(&dirty_regions));
@@ -128,9 +122,8 @@ DRAWING_Status LLUI_DISPLAY_IMPL_refresh(MICROUI_GraphicsContext *gc, uint8_t fl
 
 #else // UI_FEATURE_BRS_FLUSH_SINGLE_RECTANGLE
 
-	LLTRACE_record_event_u32x6(LLUI_EVENT_group, LLUI_EVENT_offset + UI_LOG_BRS_FlushSingle, flushIdentifier,
-	                           (uint32_t)LLUI_DISPLAY_getBufferAddress(&gc->image), flush_bounds.x1, flush_bounds.y1,
-	                           flush_bounds.x2, flush_bounds.y2);
+	UI_LOG_START(BRS_FlushSingle, flushIdentifier, UI_LOG_BUFFER(&gc->image), flush_bounds.x1, flush_bounds.y1,
+			UI_RECT_get_width(&flush_bounds), UI_RECT_get_height(&flush_bounds));
 
 	// refresh the LCD; use the flush_bounds as dirty region (includes all dirty regions)
 	LLUI_DISPLAY_IMPL_flush(gc, flushIdentifier, &flush_bounds, 1);

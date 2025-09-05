@@ -16,7 +16,7 @@ extern "C" {
  * @brief  Provides macros to manipulate the color channels of the ARGB8888 pixel
  * format.
  * @author MicroEJ Developer Team
- * @version 14.3.2
+ * @version 14.4.2
  */
 
 // -----------------------------------------------------------------------------

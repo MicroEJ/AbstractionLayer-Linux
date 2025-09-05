@@ -19,7 +19,7 @@ extern "C" {
  * @see ui_rect_t
  *
  * @author MicroEJ Developer Team
- * @version 14.3.2
+ * @version 14.4.2
  */
 
 // --------------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-# Copyright 2024 MicroEJ Corp. All rights reserved.
+# Copyright 2024-2025 MicroEJ Corp. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be found with this software.
 
 cmake_minimum_required(VERSION 3.11)
@@ -22,8 +22,14 @@ target_include_directories(${target} PUBLIC ${CMAKE_CURRENT_LIST_DIR}/inc)
 if (BUILD_CORE)
 	add_subdirectory(port/core)
 endif()
+if (BUILD_DEVICE)
+	add_subdirectory(port/device)
+endif()
 if (BUILD_ECOM_NETWORK)
 	add_subdirectory(port/ecom-network)
+endif()
+if (BUILD_EVENT_QUEUE)
+	add_subdirectory(port/event-queue)
 endif()
 if (BUILD_FS)
 	add_subdirectory(port/fs)
@@ -60,7 +66,29 @@ endif()
 
 # append CFLAGS environment variable set by Yocto or custom script set_project_env.sh
 target_compile_options(${target} PRIVATE ${CFLAGS})
-target_compile_options(${target} PRIVATE -Winline -fwrapv -Werror-implicit-function-declaration -ffunction-sections -fdata-sections -std=c99 -fno-strict-aliasing -fdollars-in-identifiers -D_XOPEN_SOURCE=700 -D_GNU_SOURCE -fno-stack-protector -no-pie -O2 -g -D__iceTea__RELEASE -DNDEBUG)
+target_compile_options(${target} PRIVATE
+	# C-specific
+	$<$<COMPILE_LANGUAGE:C>:-std=c99 -Werror-implicit-function-declaration>
+
+	# C++-specific
+	$<$<COMPILE_LANGUAGE:CXX>:-std=c++17>
+
+	# Shared options
+	-Winline
+	-fwrapv
+	-ffunction-sections
+	-fdata-sections
+	-fno-strict-aliasing
+	-fdollars-in-identifiers
+	-D_XOPEN_SOURCE=700
+	-D_GNU_SOURCE
+	-fno-stack-protector
+	-no-pie
+	-O2
+	-g
+	-D__iceTea__RELEASE
+	-DNDEBUG
+)
 if (ADVANCED_TRACE)
 	target_compile_options(${target} PRIVATE -DMICROEJ_VEE_METHOD_TRACE=2)
 else()
@@ -102,7 +130,7 @@ endif()
 target_compile_options(${target} PRIVATE "-DLLNET_AF=${LLNET_AF}")
 
 # link
-target_link_options(${target} PRIVATE -Wl,-Map,${CMAKE_CURRENT_LIST_DIR}/build/microej_gcc.map)
+target_link_options(${target} PRIVATE -Wl,-Map,${CMAKE_BINARY_DIR}/microej_gcc.map)
 target_link_options(${target} PRIVATE -Wl,--gc-sections)
 target_link_options(${target} PRIVATE -Wl,--start-group)
 target_link_libraries(${target} PRIVATE ${CMAKE_CURRENT_LIST_DIR}/lib/microejapp.o)

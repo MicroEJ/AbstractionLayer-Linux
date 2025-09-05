@@ -44,7 +44,7 @@
  * format "3".
  *
  * @author MicroEJ Developer Team
- * @version 14.3.2
+ * @version 14.4.2
  * @see ui_drawing.h
  */
 

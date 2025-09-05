@@ -18,7 +18,7 @@ extern "C"
  * stub a drawing on a custom destination (custom GraphicsContext format not supported by the Graphics
  * Engine).
  * @author MicroEJ Developer Team
- * @version 14.3.2
+ * @version 14.4.2
  */
 
 // --------------------------------------------------------------------------------

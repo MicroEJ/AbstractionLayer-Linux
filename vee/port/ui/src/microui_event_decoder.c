@@ -11,7 +11,7 @@
  *
  * @see LLUI_INPUT_LOG_impl.c file comment
  * @author MicroEJ Developer Team
- * @version 14.3.2
+ * @version 14.4.2
  * @since MicroEJ UI Pack 13.1.0
  */
 

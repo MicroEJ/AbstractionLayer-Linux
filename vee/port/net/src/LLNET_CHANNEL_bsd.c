@@ -411,7 +411,7 @@ int32_t LLNET_CHANNEL_IMPL_getOptionAsByteArray(int32_t fd, int32_t option, int8
 				/* Remove unused parameters warning*/
 				(void)fd;
 				(void)dst;
-				(void)dstLength
+				(void)dstLength;
 				// Not managed
 				SNI_throwNativeIOException(J_ENOPROTOOPT, "socket option not supported for ipv6");
 				return SNI_IGNORED_RETURNED_VALUE;

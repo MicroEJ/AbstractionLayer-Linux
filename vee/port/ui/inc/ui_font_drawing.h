@@ -40,7 +40,7 @@ extern "C" {
  * functions to draw the font: it has to call the stub implementation.
  *
  * @author MicroEJ Developer Team
- * @version @CCO_VERSION@
+ * @version 14.4.2
  */
 
 // --------------------------------------------------------------------------------

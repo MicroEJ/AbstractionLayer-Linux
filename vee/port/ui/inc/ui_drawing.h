@@ -74,7 +74,7 @@ extern "C" {
  * the flush dirty region as explained in LLUI_PAINTER_impl.h.
  *
  * @author MicroEJ Developer Team
- * @version 14.3.2
+ * @version 14.4.2
  */
 
 // --------------------------------------------------------------------------------

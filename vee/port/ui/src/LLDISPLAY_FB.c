@@ -1,7 +1,7 @@
 /*
  * C
  *
- * Copyright 2014-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2014-2025 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  *
  */
@@ -200,7 +200,6 @@ void LLUI_DISPLAY_IMPL_initialize(LLUI_DISPLAY_SInitData* init_data) {
 	}
 
 	if (fd < 0) {
-		LLDISPLAY_LOG_DEBUG("Screen initialization...	FAILED 1\n");
 		LLDISPLAY_LOG_WARNING("Frame buffer not available, skipping display setup\n");
 		return;
 	}
@@ -212,14 +211,14 @@ void LLUI_DISPLAY_IMPL_initialize(LLUI_DISPLAY_SInitData* init_data) {
 	ret = lldisplay_fb_drm_getscreeninfo(fd, &display_screeninfo);
 #endif
 	if (ret < 0) {
-		LLDISPLAY_LOG_DEBUG("Screen initialization...	FAILED 2\n");
+		LLDISPLAY_LOG_WARNING("Screen info not detected, skipping display setup\n");
 		return;
 	}
 
 	display_convert_32_to_16_bpp_str = getenv("LLDISPLAY_CONVERT_32_TO_16_BPP");
 	if( display_convert_32_to_16_bpp_str != NULL ) {
 		if(display_screeninfo.bpp != 16){
-			LLDISPLAY_LOG_DEBUG("Wrong screen format (%dx%d - %d bpp) to make convertion of 32 bpp to 16 bpp\n", display_screeninfo.width, display_screeninfo.height, display_screeninfo.bpp);
+			LLDISPLAY_LOG_WARNING("Wrong screen format (%dx%d - %d bpp) to make convertion of 32 bpp to 16 bpp\n", display_screeninfo.width, display_screeninfo.height, display_screeninfo.bpp);
 			return;
 		}
 		display_convert_32_to_16_bpp = 1;
@@ -243,7 +242,7 @@ void LLUI_DISPLAY_IMPL_initialize(LLUI_DISPLAY_SInitData* init_data) {
 	ret =  lldisplay_fb_drm_create_fb(fd, screensize, display_screeninfo, &fb_base);
 #endif
 	if (ret != 0) {
-		LLDISPLAY_LOG_DEBUG("Screen initialization...	FAILED 4\n");
+		LLDISPLAY_LOG_WARNING("Failed to create framebuffer\n");
 		return;
 	}
 
@@ -255,11 +254,11 @@ void LLUI_DISPLAY_IMPL_initialize(LLUI_DISPLAY_SInitData* init_data) {
 			back_buffer = malloc(display_screeninfo.width * display_screeninfo.height * display_screeninfo.bpp / 8);
 		}
 	}else{
-		LLDISPLAY_LOG_DEBUG("Screen format not handled (%dx%d - %d bpp)\n", display_screeninfo.width, display_screeninfo.height, display_screeninfo.bpp);
+		LLDISPLAY_LOG_WARNING("Screen format not handled (%dx%d - %d bpp)\n", display_screeninfo.width, display_screeninfo.height, display_screeninfo.bpp);
 		return;
 	}
 	if(back_buffer == NULL){
-		LLDISPLAY_LOG_DEBUG("An error occurred during back buffer allocation\n");
+		LLDISPLAY_LOG_WARNING("An error occurred during back buffer allocation\n");
 		return;
 	}
 
@@ -272,7 +271,7 @@ void LLUI_DISPLAY_IMPL_initialize(LLUI_DISPLAY_SInitData* init_data) {
 #ifdef LLDISPLAY_FBDRM
 	ret = lldisplay_fb_drm_set_crtc(fd);
 	if (ret != 0) {
-		LLDISPLAY_LOG_DEBUG("Screen initialization...	FAILED 5\n");
+		LLDISPLAY_LOG_DEBUG("Failed to set CRTC\n");
 		return;
 	}
 #endif
@@ -310,8 +309,6 @@ void LLUI_DISPLAY_IMPL_flush(MICROUI_GraphicsContext* gc, uint8_t flush_identifi
 	(void)gc;
 
 	assert(length == 1);
-	// The previous frame should have been processed
-	assert(flush_data.buffer == NULL);
 	// Store the flush data
 	flush_data.buffer = LLUI_DISPLAY_getBufferAddress(&gc->image);
 	flush_data.flush_identifier = flush_identifier;

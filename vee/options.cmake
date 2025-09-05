@@ -1,4 +1,4 @@
-# Copyright 2024 MicroEJ Corp. All rights reserved.
+# Copyright 2024-2025 MicroEJ Corp. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be found with this software.
 #
 # BSP options
@@ -6,7 +6,9 @@
 
 # Select which Abstraction Layer to build
 option(BUILD_CORE         "Build Core Abstraction Layer"                   ON)
+option(BUILD_DEVICE       "Build Device Abstraction Layer"                 ON)
 option(BUILD_ECOM_NETWORK "Build Embedded COMmunication Abstraction Layer" ON)
+option(BUILD_EVENT_QUEUE  "Build Event Queue Abstraction Layer"            ON)
 option(BUILD_FS           "Build File System Abstraction Layer"            ON)
 option(BUILD_KF           "Build Kernel Feature Abstraction Layer"         ON)
 option(BUILD_NET          "Build Network Abstraction Layer"                ON)

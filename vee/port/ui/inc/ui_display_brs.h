@@ -27,7 +27,7 @@ extern "C" {
  * to select one of them).
  *
  * @author MicroEJ Developer Team
- * @version 14.3.2
+ * @version 14.4.2
  */
 
 // -----------------------------------------------------------------------------
@@ -39,16 +39,6 @@ extern "C" {
 #include "ui_util.h"
 #include "ui_configuration.h"
 #include "ui_log.h"
-
-// -----------------------------------------------------------------------------
-// Macros and defines
-// -----------------------------------------------------------------------------
-
-/*
- * @brief Logs a region (a rectangle)
- */
-#define LOG_REGION(log, rect) LLTRACE_record_event_u32x4((LLUI_EVENT_group), (LLUI_EVENT_offset) + (log), (rect)->x1, \
-														 (rect)->y1, (rect)->x2, (rect)->y2)
 
 // --------------------------------------------------------------------------------
 // Display BRS public API
