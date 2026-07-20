@@ -1,7 +1,7 @@
 #
 # GDB script
 #
-# Copyright 2023-2024 MicroEJ Corp. All rights reserved.
+# Copyright 2023-2026 MicroEJ Corp. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be found with this software.
 
 # This script is invoked in the directory where are gathered the '.fo' files

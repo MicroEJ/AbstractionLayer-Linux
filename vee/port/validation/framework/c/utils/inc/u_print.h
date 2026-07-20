@@ -1,7 +1,7 @@
 /*
  * C
  *
- * Copyright 2019-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2019-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 
@@ -15,7 +15,10 @@
 #endif
 
 #include <stdint.h>
+#include <stdio.h>
 
+#define UTIL_printf printf
+   
 /* Public constant declaration */
 
 /* public structure declaration */

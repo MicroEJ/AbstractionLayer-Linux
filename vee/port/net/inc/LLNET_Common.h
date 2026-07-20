@@ -1,7 +1,7 @@
 /*
  * C
  *
- * Copyright 2016-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2016-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 
@@ -9,13 +9,11 @@
  * @file
  * @brief Common LLNET macro and functions.
  * @author MicroEJ Developer Team
- * @version 2.0.0
- * @date 17 June 2022
+ * @version 2.0.1
  */
 
 #ifndef  LLNET_COMMON_H
 #define  LLNET_COMMON_H
-
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -26,9 +24,8 @@
 #include <sys/time.h>
 #include <netinet/in.h>
 
-
 #ifdef __cplusplus
-	extern "C" {
+extern "C" {
 #endif
 
 /**
@@ -45,18 +42,18 @@
 // Define LLNET_DEBUG in LLNET_configuration.h to enable network debug trace
 #ifdef LLNET_DEBUG
 	#include <stdio.h>
-	#define LLNET_DEBUG_TRACE 	printf
+	#define LLNET_DEBUG_TRACE   printf
 #else
-	#define LLNET_DEBUG_TRACE(...) ((void) 0)
+	#define LLNET_DEBUG_TRACE(...) ((void)0)
 #endif
 
 /**
  * @brief External function used to retrieve currentTime (defined in LLMJVM)
  */
 extern int64_t LLMJVM_IMPL_getCurrentTime__Z(uint8_t system);
-#define LLNET_current_time_ms()	LLMJVM_IMPL_getCurrentTime__Z(1) // 1 means that system time is required
+#define LLNET_current_time_ms() LLMJVM_IMPL_getCurrentTime__Z(1) // 1 means that system time is required
 
-union llnet_sockaddr{
+union llnet_sockaddr {
 	struct sockaddr addr;
 #if LLNET_AF & LLNET_AF_IPV4
 	struct sockaddr_in in;
@@ -76,7 +73,8 @@ union llnet_sockaddr{
  * <code>LLMJVM_IMPL_getCurrentTime(1)</code>. A timeout of zero is interpreted as an infinite timeout.
  *
  * If the error code is <code>EAGAIN</code>, <code>EWOULDBLOCK</code> or <code>EINPROGRESS</code>,
- * then an <code>async_select()</code> request is performed on the given <code>operation</code>; otherwise an SNI NativeIOException is thrown.
+ * then an <code>async_select()</code> request is performed on the given <code>operation</code>; otherwise an SNI
+ * NativeIOException is thrown.
  *
  * @param[in] fd The file descriptor on which the error has occurred.
  * @param[in] fd_errno the error code to be handled.
@@ -85,7 +83,9 @@ union llnet_sockaddr{
  * @param[in] callback the async_select SNI callback function.
  * @param[in] callback_suspend_arg the async_select SNI suspend callback argument.
  */
-void LLNET_handle_blocking_operation_error(int32_t fd, int32_t fd_errno, select_operation operation, int64_t absolute_timeout_ms, SNI_callback callback, void* callback_suspend_arg);
+void LLNET_handle_blocking_operation_error(int32_t fd, int32_t fd_errno, select_operation operation,
+                                           int64_t absolute_timeout_ms, SNI_callback callback,
+                                           void *callback_suspend_arg);
 
 /**
  * @brief Sets the given socket file descriptor in non-blocking mode.
@@ -132,12 +132,12 @@ uint32_t LLNET_getScopeForIp(const char *ip);
  * @param[in] ipv4_addr the IPv4 to map
  * @param[out] ipv6_addr the destination IPv6
  */
-void LLNET_map_ipv4_into_ipv6(in_addr_t* ipv4_addr, struct in6_addr* ipv6_addr);
+void LLNET_map_ipv4_into_ipv6(in_addr_t *ipv4_addr, struct in6_addr *ipv6_addr);
 
 #endif
 
 #ifdef __cplusplus
-	}
+}
 #endif
 
 #endif // LLNET_COMMON_H

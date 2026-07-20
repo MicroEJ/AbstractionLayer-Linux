@@ -1,7 +1,7 @@
 /**
  * C
  *
- * Copyright 2014-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2014-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 
@@ -17,7 +17,7 @@
  */
 
 #ifdef __cplusplus
-	extern "C" {
+extern "C" {
 #endif
 
 /**
@@ -26,13 +26,13 @@
 void microej_segfault_handler_init(void);
 
 /**
- * @brief Initializes the handler that executes a MicroEJ Core Engine dump when SIGUSR1 signal is received by the current process.
+ * @brief Initializes the handler that executes a MicroEJ Core Engine dump when SIGUSR1 signal is received by the
+ * current process.
  */
 void microej_usr1_signal_handler_init(void);
 
 #ifdef __cplusplus
-	}
+}
 #endif
 
 #endif // SIGHANDLER_H
-

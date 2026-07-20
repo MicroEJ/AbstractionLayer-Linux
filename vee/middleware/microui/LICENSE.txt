@@ -1,0 +1,35 @@
+﻿MICROEJ COMMERCIAL SOFTWARE COMPONENT LICENSE AGREEMENT
+
+This MicroEJ Commercial Software Component License Agreement (the "License Agreement") governs the use of the software component (the "Component"), which is provided by MicroEJ for use solely in combination with MicroEJ Core embedded software (the "MicroEJ Core"). By installing, accessing, or using the Component, you ("Licensee") agree to the terms of this License Agreement.
+
+1. LICENSE GRANT
+
+Subject to the terms and conditions of this License Agreement, MicroEJ grants Licensee a non-exclusive, non-transferable, limited license to use the Component in combination with the MicroEJ Core, solely for the purposes of development, testing, and integration with Licenseeâ€™s applications.
+
+2. SDK END USER LICENSE AGREEMENT
+
+For the development of applications using the Component, Licensee acknowledges and agrees that the terms of the MicroEJ Software Development Kit End User License Agreement (the "SDK EULA") apply in full. The SDK EULA governs Licenseeâ€™s use of the Software Development Kit ("SDK") and associated tools, including restrictions on distribution, reverse engineering, and intellectual property rights. By using the Component, Licensee agrees to be bound by the terms of the SDK EULA.
+
+3. REQUIREMENT FOR PRODUCTION LICENSE
+
+Licensee acknowledges that the Component is an additional feature to the MicroEJ Core and is subject to a separate production licensing requirement. To include the Component in any End Product (Powered By MicroEJ Device) distributed by Licensee, Licensee must ensure that the Component is explicitly listed as part of the Licensed Software in the applicable production license agreement between Licensee and MicroEJ (the "Production License").
+Use of the Component in production without the appropriate licensing is strictly prohibited.
+
+4. MODIFICATION AND SOURCE/BINARY CODE RESTRICTIONS
+
+(a) Source Code: Portions of the Component may be provided in source code form. Licensee is permitted to modify such source code solely for internal development and testing purposes. However, Licensee acknowledges that any modification to the source code will automatically void any warranties or guarantees provided by MicroEJ on the modified parts of the Component. MicroEJ assumes no responsibility for any issues, defects, or failures that arise from Licenseeâ€™s modifications to the source code.
+(b) Binary Code: Portions of the Component may also be provided in binary code form. Licensee shall not modify, reverse engineer, decompile, or disassemble any part of the Component provided in binary code form. Such activities are strictly prohibited and may result in termination of this License Agreement.
+
+5. APPLICABILITY OF SDK EULA
+
+The provisions regarding intellectual property rights, disclaimers of warranties, limitations of liability, and governing law as stated in the SDK EULA shall apply in full to this License Agreement.
+
+6. TERMINATION
+
+This License Agreement is effective until terminated. MicroEJ may terminate this License Agreement immediately if Licensee breaches any of its terms. Upon termination, Licensee must cease all use of the Component and destroy all copies in its possession or control.
+
+7. ENTIRE AGREEMENT
+
+This License Agreement, together with the SDK EULA and any applicable Production License, constitutes the entire agreement between the parties with respect to the Component and supersedes any prior or contemporaneous understandings or agreements, whether written or oral
+
+Reference: LAW-0988-LCS-CommercialComponents- 1.1-A

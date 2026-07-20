@@ -1,7 +1,7 @@
 /*
  * C
  *
- * Copyright 2023-2025 MicroEJ Corp. All rights reserved.
+ * Copyright 2023-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 
@@ -369,7 +369,7 @@ jint LLEVENT_IMPL_read(uint8_t *b, uint32_t off, uint32_t len) {
 	}
 
 	// If the buffer is too small to store the len bytes of data, throw a native IOException.
-	if (off + len > SNI_getArrayLength(b) && read_status == (jboolean)JTRUE) {
+	if (off + len > (uint32_t)SNI_getArrayLength(b) && read_status == (jboolean)JTRUE) {
 		if (SNI_throwNativeIOException(EVENT_NOK, "The buffer is too small to store the event data.") == SNI_ERROR) {
 			LLEVENT_ERROR_TRACE(
 				"ERROR during EventDataReader.read: The buffer is too small to store the event data.\n");
@@ -454,9 +454,7 @@ jint LLEVENT_IMPL_skip_bytes(uint32_t n) {
 	// Read n bytes from the event queue.
 	if (skip_status != EVENT_NOK) {
 		while (skip_bytes_counter < n) {
-			// Unused variable skipped_byte because the value returned by a function having non-void return value
-			// shall be used according to rule misra-c2012-17.7.
-			jbyte skipped_byte = read_one_byte();
+			(void)read_one_byte();
 			// If an SNI exception occurs during reading, stop skipping and return -1.
 			if (SNI_isExceptionPending()) {
 				if (SNI_clearPendingException() == SNI_ERROR) {

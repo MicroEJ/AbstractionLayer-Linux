@@ -1,7 +1,7 @@
 /*
  * C
  *
- * Copyright 2017-2025 MicroEJ Corp. All rights reserved.
+ * Copyright 2017-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  *
  */
@@ -48,6 +48,7 @@ static OSAL_status_t OSAL_add_milliseconds_to_posix_current_time(uint32_t ms, st
  */
 OSAL_status_t OSAL_task_create(OSAL_task_entry_point_t entry_point, uint8_t *name, OSAL_task_stack_t stack,
                                int32_t priority, void *parameters, OSAL_task_handle_t *handle) {
+	(void)priority;
 	OSAL_status_t result = OSAL_ERROR;
 	int32_t pthread_result = 0;
 	pthread_attr_t attr;
@@ -84,8 +85,7 @@ OSAL_status_t OSAL_task_create(OSAL_task_entry_point_t entry_point, uint8_t *nam
  * @return operation status (@see OSAL_status_t)
  */
 OSAL_status_t OSAL_task_delete(OSAL_task_handle_t *handle) {
-	// nothing to do
-	return OSAL_OK;
+	return pthread_join(*handle, NULL) == 0 ? OSAL_OK : OSAL_ERROR;
 }
 
 /**
@@ -156,7 +156,7 @@ OSAL_status_t OSAL_queue_delete(OSAL_queue_handle_t *handle) {
 	return result;
 }
 
-static void* OSAL_queue_pop(OSAL_queue_handle_t *handle) {
+static void * OSAL_queue_pop(OSAL_queue_handle_t *handle) {
 	void *msg = ((void **)handle->message_queue)[handle->first_message_index];
 	handle->first_message_index = (handle->first_message_index + 1) % handle->size;
 	handle->count--;
@@ -240,7 +240,7 @@ OSAL_status_t OSAL_queue_fetch(OSAL_queue_handle_t *handle, void **msg, uint32_t
 		return OSAL_ERROR;
 	}
 
-	if(handle->count > 0 || OSAL_OK == OSAL_queue_wait(handle, timeout)) {
+	if (handle->count > 0 || OSAL_OK == OSAL_queue_wait(handle, timeout)) {
 		*msg = OSAL_queue_pop(handle);
 		result = OSAL_OK;
 	}
@@ -264,6 +264,8 @@ OSAL_status_t OSAL_queue_fetch(OSAL_queue_handle_t *handle, void **msg, uint32_t
  */
 OSAL_status_t OSAL_counter_semaphore_create(uint8_t *name, uint32_t initial_count, uint32_t max_count,
                                             OSAL_counter_semaphore_handle_t *handle) {
+	(void)name;
+	(void)max_count;
 	OSAL_status_t result = OSAL_ERROR;
 
 	if (NULL == handle) {
@@ -364,6 +366,7 @@ OSAL_status_t OSAL_counter_semaphore_give(OSAL_counter_semaphore_handle_t *handl
  */
 OSAL_status_t OSAL_binary_semaphore_create(uint8_t *name, uint32_t initial_count,
                                            OSAL_binary_semaphore_handle_t *handle) {
+	(void)name;
 	OSAL_status_t result = OSAL_ERROR;
 
 	if (NULL == handle) {
@@ -424,6 +427,7 @@ OSAL_status_t OSAL_binary_semaphore_give(OSAL_binary_semaphore_handle_t *handle)
  * @return operation status (@see OSAL_status_t)
  */
 OSAL_status_t OSAL_mutex_create(uint8_t *name, OSAL_mutex_handle_t *handle) {
+	(void)name;
 	OSAL_status_t result = OSAL_ERROR;
 
 	if (NULL == handle) {
@@ -473,7 +477,7 @@ OSAL_status_t OSAL_mutex_take(OSAL_mutex_handle_t *handle, uint32_t timeout) {
 	if (NULL == handle) {
 		result = OSAL_WRONG_ARGS;
 	} else {
-		if (-1 != timeout) {
+		if ((uint32_t)-1 != timeout) {
 			if (-1 != clock_gettime(CLOCK_REALTIME, &ts)) {
 				ts.tv_nsec += timeout * 1000 * 1000;
 				if (0 == pthread_mutex_timedlock(handle, &ts)) {

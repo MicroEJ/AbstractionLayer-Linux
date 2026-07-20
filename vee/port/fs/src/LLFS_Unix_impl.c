@@ -1,7 +1,7 @@
 /*
  * C
  *
- * Copyright 2016-2025 MicroEJ Corp. All rights reserved.
+ * Copyright 2016-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 
@@ -49,19 +49,19 @@ void LLFS_Unix_IMPL_canonicalize(uint8_t *path, uint8_t *canonicalizePath, int32
 
 	if (canonicalizePathLength >= PATH_MAX) { // There is enough space to put the result of realpath() into
 		                                      // canonicalizePath
-		char *e_realpath = realpath(path, canonicalizePath);
+		char *e_realpath = realpath((char *)path, (char *)canonicalizePath);
 		if (e_realpath == NULL) {
 			SNI_throwNativeIOException(LLFS_NOK, "realpath: Internal error");
 		}
 	} else { // There is NOT enough space to put the result of realpath() into canonicalizePath.
 		     // Call realpath() with a null dest buffer, it will allocate a new buffer.
-		char *e_realpath = realpath(path, NULL);
+		char *e_realpath = realpath((char *)path, NULL);
 		if (e_realpath != NULL) {
 			// Check if the length of the path returned by realpath()
 			// is lower than canonicalizePath length.
 			// Note: use '<' and not '<=' to keep space for the final '\0'.
-			if (strlen(e_realpath) < canonicalizePathLength) {
-				strcpy(canonicalizePath, e_realpath);
+			if (strlen(e_realpath) < (size_t)canonicalizePathLength) {
+				strcpy((char *)canonicalizePath, e_realpath);
 			} else {
 				SNI_throwNativeIOException(LLFS_NOK, "canonicalPath length too small");
 			}

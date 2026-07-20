@@ -1,7 +1,7 @@
 /*
  * C
  *
- * Copyright 2014-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2014-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 
@@ -16,6 +16,8 @@
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
+#include <pthread.h>
+#include <assert.h>
 
 #include "microej_main.h"
 #include "sighandler.h"
@@ -24,19 +26,18 @@
 #endif
 
 #ifdef __cplusplus
-	extern "C" {
+extern "C" {
 #endif
-
 
 /*
  * Generic Linux MicroEJ main function
  */
-int main(int argc, char** argv){
+int main(int argc, char **argv) {
 	int app_exit_code = 0;
 	int res;
 
 	/* MEJ Application logs need to be flushed instantly in the SDK console */
-	if (setvbuf(stdout, NULL, _IONBF, 0) != 0){
+	if (setvbuf(stdout, NULL, _IONBF, 0) != 0) {
 		printf("setvbuf error: (err = %s).\n", strerror(errno));
 	}
 
@@ -46,10 +47,12 @@ int main(int argc, char** argv){
 	return 0;
 #else
 
+	res = pthread_setname_np(pthread_self(), "MICROEJ VEE");
+	assert(0 == res);
 	microej_segfault_handler_init();
 	microej_usr1_signal_handler_init();
-	res = microej_main(argc-1, ++argv, &app_exit_code);
-	if(res == 0){
+	res = microej_main(argc - 1, ++argv, &app_exit_code);
+	if (res == 0) {
 		res = app_exit_code;
 	}
 	return res;
@@ -57,5 +60,5 @@ int main(int argc, char** argv){
 }
 
 #ifdef __cplusplus
-	}
+}
 #endif

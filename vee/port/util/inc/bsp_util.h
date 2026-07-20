@@ -1,7 +1,7 @@
 /*
  * C
  *
- * Copyright 2015-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2015-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 /**
@@ -24,8 +24,8 @@
 /*
  * @brief defines that list the different byte ordered values
  */
-#define BSP_BIG_ENDIAN		0
-#define BSP_LITTLE_ENDIAN	1
+#define BSP_BIG_ENDIAN      0
+#define BSP_LITTLE_ENDIAN   1
 
 /*
  * @brief MicroEJ buffer declaration. Used "BSP_DECLARE_BUFFER(XXX)" macro to
@@ -34,49 +34,49 @@
  * and the end address of the buffer in "XXX_END".
  */
 
-#if defined( __GNUC__ )
-#define BSP_DECLARE_BUFFER(NAME)				\
-	void* __ ## NAME ## _Start__(void);		\
-	void* __ ## NAME ## _End__(void);		\
-	const uint32_t NAME ## _START = (uint32_t)&__ ## NAME ## _Start__;	\
-	const uint32_t NAME ## _END = (uint32_t)&__ ## NAME ## _End__;
+#if defined(__GNUC__)
+#define BSP_DECLARE_BUFFER(NAME)                                           \
+		void *__ ## NAME ## _Start__(void);                                \
+		void *__ ## NAME ## _End__(void);                                  \
+		const uint32_t NAME ## _START = (uint32_t)&__ ## NAME ## _Start__; \
+		const uint32_t NAME ## _END = (uint32_t)&__ ## NAME ## _End__;
 
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-#define BSP_BYTE_ORDER		BSP_LITTLE_ENDIAN
+#define BSP_BYTE_ORDER      BSP_LITTLE_ENDIAN
 #else
-#define BSP_BYTE_ORDER		BSP_BIG_ENDIAN
+#define BSP_BYTE_ORDER      BSP_BIG_ENDIAN
 #endif
 #endif // __GNUC__
 
-#if defined( __CC_ARM )
-#define BSP_DECLARE_BASE(NAME)	Image$$ ## NAME ## $$ZI$$Base
-#define BSP_DECLARE_LIMIT(NAME)	Image$$ ## NAME ## $$ZI$$Limit
-#define BSP_DECLARE_BUFFER(NAME)				\
-	extern uint32_t BSP_DECLARE_BASE(NAME);		\
-	extern uint32_t BSP_DECLARE_LIMIT(NAME);	\
-	const uint32_t NAME ## _START = (uint32_t)&BSP_DECLARE_BASE(NAME);	\
-	const uint32_t NAME ## _END = (uint32_t)&BSP_DECLARE_LIMIT(NAME);
+#if defined(__CC_ARM)
+#define BSP_DECLARE_BASE(NAME)  Image$$ ## NAME ## $$ZI$$Base
+#define BSP_DECLARE_LIMIT(NAME) Image$$ ## NAME ## $$ZI$$Limit
+#define BSP_DECLARE_BUFFER(NAME)                                           \
+		extern uint32_t BSP_DECLARE_BASE(NAME);                            \
+		extern uint32_t BSP_DECLARE_LIMIT(NAME);                           \
+		const uint32_t NAME ## _START = (uint32_t)&BSP_DECLARE_BASE(NAME); \
+		const uint32_t NAME ## _END = (uint32_t)&BSP_DECLARE_LIMIT(NAME);
 
 #if !defined(__BIG_ENDIAN)
-#define BSP_BYTE_ORDER		BSP_LITTLE_ENDIAN
+#define BSP_BYTE_ORDER      BSP_LITTLE_ENDIAN
 #else
-#define BSP_BYTE_ORDER		BSP_BIG_ENDIAN
+#define BSP_BYTE_ORDER      BSP_BIG_ENDIAN
 #endif
 #endif // __CC_ARM
 
-#if defined( __ICCARM__ )
-#define BSP_DECLARE_BASE(NAME)	NAME ## $$Base
-#define BSP_DECLARE_LIMIT(NAME)	NAME ## $$Limit
-#define BSP_DECLARE_BUFFER(NAME)				\
-	extern uint32_t BSP_DECLARE_BASE(NAME);		\
-	extern uint32_t BSP_DECLARE_LIMIT(NAME);	\
-	const uint32_t NAME ## _START = (uint32_t)&BSP_DECLARE_BASE(NAME);	\
-	const uint32_t NAME ## _END = (uint32_t)&BSP_DECLARE_LIMIT(NAME);
+#if defined(__ICCARM__)
+#define BSP_DECLARE_BASE(NAME)  NAME ## $$Base
+#define BSP_DECLARE_LIMIT(NAME) NAME ## $$Limit
+#define BSP_DECLARE_BUFFER(NAME)                                           \
+		extern uint32_t BSP_DECLARE_BASE(NAME);                            \
+		extern uint32_t BSP_DECLARE_LIMIT(NAME);                           \
+		const uint32_t NAME ## _START = (uint32_t)&BSP_DECLARE_BASE(NAME); \
+		const uint32_t NAME ## _END = (uint32_t)&BSP_DECLARE_LIMIT(NAME);
 
 #if __LITTLE_ENDIAN__ == 1
-#define BSP_BYTE_ORDER		BSP_LITTLE_ENDIAN
+#define BSP_BYTE_ORDER      BSP_LITTLE_ENDIAN
 #else
-#define BSP_BYTE_ORDER		BSP_BIG_ENDIAN
+#define BSP_BYTE_ORDER      BSP_BIG_ENDIAN
 #endif
 #endif // __ICCARM__
 
@@ -85,13 +85,13 @@
  * declare a MicroEJ weak function as follow:
  * export my_return_type BSP_DECLARE_WEAK_FCNT my_function(my_params);
  */
- 
-#if defined( __CC_ARM ) || defined(__GNUC__)
-#define BSP_DECLARE_WEAK_FCNT	__attribute__((weak))
+
+#if defined(__CC_ARM) || defined(__GNUC__)
+#define BSP_DECLARE_WEAK_FCNT   __attribute__((weak))
 #endif // __CC_ARM || __GNUC__
 
-#if defined( __ICCARM__ )
-#define BSP_DECLARE_WEAK_FCNT	__weak
+#if defined(__ICCARM__)
+#define BSP_DECLARE_WEAK_FCNT   __weak
 #endif // __ICCARM__
 
 /**
@@ -110,7 +110,7 @@
  * printf function. To map this function on printf function, set the global
  * define "#define TRACE_USE_PRINTF"
  */
-int BSP_UTIL_trace(const char * , ...);
+int BSP_UTIL_trace(const char *, ...);
 
 /**
  * @brief This function traces the called function.
@@ -131,7 +131,8 @@ int BSP_UTIL_trace(const char * , ...);
  *
  * @param[in] x the assert to check
  */
-#define BSP_UTIL_assert(x) do{if(!(x)){BSP_UTIL_trace("assert %s:%d\n", __FILE__, __LINE__);while(1);}}while(0)
+#define BSP_UTIL_assert(x) do{ if (!(x)) { BSP_UTIL_trace("assert %s:%d\n", __FILE__, __LINE__); while (1); \
+							   } } while (0)
 
 /**
  * @brief This function forces an assert.

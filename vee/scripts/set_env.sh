@@ -2,10 +2,16 @@
 #
 # BASH
 #
-# Copyright 2025 MicroEJ Corp. All rights reserved.
+# Copyright 2025-2026 MicroEJ Corp. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be found with this software.
 #
+# Build: 7E4D1F7C
+#
 # SSH connection infos for application deployment
+
+# Clean LD_LIBRARY_PATH inherited from the parent process (e.g. Gradle/WSL)
+# before sourcing the Yocto SDK environment, which fails if it is set.
+unset LD_LIBRARY_PATH
 
 # Source Local environment variables
 local_env_file="${SCRIPTS_DIR}/set_local_env.sh"

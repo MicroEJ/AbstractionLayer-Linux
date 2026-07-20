@@ -2,8 +2,10 @@
 #
 # BASH
 #
-# Copyright 2023-2025 MicroEJ Corp. All rights reserved.
+# Copyright 2023-2026 MicroEJ Corp. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be found with this software.
+#
+# Build: 7E4D1F7C
 
 # 'run.sh' implementation for MicroEJ Linux builds.
 
@@ -41,11 +43,25 @@ fi
 
 # Run application locally (X86 only) if the project has set LOCAL_DEPLOY=yes
 if [ "${LOCAL_DEPLOY:-""}" = "yes" ]; then
-    chmod +x "${application_file}"
-    killall -q application.out || true
-    cp -p "${application_file}" "${LOCAL_DEPLOY_TMP_DIRECTORY}/application.out"
-    "${LOCAL_DEPLOY_TMP_DIRECTORY}/application.out"
-    exit $?
+    # Deploy under a per-executable directory so apps/copies don't collide on a shared path.
+    instance_id="$(echo -n "${application_file}" | cksum | cut -d' ' -f1)"
+    instance_dir="${LOCAL_DEPLOY_TMP_DIRECTORY}/vee-local-deploy-${instance_id}"
+    mkdir -p "${instance_dir}"
+    EXEC_PATH="${instance_dir}/application.out"
+
+    # kill only this instance's own previous run
+    pkill -f "^$EXEC_PATH$" 2>/dev/null || true
+
+    # small delay to ensure the previous instance released the file before overwrite
+    sleep 1
+
+    # copy and run the application
+    cp "${application_file}" "${EXEC_PATH}"
+    chmod +x "${EXEC_PATH}"
+
+    # Replace this shell with it so it becomes the directly
+    # signalable process and dies with the run (terminate-on-stop).
+    exec "${EXEC_PATH}"
 fi
 
 # Run application on target
@@ -85,4 +101,5 @@ ${ssh_password_option} ssh -oStrictHostKeyChecking=no "${SSH_USER}@${SSH_HOSTNAM
 
 ${ssh_password_option} scp -O -C -oStrictHostKeyChecking=no "${application_file}" "${SSH_USER}@${SSH_HOSTNAME}:${ssh_remote_application}"
 
-${ssh_password_option} ssh -oStrictHostKeyChecking=no "${SSH_USER}@${SSH_HOSTNAME}" "chmod +x ${ssh_remote_application} &&  LLDISPLAY_USE_VSYNC=1 exec ${ssh_remote_application}"
+echo "Launching ${ssh_remote_application}..."
+${ssh_password_option} ssh -oStrictHostKeyChecking=no "${SSH_USER}@${SSH_HOSTNAME}" "chmod +x ${ssh_remote_application} && exec ${ssh_remote_application}"

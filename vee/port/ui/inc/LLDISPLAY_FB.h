@@ -1,7 +1,7 @@
 /*
  * C
  *
- * Copyright 2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2024-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 #ifndef LLDISPLAY_FB_H
@@ -26,9 +26,9 @@
 /* API -----------------------------------------------------------------------*/
 
 typedef struct lldisplay_screeninfo_t {
-    int32_t width;
-    int32_t height;
-    int32_t bpp;
+	int32_t width;
+	int32_t height;
+	int32_t bpp;
 } lldisplay_screeninfo_t;
 
 /*
@@ -37,8 +37,8 @@ typedef struct lldisplay_screeninfo_t {
 #ifdef LLDISPLAY_DEBUG
 #define LLDISPLAY_LOG_DEBUG printf
 #else // LLDISPLAY_DEBUG
-#define LLDISPLAY_LOG_DEBUG(...) ((void) 0)
+#define LLDISPLAY_LOG_DEBUG(...) ((void)0)
 #endif
-#define LLDISPLAY_LOG_WARNING printf("[LLDISPLAY][WARNING] ");printf
+#define LLDISPLAY_LOG_WARNING printf("[LLDISPLAY][WARNING] "); printf
 
-#endif	// LLDISPLAY_FB_H
+#endif // LLDISPLAY_FB_H

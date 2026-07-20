@@ -1,6 +1,6 @@
 /*
  * C
- * Copyright 2015-2025 MicroEJ Corp. All rights reserved.
+ * Copyright 2015-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 
@@ -63,33 +63,13 @@ static void LLFS_File_IMPL_regular_write(int file_desc, uint8_t *data, int32_t l
 static void LLFS_File_IMPL_get_available_data_IFCHR(int file_desc, FS_available_t *params);
 static void LLFS_File_IMPL_gett_available_data(FILE *file, uint64_t file_size, FS_available_t *params);
 
-/**
- * Set the size of the file referenced by the given file descriptor into size_out.
- * Returns LLFS_NOK on error or LLFS_OK on success.
- */
-static int FS_size_of_file(FILE *file, uint64_t *size_out) {
-	jint fs_err;
-	int res;
-	struct stat buffer;
-	fs_err = fstat(fileno(file), &buffer);
-	if (fs_err != 0) {
-		*size_out = 0x0ll;
-		res = LLFS_NOK;
-	} else {
-		*size_out = (uint64_t)buffer.st_size;
-		res = LLFS_OK;
-	}
-
-	return res;
-}
-
 /*
  * This method check if a file exist on the file system.
  * return 1 when the file exists, 0 otherwise.
  */
 static int FS_file_exists(const char *path) {
 	FILE *file;
-	if (file = fopen(path, "r")) {
+	if ((file = fopen(path, "r")) != NULL) {
 		fclose(file);
 		return 1;
 	}
@@ -98,7 +78,7 @@ static int FS_file_exists(const char *path) {
 
 void LLFS_IMPL_get_last_modified_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 	FS_last_modified_t *params = (FS_last_modified_t *)job->params;
-	uint8_t *path = (uint8_t *)&params->path;
+	char *path = (char *)&params->path;
 	LLFS_date_t *out_date = &params->date;
 
 	jint fs_err;
@@ -125,7 +105,7 @@ void LLFS_IMPL_get_last_modified_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 
 void LLFS_IMPL_set_read_only_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 	FS_path_operation_t *params = (FS_path_operation_t *)job->params;
-	uint8_t *path = (uint8_t *)&params->path;
+	char *path = (char *)&params->path;
 	struct stat buffer;
 
 	params->result = LLFS_NOK; // error by default
@@ -148,7 +128,7 @@ void LLFS_IMPL_set_read_only_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 
 void LLFS_IMPL_create_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 	FS_create_t *params = (FS_create_t *)job->params;
-	uint8_t *path = (uint8_t *)&params->path;
+	char *path = (char *)&params->path;
 
 	params->result = LLFS_NOK; // error by default
 
@@ -179,7 +159,7 @@ void LLFS_IMPL_create_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 
 void LLFS_IMPL_open_directory_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 	FS_path_operation_t *params = (FS_path_operation_t *)job->params;
-	uint8_t *path = (uint8_t *)&params->path;
+	char *path = (char *)&params->path;
 
 	params->result = LLFS_NOK; // error by default
 
@@ -199,7 +179,7 @@ void LLFS_IMPL_open_directory_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 void LLFS_IMPL_read_directory_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 	FS_read_directory_t *params = (FS_read_directory_t *)job->params;
 	int32_t directory_ID = params->directory_ID;
-	uint8_t *path = (uint8_t *)&params->path;
+	char *path = (char *)&params->path;
 
 	params->result = LLFS_NOK; // error by default
 
@@ -237,8 +217,8 @@ void LLFS_IMPL_close_directory_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 
 void LLFS_IMPL_rename_to_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 	FS_rename_to_t *params = (FS_rename_to_t *)job->params;
-	uint8_t *path = (uint8_t *)&params->path;
-	uint8_t *new_path = (uint8_t *)&params->new_path;
+	char *path = (char *)&params->path;
+	char *new_path = (char *)&params->new_path;
 
 	int fs_err = rename(path, new_path);
 
@@ -256,7 +236,7 @@ void LLFS_IMPL_rename_to_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 
 void LLFS_IMPL_get_length_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 	FS_path64_operation_t *params = (FS_path64_operation_t *)job->params;
-	uint8_t *path = (uint8_t *)&params->path;
+	char *path = (char *)&params->path;
 
 	params->result = LLFS_NOK; // error by default
 
@@ -274,7 +254,7 @@ void LLFS_IMPL_get_length_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 
 void LLFS_IMPL_exist_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 	FS_path_operation_t *params = (FS_path_operation_t *)job->params;
-	uint8_t *path = (uint8_t *)&params->path;
+	char *path = (char *)&params->path;
 
 	struct stat buffer;
 	int fs_err = stat(path, &buffer);
@@ -293,7 +273,7 @@ void LLFS_IMPL_exist_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 
 void LLFS_IMPL_get_space_size_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 	FS_get_space_size *params = (FS_get_space_size *)job->params;
-	uint8_t *path = (uint8_t *)&params->path;
+	char *path = (char *)&params->path;
 	int32_t space_type = params->space_type;
 
 	params->result = LLFS_NOK; //error by default
@@ -324,7 +304,7 @@ void LLFS_IMPL_get_space_size_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 
 void LLFS_IMPL_make_directory_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 	FS_path_operation_t *params = (FS_path_operation_t *)job->params;
-	uint8_t *path = (uint8_t *)&params->path;
+	char *path = (char *)&params->path;
 
 	int fs_err = mkdir(path, S_IRWXU | S_IRWXG | S_IRWXO);
 	if (fs_err == 0) {
@@ -341,7 +321,7 @@ void LLFS_IMPL_make_directory_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 
 void LLFS_IMPL_is_hidden_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 	FS_path_operation_t *params = (FS_path_operation_t *)job->params;
-	uint8_t *path = (uint8_t *)&params->path;
+	char *path = (char *)&params->path;
 
 	if (path[0] == '.') {
 		params->result = LLFS_OK;
@@ -356,7 +336,7 @@ void LLFS_IMPL_is_hidden_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 
 void LLFS_IMPL_is_directory_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 	FS_path_operation_t *params = (FS_path_operation_t *)job->params;
-	uint8_t *path = (uint8_t *)&params->path;
+	char *path = (char *)&params->path;
 	struct stat buffer;
 
 	int fs_err = stat(path, &buffer);
@@ -374,7 +354,7 @@ void LLFS_IMPL_is_directory_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 
 void LLFS_IMPL_is_file_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 	FS_path_operation_t *params = (FS_path_operation_t *)job->params;
-	uint8_t *path = (uint8_t *)&params->path;
+	char *path = (char *)&params->path;
 	struct stat buffer;
 
 	int fs_err = stat(path, &buffer);
@@ -392,7 +372,7 @@ void LLFS_IMPL_is_file_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 
 void LLFS_IMPL_set_last_modified_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 	FS_last_modified_t *params = (FS_last_modified_t *)job->params;
-	uint8_t *path = (uint8_t *)&params->path;
+	char *path = (char *)&params->path;
 	LLFS_date_t *new_date = &params->date;
 
 	struct stat buffer;
@@ -434,7 +414,7 @@ void LLFS_IMPL_set_last_modified_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 
 void LLFS_IMPL_delete_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 	FS_path_operation_t *params = (FS_path_operation_t *)job->params;
-	uint8_t *path = (uint8_t *)&params->path;
+	char *path = (char *)&params->path;
 
 	if (unlink(path) == 0 || rmdir(path) == 0) {
 		params->result = LLFS_OK;
@@ -450,7 +430,7 @@ void LLFS_IMPL_delete_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 
 void LLFS_IMPL_is_accessible_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 	FS_is_accessible_t *params = (FS_is_accessible_t *)job->params;
-	uint8_t *path = (uint8_t *)&params->path;
+	char *path = (char *)&params->path;
 	int32_t checked_access = params->access;
 
 	params->result = LLFS_NOK; // error by default
@@ -487,7 +467,7 @@ void LLFS_IMPL_is_accessible_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 
 void LLFS_IMPL_set_permission_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 	FS_set_permission_t *params = (FS_set_permission_t *)job->params;
-	uint8_t *path = (uint8_t *)&params->path;
+	char *path = (char *)&params->path;
 	int32_t modified_access = params->access;
 	int32_t enable = params->enable;
 	int32_t owner = params->owner;
@@ -549,7 +529,7 @@ void LLFS_IMPL_set_permission_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 
 void LLFS_File_IMPL_open_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 	FS_open_t *params = (FS_open_t *)job->params;
-	uint8_t *path = (uint8_t *)&params->path;
+	char *path = (char *)&params->path;
 	uint8_t mode = params->mode;
 
 	params->result = LLFS_NOK; // error by default
@@ -674,7 +654,7 @@ void LLFS_File_IMPL_write_action(MICROEJ_ASYNC_WORKER_job_t *job) {
  */
 static void LLFS_File_IMPL_buffered_write(FILE *file, uint8_t *data, int32_t length, FS_write_read_t *params) {
 	size_t written_count = fwrite(data, 1, length, file);
-	if (written_count < 0 || (written_count == 0 && length > 0)) {
+	if (written_count == 0 && length > 0) {
 		params->result = LLFS_NOK; // error
 		params->error_code = errno;
 		params->error_message = strerror(errno);

@@ -1,7 +1,7 @@
 /*
  * C
  *
- * Copyright 2015-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2015-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 
@@ -13,21 +13,19 @@
 /* Globals -------------------------------------------------------------------*/
 
 #ifdef FRAMERATE_ENABLED
-static uint32_t framerate_schedule_time = 0;	// means "not initialised"
+static uint32_t framerate_schedule_time = 0;    // means "not initialised"
 static uint32_t framerate_counter = 0;
 static uint32_t framerate_last = 0;
 #endif
 
 /* API -----------------------------------------------------------------------*/
 
-int32_t framerate_init(int32_t schedule_time)
-{
+int32_t framerate_init(int32_t schedule_time) {
 #ifdef FRAMERATE_ENABLED
 
 	int32_t return_code = FRAMERATE_OK;
 
-	if (framerate_schedule_time == (uint32_t)0)	// means "not initialized"
-	{
+	if (framerate_schedule_time == (uint32_t)0) { // means "not initialized"
 		// fix globals
 		framerate_schedule_time = schedule_time;
 		framerate_counter = 0;
@@ -38,20 +36,18 @@ int32_t framerate_init(int32_t schedule_time)
 	return return_code;
 
 #else
-	(void) schedule_time;
+	(void)schedule_time;
 	return FRAMERATE_ERROR;
 #endif
 }
 
-void framerate_increment(void)
-{
+void framerate_increment(void) {
 #ifdef FRAMERATE_ENABLED
 	framerate_counter++;
 #endif
 }
 
-uint32_t framerate_get(void)
-{
+uint32_t framerate_get(void) {
 #ifdef FRAMERATE_ENABLED
 	return framerate_last;
 #else
@@ -59,11 +55,9 @@ uint32_t framerate_get(void)
 #endif
 }
 
-void framerate_task_work(void)
-{
+void framerate_task_work(void) {
 #ifdef FRAMERATE_ENABLED
-	while(1)
-	{
+	while (1) {
 		// sleep during n milliseconds
 		framerate_impl_sleep(framerate_schedule_time);
 
@@ -79,12 +73,10 @@ void framerate_task_work(void)
 
 /* Java API ------------------------------------------------------------------*/
 
-int32_t javaFramerateInit(int32_t schedule_time)
-{
+int32_t javaFramerateInit(int32_t schedule_time) {
 	return framerate_init(schedule_time);
 }
 
-uint32_t javaFramerateGet(void)
-{
+uint32_t javaFramerateGet(void) {
 	return framerate_get();
 }

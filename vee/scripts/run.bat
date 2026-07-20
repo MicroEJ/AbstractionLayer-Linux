@@ -1,7 +1,7 @@
 @echo off
 
 REM BAT
-REM Copyright 2021-2025 MicroEJ Corp. All rights reserved.
+REM Copyright 2021-2026 MicroEJ Corp. All rights reserved.
 REM Use of this source code is governed by a BSD-style license that can be found with this software.
 
 REM 'run.bat' implementation for MicroEJ Linux builds.

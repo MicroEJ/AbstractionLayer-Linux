@@ -1,7 +1,7 @@
 /*
  * C
  *
- * Copyright 2013-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2013-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  *
  */
@@ -21,11 +21,9 @@
 
 static pthread_mutex_t input_mutex;
 
-
 /* API -----------------------------------------------------------------------*/
 
-void LLUI_INPUT_IMPL_initialize(void)
-{
+void LLUI_INPUT_IMPL_initialize(void) {
 	pthread_mutexattr_t attr;
 	pthread_mutexattr_init(&attr);
 	pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
@@ -36,18 +34,17 @@ void LLUI_INPUT_IMPL_initialize(void)
 #endif
 }
 
-int32_t LLUI_INPUT_IMPL_getInitialStateValue(int32_t stateMachinesID, int32_t stateID)
-{
+int32_t LLUI_INPUT_IMPL_getInitialStateValue(int32_t stateMachinesID, int32_t stateID) {
+	(void)stateMachinesID;
+	(void)stateID;
 	// no state on this BSP
 	return 0;
 }
 
-void LLUI_INPUT_IMPL_enterCriticalSection(void)
-{
-  pthread_mutex_lock(&input_mutex);
+void LLUI_INPUT_IMPL_enterCriticalSection(void) {
+	pthread_mutex_lock(&input_mutex);
 }
 
-void LLUI_INPUT_IMPL_leaveCriticalSection(void)
-{
-  pthread_mutex_unlock(&input_mutex);
+void LLUI_INPUT_IMPL_leaveCriticalSection(void) {
+	pthread_mutex_unlock(&input_mutex);
 }

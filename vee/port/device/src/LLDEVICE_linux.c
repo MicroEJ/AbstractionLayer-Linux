@@ -1,7 +1,7 @@
 /*
  * C
  *
- * Copyright 2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2024-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 
@@ -25,35 +25,34 @@
 #include "LLDEVICE_impl.h"
 
 #ifdef __cplusplus
-	extern "C" {
+extern "C" {
 #endif
 
-#define MAC_ADDRESS_SIZE	6
+#define MAC_ADDRESS_SIZE    6
 
 // Buffer used to cache the ID so we don't need to request it from the system everytime.
-static uint8_t	LLDEVICE_IMPL_id_cache[MAC_ADDRESS_SIZE];
+static uint8_t LLDEVICE_IMPL_id_cache[MAC_ADDRESS_SIZE];
 // -1 if ID has not been cached, positive value otherwise
-static int32_t	LLDEVICE_IMPL_id_cache_length = -1;
+static int32_t LLDEVICE_IMPL_id_cache_length = -1;
 
-static int32_t LLDEVICE_IMPL_getId_linux(uint8_t* buffer, int32_t buffer_size);
+static int32_t LLDEVICE_IMPL_getId_linux(uint8_t *buffer, int32_t buffer_size);
 
-uint8_t LLDEVICE_IMPL_getArchitecture(uint8_t* buffer, int32_t length) {
-	if (length >= sizeof(LLDEVICE_ARCHITECTURE)) {
-		strncpy(buffer, LLDEVICE_ARCHITECTURE, sizeof(LLDEVICE_ARCHITECTURE));
+uint8_t LLDEVICE_IMPL_getArchitecture(uint8_t *buffer, int32_t length) {
+	const size_t architecture_size = sizeof(LLDEVICE_ARCHITECTURE);
+	if ((size_t)length >= architecture_size) {
+		strncpy((char *)buffer, LLDEVICE_ARCHITECTURE, architecture_size);
 		return 1;
-	}
-	else {
+	} else {
 		return 0;
 	}
 }
 
-uint32_t LLDEVICE_IMPL_getId(uint8_t* buffer, int32_t length) {
-
-	if(LLDEVICE_IMPL_id_cache_length == -1){
+uint32_t LLDEVICE_IMPL_getId(uint8_t *buffer, int32_t length) {
+	if (LLDEVICE_IMPL_id_cache_length == -1) {
 		// First time we are asking for the id: put it in the cache buffer
 		int id_length = LLDEVICE_IMPL_getId_linux(LLDEVICE_IMPL_id_cache, sizeof(LLDEVICE_IMPL_id_cache));
 
-		if(id_length < 0){
+		if (id_length < 0) {
 			// An error occurred: just return an empty buffer
 			id_length = 0;
 		}
@@ -61,9 +60,9 @@ uint32_t LLDEVICE_IMPL_getId(uint8_t* buffer, int32_t length) {
 	}
 
 	int id_length = LLDEVICE_IMPL_id_cache_length;
- 	if(id_length > length){
- 		id_length = length;
- 	}
+	if (id_length > length) {
+		id_length = length;
+	}
 	memcpy(buffer, LLDEVICE_IMPL_id_cache, id_length);
 
 	return id_length;
@@ -76,10 +75,10 @@ uint32_t LLDEVICE_IMPL_getId(uint8_t* buffer, int32_t length) {
  *
  * Returns the number of bytes filled on success, a negative value on failure.
  */
-static int32_t LLDEVICE_IMPL_getId_linux(uint8_t* buffer, int32_t buffer_size) {
-	struct ifreq ifr = {0};
-	struct ifconf ifc = {0};
-	char buf[1024] = {0};
+static int32_t LLDEVICE_IMPL_getId_linux(uint8_t *buffer, int32_t buffer_size) {
+	struct ifreq ifr = { 0 };
+	struct ifconf ifc = { 0 };
+	char buf[1024] = { 0 };
 	int found = 0;
 
 	assert(buffer_size == MAC_ADDRESS_SIZE);
@@ -88,7 +87,8 @@ static int32_t LLDEVICE_IMPL_getId_linux(uint8_t* buffer, int32_t buffer_size) {
 	int sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
 	if (sock == -1) {
 		return -1; // an error occurred
-	};
+	}
+	;
 
 	// get network interfaces
 	ifc.ifc_len = sizeof(buf);
@@ -97,26 +97,25 @@ static int32_t LLDEVICE_IMPL_getId_linux(uint8_t* buffer, int32_t buffer_size) {
 		return -2; // an error occurred
 	}
 
-	struct ifreq* it = ifc.ifc_req;
-	const struct ifreq* const end = it + (ifc.ifc_len / sizeof(struct ifreq));
+	struct ifreq *it = ifc.ifc_req;
+	const struct ifreq * const end = it + (ifc.ifc_len / sizeof(struct ifreq));
 
 	// iterate on network interfaces and stopped when a MAC address is found
 	for (; it != end; ++it) {
 		strcpy(ifr.ifr_name, it->ifr_name);
 		if (ioctl(sock, SIOCGIFFLAGS, &ifr) == 0) {
-			if (! (ifr.ifr_flags & IFF_LOOPBACK)) { // don't take loopback interface into account
+			if (!(ifr.ifr_flags & IFF_LOOPBACK)) {  // don't take loopback interface into account
 				if (ioctl(sock, SIOCGIFHWADDR, &ifr) == 0) {
 					found = 1;
 					break;
 				}
 			}
-		}
-		else {
+		} else {
 			return -3; // an error occurred
 		}
 	}
 
-	if(!found) {
+	if (!found) {
 		return -4;
 	}
 
@@ -131,24 +130,25 @@ static int32_t LLDEVICE_IMPL_getId_linux(uint8_t* buffer, int32_t buffer_size) {
  *
  * @param buffer the buffer to fill with the Version.
  */
-void LLDEVICE_IMPL_getVersion(uint8_t* buffer) {
-    (void)SNI_throwNativeException(-1, "Not implemented");
+void LLDEVICE_IMPL_getVersion(uint8_t *buffer) {
+	(void)buffer;
+	(void)SNI_throwNativeException(-1, "Not implemented");
 }
 
 /**
  * Reboots the device.
  */
 void LLDEVICE_IMPL_reboot(void) {
-    (void)SNI_throwNativeException(-1, "Not implemented");
+	(void)SNI_throwNativeException(-1, "Not implemented");
 }
 
 /**
  * Shutdown the device.
  */
 void LLDEVICE_IMPL_shutdown(void) {
-    (void)SNI_throwNativeException(-1, "Not implemented");
+	(void)SNI_throwNativeException(-1, "Not implemented");
 }
 
 #ifdef __cplusplus
-	}
+}
 #endif

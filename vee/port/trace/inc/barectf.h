@@ -40,7 +40,6 @@
 extern "C" {
 #endif
 
-
 #define barectf_trace_func_entry barectf_default_trace_func_entry
 #define barectf_trace_func_exit barectf_default_trace_func_exit
 
@@ -134,28 +133,27 @@ struct barectf_default_ctx {
 
 /* Initialize context */
 void barectf_init(void *vctx,
-	uint8_t *buf, uint32_t buf_size,
-	const struct barectf_platform_callbacks cbs, void *data);
+                  uint8_t *buf, uint32_t buf_size,
+                  const struct barectf_platform_callbacks cbs, void *data);
 
 /* Open packet for data stream type `default` */
-void barectf_default_open_packet(
-	struct barectf_default_ctx *sctx,
-	uint32_t pc_cpu_id);
+void barectf_default_open_packet(struct barectf_default_ctx *sctx,
+                                 uint32_t pc_cpu_id);
 
 /* Close packet for data stream type `default` */
 void barectf_default_close_packet(struct barectf_default_ctx *sctx);
 
 /* Trace (data stream type `default`, event record type `func_entry`) */
 void barectf_default_trace_func_entry(struct barectf_default_ctx *sctx,
-	int32_t p_addr,
-	int32_t p_call_site,
-	int32_t p_vtid);
+                                      int32_t p_addr,
+                                      int32_t p_call_site,
+                                      int32_t p_vtid);
 
 /* Trace (data stream type `default`, event record type `func_exit`) */
 void barectf_default_trace_func_exit(struct barectf_default_ctx *sctx,
-	int32_t p_addr,
-	int32_t p_call_site,
-	int32_t p_vtid);
+                                     int32_t p_addr,
+                                     int32_t p_call_site,
+                                     int32_t p_vtid);
 
 #ifdef __cplusplus
 }

@@ -1,7 +1,7 @@
 /*
  * C
  *
- * Copyright 2015-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2015-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  *
  */
@@ -30,9 +30,9 @@
  * The Buttons and Command events are sent to the MicroUI application.
  * The Home event is reserved to the internal framework.
  */
-#define BUTTON_SEND_BUTTON_EVENT	(0)
-#define BUTTON_SEND_COMMAND_EVENT	(1)
-#define BUTTON_SEND_HOME_EVENT		(2)
+#define BUTTON_SEND_BUTTON_EVENT    (0)
+#define BUTTON_SEND_COMMAND_EVENT   (1)
+#define BUTTON_SEND_HOME_EVENT      (2)
 
 /*
  * Choose the button mode selected a value in previous list
@@ -43,7 +43,7 @@
  * Specify which MicroUI Command to send when the mode "BUTTON_SEND_COMMAND_EVENT" is selected
  */
 #if BUTTON_SEND_EVENT == BUTTON_SEND_COMMAND_EVENT
-#define BUTTON_COMMAND_EVENT	LLUI_INPUT_COMMAND_ESC
+#define BUTTON_COMMAND_EVENT    LLUI_INPUT_COMMAND_ESC
 #endif
 
 /*
@@ -55,36 +55,36 @@
 
 /* Buttons -------------------------------------------------------------------*/
 
-int32_t EVENT_GENERATOR_button_pressed(int32_t buttonId)
-{
+int32_t EVENT_GENERATOR_button_pressed(int32_t buttonId) {
+	(void)buttonId;
 #if BUTTON_SEND_EVENT == BUTTON_SEND_BUTTON_EVENT
 	// send a MicroUI Buttons "press" event
 	return LLUI_INPUT_sendButtonPressedEvent(MICROUI_EVENTGEN_BUTTONS, buttonId);
 #elif BUTTON_SEND_EVENT == BUTTON_SEND_COMMAND_EVENT
 	// send a MicroUI Command event
 	return LLUI_INPUT_sendCommandEvent(MICROUI_EVENTGEN_COMMANDS, BUTTON_COMMAND_EVENT);
-#else	// BUTTON_SEND_EVENT == BUTTON_SEND_HOME_EVENT
+#else // BUTTON_SEND_EVENT == BUTTON_SEND_HOME_EVENT
 	// send a MicroUI Home event
 	return LLUI_INPUT_OK; // LLUI_INPUT_sendEvent(MICROUI_EVENTGEN_WADAPPS, HOME);
 #endif
 }
 
-int32_t EVENT_GENERATOR_button_repeated(int32_t buttonId)
-{
+int32_t EVENT_GENERATOR_button_repeated(int32_t buttonId) {
+	(void)buttonId;
 #if BUTTON_SEND_EVENT == BUTTON_SEND_BUTTON_EVENT
 	// send a MicroUI Buttons "release" event
 	return LLUI_INPUT_sendButtonRepeatedEvent(MICROUI_EVENTGEN_BUTTONS, buttonId);
 #elif BUTTON_SEND_EVENT == BUTTON_SEND_COMMAND_EVENT
 	// send a MicroUI Command event
 	return LLUI_INPUT_sendCommandEvent(MICROUI_EVENTGEN_COMMANDS, BUTTON_COMMAND_EVENT);
-#else	// BUTTON_SEND_EVENT == BUTTON_SEND_HOME_EVENT
+#else // BUTTON_SEND_EVENT == BUTTON_SEND_HOME_EVENT
 	// do not send a Home event on release event
 	return LLUI_INPUT_OK; // the event has been managed
 #endif
 }
 
-int32_t EVENT_GENERATOR_button_released(int32_t buttonId)
-{
+int32_t EVENT_GENERATOR_button_released(int32_t buttonId) {
+	(void)buttonId;
 #if BUTTON_SEND_EVENT == BUTTON_SEND_BUTTON_EVENT
 	// send a MicroUI Buttons "release" event
 	return LLUI_INPUT_sendButtonReleasedEvent(MICROUI_EVENTGEN_BUTTONS, buttonId);
@@ -96,17 +96,14 @@ int32_t EVENT_GENERATOR_button_released(int32_t buttonId)
 
 /* Touch ---------------------------------------------------------------------*/
 
-int32_t EVENT_GENERATOR_touch_pressed(int32_t x, int32_t y)
-{
+int32_t EVENT_GENERATOR_touch_pressed(int32_t x, int32_t y) {
 	return LLUI_INPUT_sendTouchPressedEvent(MICROUI_EVENTGEN_TOUCH, x, y);
 }
 
-int32_t EVENT_GENERATOR_touch_moved(int32_t x, int32_t y)
-{
+int32_t EVENT_GENERATOR_touch_moved(int32_t x, int32_t y) {
 	return LLUI_INPUT_sendTouchMovedEvent(MICROUI_EVENTGEN_TOUCH, x, y);
 }
 
-int32_t EVENT_GENERATOR_touch_released(void)
-{
+int32_t EVENT_GENERATOR_touch_released(void) {
 	return LLUI_INPUT_sendTouchReleasedEvent(MICROUI_EVENTGEN_TOUCH);
 }

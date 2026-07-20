@@ -1,7 +1,7 @@
 /*
  * C
  *
- *  Copyright 2020-2024 MicroEJ Corp. All rights reserved.
+ *  Copyright 2020-2026 MicroEJ Corp. All rights reserved.
  *  Use of this source code is governed by a BSD-style license that can be found with this software.
  *
  */
@@ -20,11 +20,11 @@
 #include "sni.h"
 
 #ifdef __cplusplus
-    extern "C" {
+extern "C" {
 #endif
 
-int microej_main(int argc, char **argv, int* app_exit_code_ptr) {
-	void* vm;
+int microej_main(int argc, char **argv, int *app_exit_code_ptr) {
+	void *vm;
 	int core_engine_error_code = -1;
 	int32_t app_exit_code = 0;
 	// create Core Engine
@@ -43,19 +43,19 @@ int microej_main(int argc, char **argv, int* app_exit_code_ptr) {
 			if (core_engine_error_code == LLMJVM_E_EVAL_LIMIT) {
 				printf("Evaluation limits reached.\n");
 			} else {
-				printf("MicroEJ execution error (err = %d).\n", (int) core_engine_error_code);
+				printf("MicroEJ execution error (err = %d).\n", (int)core_engine_error_code);
 			}
 		} else {
 			// Core Engine execution ends normally
 			app_exit_code = SNI_getExitCode(vm);
-			printf("MicroEJ END (exit code = %d)\n", (int) app_exit_code);
+			printf("MicroEJ END (exit code = %d)\n", (int)app_exit_code);
 		}
 
 		// delete Core Engine
 		SNI_destroyVM(vm);
 	}
 
-	if(app_exit_code_ptr != NULL){
+	if (app_exit_code_ptr != NULL) {
 		*app_exit_code_ptr = (int)app_exit_code;
 	}
 
@@ -63,5 +63,5 @@ int microej_main(int argc, char **argv, int* app_exit_code_ptr) {
 }
 
 #ifdef __cplusplus
-    }
+}
 #endif

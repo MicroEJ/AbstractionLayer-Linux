@@ -1,7 +1,7 @@
 /*
  * C
  *
- * Copyright 2020-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2020-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 
@@ -17,7 +17,7 @@
  */
 
 #ifdef __cplusplus
-	extern "C" {
+extern "C" {
 #endif
 
 /**
@@ -27,7 +27,7 @@
 void LLECOM_NETWORK_initialize(void);
 
 #ifdef __cplusplus
-	}
+}
 #endif
 
 #endif /* LLECOM_NETWORK_H */

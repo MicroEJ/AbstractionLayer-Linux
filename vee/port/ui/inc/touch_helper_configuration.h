@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2015-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 
@@ -9,9 +9,9 @@
 /* Defines -------------------------------------------------------------------*/
 
 // Number of pixels to generate a move after a press
-#define FIRST_MOVE_PIXEL_LIMIT	8
+#define FIRST_MOVE_PIXEL_LIMIT  8
 
 // Number of pixels to generate a move after a move
-#define MOVE_PIXEL_LIMIT		2
+#define MOVE_PIXEL_LIMIT        2
 
 #endif

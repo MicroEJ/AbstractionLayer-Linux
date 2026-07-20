@@ -1,7 +1,7 @@
 /*
  * C
  *
- * Copyright 2015-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2015-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  *
  */
@@ -39,41 +39,35 @@
 #error "Please set the define MOVE_PIXEL_LIMIT in touch_helper_configuration.h"
 #endif
 
-#define DIFF(a,b)					((a) < (b) ? (b-a) : (a-b))
-#define KEEP_COORD(p,n,limit)		(DIFF(p,n) <= limit ? MICROEJ_FALSE : MICROEJ_TRUE)
-#define KEEP_PIXEL(px,x,py,y,limit)	(KEEP_COORD(px,x,limit) || KEEP_COORD(py,y,limit))
-#define KEEP_FIRST_MOVE(px,x,py,y)	(KEEP_PIXEL(px,x,py,y, FIRST_MOVE_PIXEL_LIMIT))
-#define KEEP_MOVE(px,x,py,y)		(KEEP_PIXEL(px,x,py,y, MOVE_PIXEL_LIMIT))
+#define DIFF(a, b)                   ((a) < (b) ? (b - a) : (a - b))
+#define KEEP_COORD(p, n, limit)       (DIFF(p, n) <= limit ? MICROEJ_FALSE : MICROEJ_TRUE)
+#define KEEP_PIXEL(px, x, py, y, limit) (KEEP_COORD(px, x, limit) || KEEP_COORD(py, y, limit))
+#define KEEP_FIRST_MOVE(px, x, py, y)  (KEEP_PIXEL(px, x, py, y, FIRST_MOVE_PIXEL_LIMIT))
+#define KEEP_MOVE(px, x, py, y)        (KEEP_PIXEL(px, x, py, y, MOVE_PIXEL_LIMIT))
 
 /* Global --------------------------------------------------------------------*/
 
 static uint8_t touch_pressed = MICROEJ_FALSE;
-static uint8_t touch_moved = MICROEJ_FALSE;	// == MICROEJ_TRUE after the first "move" event
+static uint8_t touch_moved = MICROEJ_FALSE; // == MICROEJ_TRUE after the first "move" event
 static uint16_t previous_touch_x, previous_touch_y;
 
 /* API -----------------------------------------------------------------------*/
 
-void TOUCH_HELPER_pressed(int32_t x, int32_t y)
-{
+void TOUCH_HELPER_pressed(int32_t x, int32_t y) {
 	// here, pen is down for sure
 
-	if (touch_pressed == MICROEJ_TRUE)
-	{
+	if (touch_pressed == MICROEJ_TRUE) {
 		// pen was down => move event
 
 		// keep pixel according first "move" event or not
 		int keep_pixel;
-		if(touch_moved == MICROEJ_TRUE)
-		{
+		if (touch_moved == MICROEJ_TRUE) {
 			keep_pixel = KEEP_MOVE(previous_touch_x, x, previous_touch_y, y);
-		}
-		else
-		{
+		} else {
 			keep_pixel = KEEP_FIRST_MOVE(previous_touch_x, x, previous_touch_y, y);
 		}
 
-		if (keep_pixel == MICROEJ_TRUE)
-		{
+		if (keep_pixel == MICROEJ_TRUE) {
 			// store the new pixel
 			previous_touch_x = x;
 			previous_touch_y = y;
@@ -83,12 +77,9 @@ void TOUCH_HELPER_pressed(int32_t x, int32_t y)
 			EVENT_GENERATOR_touch_moved(x, y);
 		}
 		// else: same position; no need to send an event
-	}
-	else
-	{
+	} else {
 		// pen was up => press event
-		if (EVENT_GENERATOR_touch_pressed(x, y) == LLUI_INPUT_OK)
-		{
+		if (EVENT_GENERATOR_touch_pressed(x, y) == LLUI_INPUT_OK) {
 			// the event has been managed: we can store the new touch state
 			// touch is pressed now
 			previous_touch_x = x;
@@ -100,21 +91,17 @@ void TOUCH_HELPER_pressed(int32_t x, int32_t y)
 	}
 }
 
-void TOUCH_HELPER_moved(int32_t x, int32_t y)
-{
+void TOUCH_HELPER_moved(int32_t x, int32_t y) {
 	// manage this move like a press event in order to check "software" touch state
 	TOUCH_HELPER_pressed(x, y);
 }
 
-void TOUCH_HELPER_released(void)
-{
+void TOUCH_HELPER_released(void) {
 	// here, pen is up for sure
 
-	if (touch_pressed == MICROEJ_TRUE)
-	{
+	if (touch_pressed == MICROEJ_TRUE) {
 		// pen was down => release event
-		if (EVENT_GENERATOR_touch_released() == LLUI_INPUT_OK)
-		{
+		if (EVENT_GENERATOR_touch_released() == LLUI_INPUT_OK) {
 			// the event has been managed: we can store the new touch state
 			// touch is released now
 			touch_pressed = MICROEJ_FALSE;
@@ -123,4 +110,3 @@ void TOUCH_HELPER_released(void)
 	}
 	// else: pen was already up
 }
-

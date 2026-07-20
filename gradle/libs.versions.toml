@@ -1,32 +1,18 @@
-# Copyright 2023-2025 MicroEJ Corp. All rights reserved.
+# Copyright 2023-2026 MicroEJ Corp. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be found with this software.
 
 # This catalog will be used instead of the VEE Port gradle/libs.versions.toml
 # This is done to ensure compatiblity with the Abstraction Layer
+
 [libraries]
-# Packs
-pack-device =           { group = "com.microej.pack.device", name = "device-pack", version = "1.2.0" }
+# SDK6 Foundations
+api-audio =             { group = "ej.api", name = "audio", version = "2.1.0" }
+api-crypto =            { group = "ej.api", name = "crypto", version = "2.0.1" }
+api-device =            { group = "ej.api", name = "device", version = "1.4.0" }
+api-event =             { group = "ej.api", name = "event", version = "3.0.3" }
+lib-rio =               { group = "ej.library.runtime", name = "rio", version = "0.1.0" }
+# SDK5 Packs
 pack-ecom-network =     { group = "com.microej.pack.ecom-network", name = "ecom-network-pack", version = "1.0.0" }
-pack-event =            { group = "com.microej.pack.event", name = "event-pack", version = "2.1.0" }
 pack-fs =               { group = "com.microej.pack", name = "fs", version = "6.0.4" }
-pack-net =              { group = "com.microej.pack.net", name = "net-pack", version = "11.1.0" }
-
-# Abstraction libraries
-
-#async-select =                  { group = "com.microej.clibrary.platform", name = "async-select", version = "3.0.1" }
-#bsp-generic =                   { group = "com.microej.clibrary.llimpl", name = "bsp-generic", version = "1.0.0" }
-#bsp-microej-async-worker =      { group = "com.microej.clibrary.platform", name = "bsp-microej-async-worker", version = "0.6.0" }
-#bsp-microej-main =              { group = "com.microej.clibrary.platform", name = "bsp-microej-main", version = "3.0.0" }
-#ecom-network-generic =          { group = "com.microej.clibrary.llimpl", name = "ecom-network-generic", version = "2.3.1" }
-#fs-generic =                    { group = "com.microej.clibrary.llimpl", name = "fs-generic", version = "2.1.1" }
-#fs-posix =                      { group = "com.microej.clibrary.llimpl", name = "fs-posix", version = "3.0.6" }
-#kernel-ram =                    { group = "com.microej.clibrary.llimpl", name = "kernel-ram", version = "3.0.0" }
-#main-linux =                    { group = "com.microej.clibrary.platform", name = "main-linux", version = "2.0.0" }
-#microui =                       { group = "com.microej.clibrary.llimpl", name = "microui", version = "14.3.2" }
-#mjvm-posix =                    { group = "com.microej.clibrary.llimpl", name = "mjvm-posix", version = "1.1.1" }
-#net-bsd =                       { group = "com.microej.clibrary.llimpl", name = "net-bsd", version = "2.0.0" }
-#net-linux =                     { group = "com.microej.clibrary.llimpl", name = "net-linux", version = "3.0.0" }
-#net-ssl-openssl =               { group = "com.microej.clibrary.llimpl", name = "net-ssl-openssl", version = "2.0.0" }
-#osal-headers =                  { group = "com.microej.clibrary.platform", name = "osal-headers", version = "1.0.3" }
-#security-openssl =              { group = "com.microej.clibrary.llimpl", name = "security-mbedtls", version = "3.0.0" }
-
+pack-net =              { group = "com.microej.pack.net", name = "net-pack", version = "15.0.1" }
+pack-serial =           { group = "com.microej.pack.serial", name = "serial-pack", version = "3.0.0" }

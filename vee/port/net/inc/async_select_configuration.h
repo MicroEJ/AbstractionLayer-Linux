@@ -1,7 +1,7 @@
 /*
  * C
  *
- * Copyright 2017-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2017-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 
@@ -20,7 +20,7 @@
 #include <sni.h>
 
 #ifdef __cplusplus
-	extern "C" {
+extern "C" {
 #endif
 
 /**
@@ -29,7 +29,8 @@
  * is compatible with the implementation.
  *
  * This value must not be changed by the user of the CCO.
- * This value must be incremented by the implementor of the CCO when a configuration define is added, deleted or modified.
+ * This value must be incremented by the implementor of the CCO when a configuration define is added, deleted or
+ * modified.
  */
 #define ASYNC_SELECT_CONFIGURATION_VERSION (4)
 
@@ -40,11 +41,11 @@
 #define USE_ASYNC_SELECT_THREAD
 
 #ifndef USE_ASYNC_SELECT_THREAD
-#error "Since you don't choose async_select thread mode that calls select() to manage asynchronous operation, \
-		please ensure that you add a call to the function async_select_update_notified_requests(...) \
-		in the event callback system of your NET stack, to notify the waiting java threads when the file descriptor (fd) becomes ready for reading or writing operation. \
-		For instance, in LWIP stack, you can call async_select_update_notified_requests(...) in the event_callback(...) function located in the sockets.c file.	\
-		Remove this #error once you add the call to this method in your I/O event callback system."
+#error "Since you don't choose async_select thread mode that calls select() to manage asynchronous operation,                                                        \
+	please ensure that you add a call to the function async_select_update_notified_requests(...)                                                                     \
+	in the event callback system of your NET stack, to notify the waiting java threads when the file descriptor (fd) becomes ready for reading or writing operation. \
+	For instance, in LWIP stack, you can call async_select_update_notified_requests(...) in the event_callback(...) function located in the sockets.c file.          \
+	Remove this #error once you add the call to this method in your I/O event callback system."
 #endif
 
 /**
@@ -64,21 +65,21 @@
  *
  * Requires: USE_ASYNC_SELECT_THREAD
  */
-#define ASYNC_SELECT_TASK_NAME	((uint8_t*)"AsyncSelect")
+#define ASYNC_SELECT_TASK_NAME  ((uint8_t *)"AsyncSelect")
 
 /**
  * @brief async_select task priority.
  *
  * Requires: USE_ASYNC_SELECT_THREAD
  */
-#define ASYNC_SELECT_TASK_PRIORITY	(12)
+#define ASYNC_SELECT_TASK_PRIORITY  (12)
 
 /**
  * @brief async_select mutex name.
  *
  * Requires: USE_ASYNC_SELECT_THREAD
  */
-#define ASYNC_SELECT_MUTEX_NAME	((uint8_t*)"AsyncSelectMutex")
+#define ASYNC_SELECT_MUTEX_NAME ((uint8_t *)"AsyncSelectMutex")
 
 /**
  * @brief Timeout in milliseconds used when the async_select task cannot allocate a socket for notifications.
@@ -89,8 +90,7 @@
  *
  * Requires: USE_ASYNC_SELECT_THREAD
  */
-#define ASYNC_SELECT_POLLING_MODE_TIMEOUT_MS	(100)
-
+#define ASYNC_SELECT_POLLING_MODE_TIMEOUT_MS    (100)
 
 /** @brief Set this define if a file descriptor close unblocks the select.
  *
@@ -122,7 +122,8 @@
 #ifdef ASYNC_SELECT_USE_MAX_INFINITE_TIMEOUT
 #define ASYNC_SELECT_INFINITE_TIMEOUT_MS (0xFFFFFFFF)
 #define ASYNC_SELECT_MAX_TV_SEC_VALUE    (ASYNC_SELECT_INFINITE_TIMEOUT_MS / 1000)
-#define ASYNC_SELECT_MAX_TV_USEC_VALUE   ((ASYNC_SELECT_INFINITE_TIMEOUT_MS - ASYNC_SELECT_MAX_TV_SEC_VALUE * 1000) * 1000)
+#define ASYNC_SELECT_MAX_TV_USEC_VALUE   ((ASYNC_SELECT_INFINITE_TIMEOUT_MS - ASYNC_SELECT_MAX_TV_SEC_VALUE * 1000) * \
+										  1000)
 #endif // ASYNC_SELECT_USE_MAX_INFINITE_TIMEOUT
 
 /**
@@ -142,7 +143,7 @@
 #define ASYNC_SELECT_TIMEOUT_CACHE_SIZE LLNET_MAX_SOCKETS
 
 #ifdef __cplusplus
-	}
+}
 #endif
 
 #endif // ASYNC_SELECT_CONFIGURATION_H

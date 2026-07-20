@@ -1,7 +1,7 @@
 /*
  * C
  *
- * Copyright 2014-2025 MicroEJ Corp. All rights reserved.
+ * Copyright 2014-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  *
  */
@@ -25,7 +25,7 @@ static uint32_t connector_id = 0;
 static uint32_t crtc_id = 0;
 static drmModeModeInfo mode_info;
 
-int lldisplay_fb_drm_getscreeninfo(int fd, lldisplay_screeninfo_t* display_screeninfo) {
+int lldisplay_fb_drm_getscreeninfo(int fd, lldisplay_screeninfo_t *display_screeninfo) {
 	int ret;
 	uint64_t has_dumb;
 	drmModeResPtr res = NULL;
@@ -37,7 +37,6 @@ int lldisplay_fb_drm_getscreeninfo(int fd, lldisplay_screeninfo_t* display_scree
 	if ((ret < 0) || !has_dumb) {
 		LLDISPLAY_LOG_WARNING("Device does not support dumb buffers (%d): %m\n", errno);
 		return -errno;
-
 	}
 
 	/* retrieve resources */
@@ -61,7 +60,8 @@ int lldisplay_fb_drm_getscreeninfo(int fd, lldisplay_screeninfo_t* display_scree
 		}
 		if (connector->connection == DRM_MODE_CONNECTED) {
 #if 0 /* drmModeGetConnectorTypeName supported with libdrm >= 2.4.112 */
-			LLDISPLAY_LOG_DEBUG("Found Connector: %d type %s\n", connector->connector_id, drmModeGetConnectorTypeName(connector->connector_type));
+			LLDISPLAY_LOG_DEBUG("Found Connector: %d type %s\n", connector->connector_id,
+			                    drmModeGetConnectorTypeName(connector->connector_type));
 #endif
 			break;
 		}
@@ -82,18 +82,19 @@ int lldisplay_fb_drm_getscreeninfo(int fd, lldisplay_screeninfo_t* display_scree
 	if (connector->count_modes == 0) {
 		LLDISPLAY_LOG_WARNING("no valid mode for connector\n");
 		drmModeFreeConnector(connector);
-		drmModeFreeResources(res);;
+		drmModeFreeResources(res);
+		;
 		return -1;
 	}
 
 	/* Get the preferred resolution if any */
 	#if 0
 	for (int i = 0; i < connector->count_modes; i++) {
-			mode = &connector->modes[i];
-			if (mode->type & DRM_MODE_TYPE_PREFERRED) {
-				LLDISPLAY_LOG_DEBUG("found prefered\n");
-				break;
-			}
+		mode = &connector->modes[i];
+		if (mode->type & DRM_MODE_TYPE_PREFERRED) {
+			LLDISPLAY_LOG_DEBUG("found prefered\n");
+			break;
+		}
 	}
 	#else /* use the first one */
 	mode = &connector->modes[0];
@@ -122,8 +123,9 @@ int lldisplay_fb_drm_getscreeninfo(int fd, lldisplay_screeninfo_t* display_scree
 			/* iterate all global CRTCs */
 			for (int j = 0; j < res->count_crtcs; ++j) {
 				/* check whether this CRTC works with the encoder */
-				if (!(encoder->possible_crtcs & (1 << j)))
+				if (!(encoder->possible_crtcs & (1 << j))) {
 					continue;
+				}
 				crtc_id = res->crtcs[j];
 				break;
 			}
@@ -148,7 +150,6 @@ int lldisplay_fb_drm_getscreeninfo(int fd, lldisplay_screeninfo_t* display_scree
 	display_screeninfo->width = mode->hdisplay;
 	display_screeninfo->height = mode->vdisplay;
 	display_screeninfo->bpp = 32; // FIXME
-
 
 	drmModeFreeConnector(connector);
 	drmModeFreeResources(res);
@@ -180,7 +181,7 @@ static int lldisplay_fb_drm_add_fb(int fd, lldisplay_screeninfo_t display_screen
 	return ret;
 }
 
-static int lldisplay_fb_drm_map_fb(int fd, int screensize, char** fb_base, uint32_t bo_handle) {
+static int lldisplay_fb_drm_map_fb(int fd, int screensize, char **fb_base, uint32_t bo_handle) {
 	struct drm_mode_map_dumb mreq;
 	int ret;
 
@@ -200,14 +201,13 @@ static int lldisplay_fb_drm_map_fb(int fd, int screensize, char** fb_base, uint3
 	} else {
 		LLDISPLAY_LOG_WARNING("cannot map dumb buffer (%d): %m\n", errno);
 	}
-	if (ret !=0) {
+	if (ret != 0) {
 		drmModeRmFB(fd, buf_id);
 	}
 	return ret;
 }
 
-
-int lldisplay_fb_drm_create_fb(int fd, int screensize, lldisplay_screeninfo_t display_screeninfo, char** fb_base) {
+int lldisplay_fb_drm_create_fb(int fd, int screensize, lldisplay_screeninfo_t display_screeninfo, char **fb_base) {
 	struct drm_mode_destroy_dumb dreq;
 	int ret;
 	uint32_t bo_handle = 0;
@@ -227,13 +227,12 @@ int lldisplay_fb_drm_create_fb(int fd, int screensize, lldisplay_screeninfo_t di
 }
 
 int lldisplay_fb_drm_set_crtc(int fd) {
-	drmModeCrtcPtr crtc;
 	int ret;
 
-	crtc = drmModeGetCrtc(fd, crtc_id);
 	ret = drmModeSetCrtc(fd, crtc_id, buf_id, 0, 0, &connector_id, 1, &mode_info);
 	if (ret != 0) {
-		LLDISPLAY_LOG_WARNING("drmModeSetCrtc failed for crtc %u buf %u conn %u: %s\n", crtc_id, buf_id, connector_id, strerror(errno));
+		LLDISPLAY_LOG_WARNING("drmModeSetCrtc failed for crtc %u buf %u conn %u: %s\n", crtc_id, buf_id, connector_id,
+		                      strerror(errno));
 	}
 
 	return ret;
@@ -241,9 +240,9 @@ int lldisplay_fb_drm_set_crtc(int fd) {
 
 void lldisplay_fb_drm_waitforvsync(int fd) {
 	drm_wait_vblank_t blank;
-	blank.request.type = DRM_VBLANK_RELATIVE;
+	blank.request.type = (enum drm_vblank_seq_type)DRM_VBLANK_RELATIVE;
 	blank.request.sequence = 1;
-	if (drmWaitVBlank(fd, (drmVBlankPtr) &blank) != 0) {
+	if (drmWaitVBlank(fd, (drmVBlankPtr) & blank) != 0) {
 		LLDISPLAY_LOG_DEBUG("DRM error during vsync (%s)\n", strerror(errno));
 		return;
 	}

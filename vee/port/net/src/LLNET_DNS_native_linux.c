@@ -1,7 +1,7 @@
 /*
  * C
  *
- * Copyright 2014-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2014-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 
@@ -46,7 +46,6 @@ int32_t LLNET_DNS_IMPL_getHostByNameAt(int32_t index, uint8_t *hostname, int32_t
                                        int32_t address_length) {
 	(void)hostname_length;
 	LLNET_DEBUG_TRACE("%s host ->%s<- index = %d\n", __func__, (unsigned char *)hostname, index);
-	struct hostent *hret;
 
 	int r;
 	struct addrinfo hints = { 0 };
@@ -59,22 +58,22 @@ int32_t LLNET_DNS_IMPL_getHostByNameAt(int32_t index, uint8_t *hostname, int32_t
 	// Set the hints address structure with the type of IP address we need
 
 #if LLNET_AF == LLNET_AF_IPV4 // only IPv4
-    hints.ai_family = AF_INET;
+	hints.ai_family = AF_INET;
 #endif
 
 #if LLNET_AF == LLNET_AF_IPV6 //only IPv6
 	hints.ai_family = AF_INET6;
 #endif
 
-    // IPv4+IPv6 configuration: request addresses for any address family
+	// IPv4+IPv6 configuration: request addresses for any address family
 #if LLNET_AF == LLNET_AF_DUAL
-    //either IPv4 or IPv6
-    hints.ai_family = AF_UNSPEC;
+	//either IPv4 or IPv6
+	hints.ai_family = AF_UNSPEC;
 	// allow to map on IPv4 if no IPv6 available
 	hints.ai_flags = AI_V4MAPPED;
 #endif
 
-	r = getaddrinfo(hostname, NULL, &hints, &addrinfos);
+	r = getaddrinfo((char *)hostname, NULL, &hints, &addrinfos);
 	if (r != 0) {
 		LLNET_DEBUG_TRACE("%s getaddrinfo() returned %d\n", __func__, r);
 		(void)SNI_throwNativeIOException(J_EHOSTUNKNOWN, gai_strerror(r));
@@ -124,7 +123,6 @@ int32_t LLNET_DNS_IMPL_getHostByNameAt(int32_t index, uint8_t *hostname, int32_t
 int32_t LLNET_DNS_IMPL_getHostByNameCount(uint8_t *hostname, int32_t hostname_length) {
 	(void)hostname_length;
 	LLNET_DEBUG_TRACE("%s host ->%s<- \n", __func__, (unsigned char *)hostname);
-	struct hostent *hret;
 
 	int r;
 	struct addrinfo hints = { 0 };
@@ -134,22 +132,22 @@ int32_t LLNET_DNS_IMPL_getHostByNameCount(uint8_t *hostname, int32_t hostname_le
 	// Set the hints address structure with the type of IP address we need
 
 #if LLNET_AF == LLNET_AF_IPV4 // only IPv4
-    hints.ai_family = AF_INET;
+	hints.ai_family = AF_INET;
 #endif
 
 #if LLNET_AF == LLNET_AF_IPV6 //only IPv6
 	hints.ai_family = AF_INET6;
 #endif
 
-    // IPv4+IPv6 configuration: request addresses for any address family
+	// IPv4+IPv6 configuration: request addresses for any address family
 #if LLNET_AF == LLNET_AF_DUAL
-    //either IPv4 or IPv6
-    hints.ai_family = AF_UNSPEC;
+	//either IPv4 or IPv6
+	hints.ai_family = AF_UNSPEC;
 	// allow to map on IPv4 if no IPv6 available
 	hints.ai_flags = AI_V4MAPPED;
 #endif
 
-	r = getaddrinfo(hostname, NULL, &hints, &addrinfos);
+	r = getaddrinfo((char *)hostname, NULL, &hints, &addrinfos);
 	if (r != 0) {
 		LLNET_DEBUG_TRACE("%s getaddrinfo(hostname) returned %d: %s\n", __func__, r, gai_strerror(r));
 		(void)SNI_throwNativeIOException(J_EHOSTUNKNOWN, gai_strerror(r));

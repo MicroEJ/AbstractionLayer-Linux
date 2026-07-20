@@ -1,7 +1,7 @@
 /*
  * C
  *
- * Copyright 2017-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2017-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 #ifndef LLNET_SSL_VERIFY_CALLBACK
@@ -18,18 +18,16 @@
  */
 
 #ifdef __cplusplus
-	extern "C" {
+extern "C" {
 #endif
-
 
 /*
  * Certificate verification callback
-*/
+ */
 int32_t LLNET_SSL_VERIFY_verifyCallback(int32_t ok, X509_STORE_CTX *ctx);
 
-
 #ifdef __cplusplus
-	}
+}
 #endif
 
 #endif

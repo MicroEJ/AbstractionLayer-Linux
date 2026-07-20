@@ -1,7 +1,7 @@
 /*
  * C
  *
- * Copyright 2013-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2013-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 
@@ -19,16 +19,14 @@
 #include <stdint.h>
 
 #ifdef __cplusplus
-	extern "C" {
+extern "C" {
 #endif
 
-
-#define MICROEJ_FALSE 	0
-#define MICROEJ_TRUE 	1
-
+#define MICROEJ_FALSE   0
+#define MICROEJ_TRUE    1
 
 #ifdef __cplusplus
-	}
+}
 #endif
 
 #endif // MICROEJ_H

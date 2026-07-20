@@ -14,16 +14,20 @@ This Abstraction Layer requires a GNU GCC 32 bit toolchain as well as a few list
 
 ## Supported Features
 
-This Abstraction Layer is compliant with Architecture `8.x` and the following Packs:
+This Abstraction Layer is compliant with Architecture `8.x` and the following Packs and Foundation Libraries:
 
 | Pack Name    | Version  |
 | ------------ | -------- |
-| DEVICE       | 1.2.0    |
+| AUDIO        | 2.1.0    |
+| CRYPTO       | 2.0.1    |
+| DEVICE       | 1.4.0    |
 | ECOM-NETWORK | 1.0.0    |
-| EVENT        | 2.1.0    |
+| EVENT        | 3.0.3    |
 | FS           | 6.0.4    |
-| NET          | 11.1.0   |
-| UI           | 14.4.2   |
+| NET          | 15.0.1   |
+| RIO          | 0.1.0    |
+| SERIAL       | 3.0.0    |
+| UI           | 14.5.2   |
 
 ### Architecture
 
@@ -40,11 +44,14 @@ Both IPv4 a IPv6 are supported.
 SSL supports TLSv1, TLSv1.1, TLSv1.2, DTLS1.2.
 
 Security algorithms:
-- Cipher: AES-128-CBC, AES-192-CBC, AES-256-CBC, DES-CBC
+- Cipher: AES/CBC/NoPadding, AES/CTR/NoPadding, AES/ECB/NoPadding, AES/GCM/NoPadding (128, 192, 256-bit keys), DESede/CBC/NoPadding
+- Key wrap: AESWrap
 - RSA Cipher: RSA/ECB/PKCS1Padding, RSA/ECB/OAEPWithSHA-1AndMGF1Padding, RSA/ECB/OAEPWithSHA-256AndMGF1Padding
 - Digest: MD5, SHA-1, SHA-256, SHA-512
+- HMAC: HmacMD5, HmacSHA1, HmacSHA256
 - Key generation: EC, RSA
-- HMAC: SHA-256
+- Key derivation: PBKDF2WithHmacSHA1, PBKDF2WithHmacSHA224, PBKDF2WithHmacSHA256, PBKDF2WithHmacSHA384, PBKDF2WithHmacSHA512
+- Key agreement: ECDH
 - Signature: SHA256withRSA, SHA256withECDSA
 
 ### UI Pack
@@ -150,7 +157,7 @@ Now that we have seen how to connect this Abstraction Layer with a VEE Port, we 
 
 ## Build & Run Scripts
 
-In the directory ``vee/scripts/`` are scripts that can be used to build and flash the executable.  
+In the directory ``vee/scripts/`` are scripts that can be used to build and flash the executable.\
 The ``.bat`` and ``.sh`` scripts are meant to run in a Windows and Linux environment respectively.
 
 - The ``build*`` scripts are used to compile and link the Abstraction Layer with a MicroEJ Application to produce a MicroEJ executable (``application.out``) that can be run on a Linux device.
@@ -330,12 +337,14 @@ The file [options.cmake](vee/options.cmake) lists all the different options, and
 
 ```
 # Select which Abstraction Layer to build
+option(BUILD_AUDIO        "Build Audio Abstraction Layer"                  ON)
 option(BUILD_CORE         "Build Core Abstraction Layer"                   ON)
 option(BUILD_ECOM_NETWORK "Build Embedded COMmunication Abstraction Layer" ON)
 option(BUILD_FS           "Build File System Abstraction Layer"            ON)
 option(BUILD_KF           "Build Kernel Feature Abstraction Layer"         ON)
 option(BUILD_NET          "Build Network Abstraction Layer"                ON)
-option(BUILD_SECURITY     "Build Security Abstraction Layer"               ON)
+option(BUILD_CRYPTO       "Build Security Abstraction Layer"               ON)
+option(BUILD_SERIAL       "Build Serial Abstraction Layer"                 ON)
 option(BUILD_SSL          "Build SSL Abstraction Layer"                    ON)
 option(BUILD_UI           "Build UI Abstraction Layer"                     ON)
 option(BUILD_UTIL         "Build Util Abstraction Layer"                   ON)
@@ -403,8 +412,8 @@ As an example with Yocto, on a ARMv7 chipset, the following configuration can be
 echo -e "require conf/multilib.conf" >>  ./conf/local.conf
 echo -e "MULTILIBS = \"multilib:lib32\"" >>  ./conf/local.conf
 echo -e "DEFAULTTUNE:virtclass-multilib-lib32 = \"armv7athf-neon\"" >>  ./conf/local.conf
-echo -e "IMAGE_INSTALL:append = \" lib32-glibc lib32-libgcc lib32-libstdc++\"" >> ./conf/local.conf 
-echo -e "IMAGE_INSTALL:append = \" lib32-libssl lib32-libdrm lib32-tslib\"" >> ./conf/local.conf 
+echo -e "IMAGE_INSTALL:append = \" lib32-glibc lib32-libgcc lib32-libstdc++\"" >> ./conf/local.conf
+echo -e "IMAGE_INSTALL:append = \" lib32-libssl lib32-libdrm lib32-tslib\"" >> ./conf/local.conf
 ```
 
 # Dependencies
@@ -420,6 +429,6 @@ N/A
 None.
 
 ---
-_Markdown_  
-_Copyright 2024-2025 MicroEJ Corp. All rights reserved._  
-_Use of this source code is governed by a BSD-style license that can be found with this software._  
+_Markdown_\
+_Copyright 2024-2026 MicroEJ Corp. All rights reserved._\
+_Use of this source code is governed by a BSD-style license that can be found with this software._

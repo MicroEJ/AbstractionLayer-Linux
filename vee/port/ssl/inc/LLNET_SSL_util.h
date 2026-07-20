@@ -1,8 +1,9 @@
 /*
  * C
  *
- * Copyright 2016-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2016-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
+ * Build: 7E4D1F7C
  */
 #ifndef LLNET_SSL_UTIL
 #define LLNET_SSL_UTIL
@@ -10,14 +11,12 @@
 #include <openssl/ssl.h>
 #include <stdint.h>
 #include <LLNET_SSL_CONSTANTS.h>
-#include "async_select.h"
 
 /**
  * @file
  * @brief LLNET_SSL_X509_CERT implementation over OpenSSL header.
  * @author MicroEJ Developer Team
  * @version 2.0.0
- * @date 25 July 2024
  */
 
 #ifdef __cplusplus
@@ -45,29 +44,13 @@ void LLNET_SSL_print_errors();
 #endif // LLNET_SSL_DEBUG
 
 /**
- * @brief Handle asynchronous operations for SSL sockets.
- *
- * @param[in] fd File descriptor for underlying socket.
- * @param[in] fd_errno File descriptor errno.
- * @param[in] operation Indicates wether the operation is a read or write.
- * @param[in] absolute_timeout_ms Absolute timeout in milliseconds.
- * @param[in] callback SNI callback.
- * @param[in] callback_suspend_arg Pointer to SNI callback argument.
- *
- * @note Throws NativeIOException on error.
- */
-void LLNET_SSL_handle_blocking_operation_error(int32_t fd, int32_t fd_errno, select_operation operation,
-                                               int64_t absolute_timeout_ms, SNI_callback callback,
-                                               void *callback_suspend_arg);
-
-/**
  * @brief Translate error code from OpenSSL to MicroEJ.
- * 
+ *
  * @param ssl OpenSSL context object.
  * @param error Code returned by OpenSSL.
  * @return int32_t The value of the MicroEJ error code.
  */
-int32_t LLNET_SSL_TranslateReturnCode(const SSL* ssl, int32_t error);
+int32_t LLNET_SSL_TranslateReturnCode(const SSL *ssl, int32_t error);
 
 #ifdef __cplusplus
 }

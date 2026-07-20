@@ -1,7 +1,7 @@
 /*
  * C
  *
- * Copyright 2014-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2014-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 
@@ -21,7 +21,7 @@
 #include "LLFS_impl.h"
 
 #ifdef __cplusplus
-	extern "C" {
+extern "C" {
 #endif
 
 /*
@@ -82,7 +82,8 @@ typedef struct {
 typedef struct {
 	uint8_t path[FS_PATH_LENGTH]; /*!< [IN] Path of the operation. */
 	int32_t result; /*!< [OUT] Result of the operation. */
-	LLFS_date_t date; /*!< [IN/OUT] Date of the last modification. Input for the date setting, output for the date getting. */
+	LLFS_date_t date; /*!< [IN/OUT] Date of the last modification. Input for the date setting, output for the date
+	                   * getting. */
 } FS_last_modified_t;
 
 /**
@@ -100,7 +101,7 @@ typedef struct {
 	uint8_t path[FS_PATH_LENGTH]; /*!< [IN] Path of the operation. */
 	int32_t result; /*!< [OUT] Result of the operation. */
 	int32_t error_code; /*!< [OUT] Error code returned in case of error. */
-	char* error_message; /*!< [OUT] Error message related to the error code. */
+	char *error_message; /*!< [OUT] Error message related to the error code. */
 } FS_create_t;
 
 /**
@@ -189,7 +190,7 @@ typedef struct {
 	int32_t result; /*!< [OUT] Result of the operation. */
 	uint8_t mode; /*!< [IN] Opening mode. */
 	int32_t error_code; /*!< [OUT] Error code returned in case of error. */
-	char* error_message; /*!< [OUT] Error message related to the error code. */
+	char *error_message; /*!< [OUT] Error message related to the error code. */
 } FS_open_t;
 
 /**
@@ -244,11 +245,11 @@ typedef struct {
  */
 typedef struct {
 	int32_t file_id; /*!< [IN] ID of the file on which to perform the operation. */
-	uint8_t* data; /*!< [IN/OUT] Data read (output) or data to write (input). */
+	uint8_t *data; /*!< [IN/OUT] Data read (output) or data to write (input). */
 	int32_t length; /*!< [IN] Length of the data. */
 	int32_t result; /*!< [OUT] Result of the operation. */
 	int32_t error_code; /*!< [OUT] Error code returned in case of error. */
-	char* error_message; /*!< [OUT] Error message related to the error code. */
+	char *error_message; /*!< [OUT] Error message related to the error code. */
 	uint8_t buffer[FS_IO_BUFFER_SIZE]; /*!< Internal buffer. Content must not be modified. */
 } FS_write_read_t;
 
@@ -264,7 +265,7 @@ typedef struct {
 	int32_t file_id; /*!< [IN] ID of the file on which to perform the operation. */
 	int32_t result; /*!< [OUT] Result of the operation. */
 	int32_t error_code; /*!< [OUT] Error code returned in case of error. */
-	char* error_message; /*!< [OUT] Error message related to the error code. */
+	char *error_message; /*!< [OUT] Error message related to the error code. */
 } FS_close_t;
 
 /**
@@ -280,7 +281,7 @@ typedef struct {
 	int64_t n; /*!< [IN] the new position of the file pointer. */
 	int32_t result; /*!< [OUT] Result of the operation. */
 	int32_t error_code; /*!< [OUT] Error code returned in case of error. */
-	char* error_message; /*!< [OUT] Error message related to the error code. */
+	char *error_message; /*!< [OUT] Error message related to the error code. */
 } FS_seek_t;
 
 /**
@@ -295,7 +296,7 @@ typedef struct {
 	int32_t file_id; /*!< [IN] ID of the file on which to perform the operation. */
 	int64_t result; /*!< [OUT] Result of the operation. */
 	int32_t error_code; /*!< [OUT] Error code returned in case of error. */
-	char* error_message; /*!< [OUT] Error message related to the error code. */
+	char *error_message; /*!< [OUT] Error message related to the error code. */
 } FS_getfp_t;
 
 /**
@@ -311,7 +312,7 @@ typedef struct {
 	int64_t length; /*!< [IN] the new length of the file. */
 	int32_t result; /*!< [OUT] Result of the operation. */
 	int32_t error_code; /*!< [OUT] Error code returned in case of error. */
-	char* error_message; /*!< [OUT] Error message related to the error code. */
+	char *error_message; /*!< [OUT] Error message related to the error code. */
 } FS_set_length_t;
 
 /**
@@ -326,7 +327,7 @@ typedef struct {
 	int32_t file_id; /*!< [IN] ID of the file on which to perform the operation. */
 	int64_t result; /*!< [OUT] Result of the operation. */
 	int32_t error_code; /*!< [OUT] Error code returned in case of error. */
-	char* error_message; /*!< [OUT] Error message related to the error code. */
+	char *error_message; /*!< [OUT] Error message related to the error code. */
 } FS_get_length_with_fd_t;
 
 /**
@@ -341,7 +342,7 @@ typedef struct {
 	int32_t file_id; /*!< [IN] ID of the file on which to perform the operation. */
 	int32_t result; /*!< [OUT] Result of the operation. */
 	int32_t error_code; /*!< [OUT] Error code returned in case of error. */
-	char* error_message; /*!< [OUT] Error message related to the error code. */
+	char *error_message; /*!< [OUT] Error message related to the error code. */
 } FS_available_t;
 
 /**
@@ -356,7 +357,7 @@ typedef struct {
 	int32_t file_id; /*!< [IN] ID of the file on which to perform the operation. */
 	int32_t result; /*!< [OUT] Result of the operation. */
 	int32_t error_code; /*!< [OUT] Error code returned in case of error. */
-	char* error_message; /*!< [OUT] Error message related to the error code. */
+	char *error_message; /*!< [OUT] Error message related to the error code. */
 } FS_flush_t;
 /**
  * @union FS_worker_param_t
@@ -389,199 +390,199 @@ typedef union {
  *
  * @param[in] job the context of the job, containing input/output parameters
  */
-void LLFS_IMPL_get_last_modified_action(MICROEJ_ASYNC_WORKER_job_t* job);
+void LLFS_IMPL_get_last_modified_action(MICROEJ_ASYNC_WORKER_job_t *job);
 
 /**
  * @brief Action requested by <code>LLFS_IMPL_set_read_only</code> and executed asynchronously via async_worker.
  *
  * @param[in] job the context of the job, containing input/output parameters
  */
-void LLFS_IMPL_set_read_only_action(MICROEJ_ASYNC_WORKER_job_t* job);
+void LLFS_IMPL_set_read_only_action(MICROEJ_ASYNC_WORKER_job_t *job);
 
 /**
  * @brief Action requested by <code>LLFS_IMPL_create</code> and executed asynchronously via async_worker.
  *
  * @param[in] job the context of the job, containing input/output parameters
  */
-void LLFS_IMPL_create_action(MICROEJ_ASYNC_WORKER_job_t* job);
+void LLFS_IMPL_create_action(MICROEJ_ASYNC_WORKER_job_t *job);
 
 /**
  * @brief Action requested by <code>LLFS_IMPL_open_directory</code> and executed asynchronously via async_worker.
  *
  * @param[in] job the context of the job, containing input/output parameters
  */
-void LLFS_IMPL_open_directory_action(MICROEJ_ASYNC_WORKER_job_t* job);
+void LLFS_IMPL_open_directory_action(MICROEJ_ASYNC_WORKER_job_t *job);
 
 /**
  * @brief Action requested by <code>LLFS_IMPL_read_directory</code> and executed asynchronously via async_worker.
  *
  * @param[in] job the context of the job, containing input/output parameters
  */
-void LLFS_IMPL_read_directory_action(MICROEJ_ASYNC_WORKER_job_t* job);
+void LLFS_IMPL_read_directory_action(MICROEJ_ASYNC_WORKER_job_t *job);
 
 /**
  * @brief Action requested by <code>LLFS_IMPL_close_directory</code> and executed asynchronously via async_worker.
  *
  * @param[in] job the context of the job, containing input/output parameters
  */
-void LLFS_IMPL_close_directory_action(MICROEJ_ASYNC_WORKER_job_t* job);
+void LLFS_IMPL_close_directory_action(MICROEJ_ASYNC_WORKER_job_t *job);
 
 /**
  * @brief Action requested by <code>LLFS_IMPL_rename_to</code> and executed asynchronously via async_worker.
  *
  * @param[in] job the context of the job, containing input/output parameters
  */
-void LLFS_IMPL_rename_to_action(MICROEJ_ASYNC_WORKER_job_t* job);
+void LLFS_IMPL_rename_to_action(MICROEJ_ASYNC_WORKER_job_t *job);
 
 /**
  * @brief Action requested by <code>LLFS_IMPL_get_length</code> and executed asynchronously via async_worker.
  *
  * @param[in] job the context of the job, containing input/output parameters
  */
-void LLFS_IMPL_get_length_action(MICROEJ_ASYNC_WORKER_job_t* job);
+void LLFS_IMPL_get_length_action(MICROEJ_ASYNC_WORKER_job_t *job);
 
 /**
  * @brief Action requested by <code>LLFS_IMPL_exist</code> and executed asynchronously via async_worker.
  *
  * @param[in] job the context of the job, containing input/output parameters
  */
-void LLFS_IMPL_exist_action(MICROEJ_ASYNC_WORKER_job_t* job);
+void LLFS_IMPL_exist_action(MICROEJ_ASYNC_WORKER_job_t *job);
 
 /**
  * @brief Action requested by <code>LLFS_IMPL_get_space_size</code> and executed asynchronously via async_worker.
  *
  * @param[in] job the context of the job, containing input/output parameters
  */
-void LLFS_IMPL_get_space_size_action(MICROEJ_ASYNC_WORKER_job_t* job);
+void LLFS_IMPL_get_space_size_action(MICROEJ_ASYNC_WORKER_job_t *job);
 
 /**
  * @brief Action requested by <code>LLFS_IMPL_make_directory</code> and executed asynchronously via async_worker.
  *
  * @param[in] job the context of the job, containing input/output parameters
  */
-void LLFS_IMPL_make_directory_action(MICROEJ_ASYNC_WORKER_job_t* job);
+void LLFS_IMPL_make_directory_action(MICROEJ_ASYNC_WORKER_job_t *job);
 
 /**
  * @brief Action requested by <code>LLFS_IMPL_is_hidden</code> and executed asynchronously via async_worker.
  *
  * @param[in] job the context of the job, containing input/output parameters
  */
-void LLFS_IMPL_is_hidden_action(MICROEJ_ASYNC_WORKER_job_t* job);
+void LLFS_IMPL_is_hidden_action(MICROEJ_ASYNC_WORKER_job_t *job);
 
 /**
  * @brief Action requested by <code>LLFS_IMPL_is_directory</code> and executed asynchronously via async_worker.
  *
  * @param[in] job the context of the job, containing input/output parameters
  */
-void LLFS_IMPL_is_directory_action(MICROEJ_ASYNC_WORKER_job_t* job);
+void LLFS_IMPL_is_directory_action(MICROEJ_ASYNC_WORKER_job_t *job);
 
 /**
  * @brief Action requested by <code>LLFS_IMPL_is_file</code> and executed asynchronously via async_worker.
  *
  * @param[in] job the context of the job, containing input/output parameters
  */
-void LLFS_IMPL_is_file_action(MICROEJ_ASYNC_WORKER_job_t* job);
+void LLFS_IMPL_is_file_action(MICROEJ_ASYNC_WORKER_job_t *job);
 
 /**
  * @brief Action requested by <code>LLFS_IMPL_set_last_modified</code> and executed asynchronously via async_worker.
  *
  * @param[in] job the context of the job, containing input/output parameters
  */
-void LLFS_IMPL_set_last_modified_action(MICROEJ_ASYNC_WORKER_job_t* job);
+void LLFS_IMPL_set_last_modified_action(MICROEJ_ASYNC_WORKER_job_t *job);
 
 /**
  * @brief Action requested by <code>LLFS_IMPL_delete</code> and executed asynchronously via async_worker.
  *
  * @param[in] job the context of the job, containing input/output parameters
  */
-void LLFS_IMPL_delete_action(MICROEJ_ASYNC_WORKER_job_t* job);
+void LLFS_IMPL_delete_action(MICROEJ_ASYNC_WORKER_job_t *job);
 
 /**
  * @brief Action requested by <code>LLFS_IMPL_is_accessible</code> and executed asynchronously via async_worker.
  *
  * @param[in] job the context of the job, containing input/output parameters
  */
-void LLFS_IMPL_is_accessible_action(MICROEJ_ASYNC_WORKER_job_t* job);
+void LLFS_IMPL_is_accessible_action(MICROEJ_ASYNC_WORKER_job_t *job);
 
 /**
  * @brief Action requested by <code>LLFS_IMPL_set_permission</code> and executed asynchronously via async_worker.
  *
  * @param[in] job the context of the job, containing input/output parameters
  */
-void LLFS_IMPL_set_permission_action(MICROEJ_ASYNC_WORKER_job_t* job);
+void LLFS_IMPL_set_permission_action(MICROEJ_ASYNC_WORKER_job_t *job);
 
 /**
  * @brief Action requested by <code>LLFS_File_IMPL_open</code> and executed asynchronously via async_worker.
  *
  * @param[in] job the context of the job, containing input/output parameters
  */
-void LLFS_File_IMPL_open_action(MICROEJ_ASYNC_WORKER_job_t* job);
+void LLFS_File_IMPL_open_action(MICROEJ_ASYNC_WORKER_job_t *job);
 
 /**
  * @brief Action requested by <code>LLFS_File_IMPL_write</code> and executed asynchronously via async_worker.
  *
  * @param[in] job the context of the job, containing input/output parameters
  */
-void LLFS_File_IMPL_write_action(MICROEJ_ASYNC_WORKER_job_t* job);
+void LLFS_File_IMPL_write_action(MICROEJ_ASYNC_WORKER_job_t *job);
 
 /**
  * @brief Action requested by <code>LLFS_File_IMPL_read</code> and executed asynchronously via async_worker.
  *
  * @param[in] job the context of the job, containing input/output parameters
  */
-void LLFS_File_IMPL_read_action(MICROEJ_ASYNC_WORKER_job_t* job);
+void LLFS_File_IMPL_read_action(MICROEJ_ASYNC_WORKER_job_t *job);
 
 /**
  * @brief Action requested by <code>LLFS_File_IMPL_close</code> and executed asynchronously via async_worker.
  *
  * @param[in] job the context of the job, containing input/output parameters
  */
-void LLFS_File_IMPL_close_action(MICROEJ_ASYNC_WORKER_job_t* job);
+void LLFS_File_IMPL_close_action(MICROEJ_ASYNC_WORKER_job_t *job);
 
 /**
  * @brief Action requested by <code>LLFS_File_IMPL_seek</code> and executed asynchronously via async_worker.
  *
  * @param[in] job the context of the job, containing input/output parameters
  */
-void LLFS_File_IMPL_seek_action(MICROEJ_ASYNC_WORKER_job_t* job);
+void LLFS_File_IMPL_seek_action(MICROEJ_ASYNC_WORKER_job_t *job);
 
 /**
  * @brief Action requested by <code>LLFS_File_IMPL_get_file_pointer</code> and executed asynchronously via async_worker.
  *
  * @param[in] job the context of the job, containing input/output parameters
  */
-void LLFS_File_IMPL_get_file_pointer_action(MICROEJ_ASYNC_WORKER_job_t* job);
+void LLFS_File_IMPL_get_file_pointer_action(MICROEJ_ASYNC_WORKER_job_t *job);
 
 /**
  * @brief Action requested by <code>LLFS_File_IMPL_set_length</code> and executed asynchronously via async_worker.
  *
  * @param[in] job the context of the job, containing input/output parameters
  */
-void LLFS_File_IMPL_set_length_action(MICROEJ_ASYNC_WORKER_job_t* job);
+void LLFS_File_IMPL_set_length_action(MICROEJ_ASYNC_WORKER_job_t *job);
 
 /**
  * @brief Action requested by <code>LLFS_IMPL_get_length_with_fd</code> and executed asynchronously via async_worker.
  *
  * @param[in] job the context of the job, containing input/output parameters
  */
-void LLFS_File_IMPL_get_length_with_fd_action(MICROEJ_ASYNC_WORKER_job_t* job);
+void LLFS_File_IMPL_get_length_with_fd_action(MICROEJ_ASYNC_WORKER_job_t *job);
 
 /**
  * @brief Action requested by <code>LLFS_File_IMPL_available</code> and executed asynchronously via async_worker.
  *
  * @param[in] job the context of the job, containing input/output parameters
  */
-void LLFS_File_IMPL_available_action(MICROEJ_ASYNC_WORKER_job_t* job);
+void LLFS_File_IMPL_available_action(MICROEJ_ASYNC_WORKER_job_t *job);
 
 /**
  * @brief Action requested by <code>LLFS_File_IMPL_flush</code> and executed asynchronously via async_worker.
  *
  * @param[in] job the context of the job, containing input/output parameters
  */
-void LLFS_File_IMPL_flush_action(MICROEJ_ASYNC_WORKER_job_t* job);
+void LLFS_File_IMPL_flush_action(MICROEJ_ASYNC_WORKER_job_t *job);
 
 #ifdef __cplusplus
-	}
+}
 #endif
 
 #endif /* FS_HELPER_H */

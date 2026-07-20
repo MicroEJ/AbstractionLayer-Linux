@@ -1,7 +1,7 @@
 /*
  * C
  *
- * Copyright 2018-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2018-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 #ifndef LLNET_SSL_COOKIE_CALLBACK
@@ -18,7 +18,7 @@
  */
 
 #ifdef __cplusplus
-	extern "C" {
+extern "C" {
 #endif
 
 int LLNET_SSL_Generate_Cookie(SSL *ssl, unsigned char *cookie, unsigned int *cookie_len);
@@ -27,7 +27,7 @@ int LLNET_SSL_Generate_Cookie(SSL *ssl, unsigned char *cookie, unsigned int *coo
 int LLNET_SSL_Verify_Cookie(SSL *ssl, const unsigned char *cookie, unsigned int cookie_len);
 
 #ifdef __cplusplus
-	}
+}
 #endif
 
 #endif

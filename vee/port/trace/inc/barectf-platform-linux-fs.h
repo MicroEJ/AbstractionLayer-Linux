@@ -35,15 +35,15 @@ extern "C" {
 struct barectf_default_ctx;
 struct barectf_platform_linux_fs_ctx;
 
-struct barectf_platform_linux_fs_ctx *barectf_platform_linux_fs_init(
-	unsigned int buf_size, const char *data_stream_file_path,
-	int simulate_full_backend, unsigned int full_backend_rand_max,
-	unsigned int full_backend_rand_lt);
+struct barectf_platform_linux_fs_ctx *barectf_platform_linux_fs_init(unsigned int buf_size,
+                                                                     const char *data_stream_file_path,
+                                                                     int simulate_full_backend,
+                                                                     unsigned int full_backend_rand_max,
+                                                                     unsigned int full_backend_rand_lt);
 
 void barectf_platform_linux_fs_fini(struct barectf_platform_linux_fs_ctx *ctx);
 
-struct barectf_default_ctx *barectf_platform_linux_fs_get_barectf_ctx(
-	struct barectf_platform_linux_fs_ctx *ctx);
+struct barectf_default_ctx *barectf_platform_linux_fs_get_barectf_ctx(struct barectf_platform_linux_fs_ctx *ctx);
 
 #ifdef __cplusplus
 }

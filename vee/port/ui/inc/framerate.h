@@ -1,7 +1,7 @@
 /*
  * C
  *
- * Copyright 2015-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2015-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 #ifndef FRAMERATE_INTERN
@@ -18,7 +18,7 @@
 #define FRAMERATE_ERROR (int32_t)-1
 
 #ifndef FRAMERATE_SCHEDULE_TIME
-#define FRAMERATE_SCHEDULE_TIME 500	// ms
+#define FRAMERATE_SCHEDULE_TIME 500 // ms
 #endif
 
 /* API -----------------------------------------------------------------------*/
@@ -41,10 +41,10 @@ uint32_t framerate_get(void);
 /* Default Java API ----------------------------------------------------------*/
 
 #ifndef javaFramerateInit
-#define javaFramerateInit		Java_com_is2t_debug_Framerate_init
+#define javaFramerateInit       Java_com_is2t_debug_Framerate_init
 #endif
 #ifndef javaFramerateGet
-#define javaFramerateGet		Java_com_is2t_debug_Framerate_get
+#define javaFramerateGet        Java_com_is2t_debug_Framerate_get
 #endif
 
-#endif	// _FRAMERATE_INTERN
+#endif // _FRAMERATE_INTERN

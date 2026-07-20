@@ -1,7 +1,7 @@
 /*
  * C
  *
- * Copyright 2020-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2020-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 
@@ -19,10 +19,11 @@
 #include "microej_async_worker.h"
 
 #ifdef __cplusplus
-	extern "C" {
+extern "C" {
 #endif
 
-// #error "This header must be customized with platform specific configuration. Remove this #error when done. This file is not modified when a new version of the CCO is installed."
+// #error "This header must be customized with platform specific configuration. Remove this #error when done. This file
+// is not modified when a new version of the CCO is installed."
 
 /**
  * @brief Compatibility sanity check value.
@@ -30,7 +31,8 @@
  * is compatible with the implementation.
  *
  * This value must not be changed by the user of the CCO.
- * This value must be incremented by the implementor of the CCO when a configuration define is added, deleted or modified.
+ * This value must be incremented by the implementor of the CCO when a configuration define is added, deleted or
+ * modified.
  */
 #define ECOM_NETWORK_CONFIGURATION_VERSION (2)
 
@@ -69,13 +71,14 @@ extern MICROEJ_ASYNC_WORKER_handle_t ecom_network_worker;
 /**
  * @brief Size of the ECOM-NETWORK stack in bytes.
  */
-#define ECOM_NETWORK_WORKER_STACK_SIZE (1024*2)
+#define ECOM_NETWORK_WORKER_STACK_SIZE (1024 * 2)
 
 /**
  * @brief ECOM-NETWORK worker stack size must be calibrated, unless using a custom worker defined in another module.
  */
 #if !defined(ECOM_NETWORK_CUSTOM_WORKER) && !defined(ECOM_NETWORK_WORKER_STACK_SIZE)
-#error "ECOM_NETWORK_WORKER_STACK_SIZE not declared. Please uncomment the line above to enable macro declaration and put the right value according to the stack size calibration done for your environment"
+#error \
+	"ECOM_NETWORK_WORKER_STACK_SIZE not declared. Please uncomment the line above to enable macro declaration and put the right value according to the stack size calibration done for your environment"
 #endif // ECOM_NETWORK_WORKER_STACK_SIZE
 
 /**
@@ -107,11 +110,11 @@ extern MICROEJ_ASYNC_WORKER_handle_t ecom_network_worker;
 #include <stdio.h>
 #define LLECOM_NETWORK_DEBUG_TRACE printf
 #else
-#define LLECOM_NETWORK_DEBUG_TRACE(...) ((void) 0)
+#define LLECOM_NETWORK_DEBUG_TRACE(...) ((void)0)
 #endif // LLECOM_NETWORK_DEBUG
 
 #ifdef __cplusplus
-	}
+}
 #endif
 
 #endif // ECOM_NETWORK_CONFIGURATION_H

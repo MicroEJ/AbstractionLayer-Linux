@@ -1,7 +1,7 @@
 @echo off
 
 REM BAT
-REM Copyright 2021-2025 MicroEJ Corp. All rights reserved.
+REM Copyright 2021-2026 MicroEJ Corp. All rights reserved.
 REM Use of this source code is governed by a BSD-style license that can be found with this software.
 
 REM 'set_project_env.bat' implementation for MicroEJ Linux builds.
@@ -22,8 +22,6 @@ IF NOT EXIST "%LOCAL_ENV_SCRIPT%" (
 		ECHO Failed to copy from template.
 		exit /B %ERRORLEVEL%
 	)
-) ELSE (
-	ECHO "%LOCAL_ENV_SCRIPT%" already exists.
 )
 
 CALL "%LOCAL_ENV_SCRIPT%"

@@ -38,21 +38,21 @@
 #include "barectf.h"
 #include "barectf-bitfield.h"
 
-#define _ALIGN(_at_var, _align)						\
-	do {								\
-		(_at_var) = ((_at_var) + ((_align) - 1)) & -(_align);	\
-	} while (0)
+#define _ALIGN(_at_var, _align)                                   \
+		do {                                                      \
+			(_at_var) = ((_at_var) + ((_align) - 1)) & -(_align); \
+		} while (0)
 
 #ifdef __cplusplus
-# define _TO_VOID_PTR(_value)		static_cast<void *>(_value)
-# define _FROM_VOID_PTR(_type, _value)	static_cast<_type *>(_value)
+# define _TO_VOID_PTR(_value)       static_cast < void * > (_value)
+# define _FROM_VOID_PTR(_type, _value)  static_cast < _type * > (_value)
 #else
-# define _TO_VOID_PTR(_value)		((void *) (_value))
-# define _FROM_VOID_PTR(_type, _value)	((_type *) (_value))
+# define _TO_VOID_PTR(_value)       ((void *)(_value))
+# define _FROM_VOID_PTR(_type, _value)  ((_type *)(_value))
 #endif
 
-#define _BITS_TO_BYTES(_x)	((_x) >> 3)
-#define _BYTES_TO_BITS(_x)	((_x) << 3)
+#define _BITS_TO_BYTES(_x)  ((_x) >> 3)
+#define _BYTES_TO_BITS(_x)  ((_x) << 3)
 
 union _f2u {
 	float f;
@@ -64,55 +64,46 @@ union _d2u {
 	uint64_t u;
 };
 
-uint32_t barectf_packet_size(const void * const vctx)
-{
+uint32_t barectf_packet_size(const void * const vctx) {
 	return _FROM_VOID_PTR(const struct barectf_ctx, vctx)->packet_size;
 }
 
-int barectf_packet_is_full(const void * const vctx)
-{
+int barectf_packet_is_full(const void * const vctx) {
 	const struct barectf_ctx * const ctx = _FROM_VOID_PTR(const struct barectf_ctx, vctx);
 
 	return ctx->at == ctx->packet_size;
 }
 
-int barectf_packet_is_empty(const void * const vctx)
-{
+int barectf_packet_is_empty(const void * const vctx) {
 	const struct barectf_ctx * const ctx = _FROM_VOID_PTR(const struct barectf_ctx, vctx);
 
 	return ctx->at <= ctx->off_content;
 }
 
-uint32_t barectf_packet_events_discarded(const void * const vctx)
-{
+uint32_t barectf_packet_events_discarded(const void * const vctx) {
 	return _FROM_VOID_PTR(const struct barectf_ctx, vctx)->events_discarded;
 }
 
-uint32_t barectf_discarded_event_records_count(const void * const vctx)
-{
+uint32_t barectf_discarded_event_records_count(const void * const vctx) {
 	return barectf_packet_events_discarded(vctx);
 }
 
-uint8_t *barectf_packet_buf(const void * const vctx)
-{
+uint8_t *barectf_packet_buf(const void * const vctx) {
 	return _FROM_VOID_PTR(const struct barectf_ctx, vctx)->buf;
 }
 
-uint8_t *barectf_packet_buf_addr(const void * const vctx)
-{
+uint8_t *barectf_packet_buf_addr(const void * const vctx) {
 	return barectf_packet_buf(vctx);
 }
 
-uint32_t barectf_packet_buf_size(const void * const vctx)
-{
+uint32_t barectf_packet_buf_size(const void * const vctx) {
 	const struct barectf_ctx * const ctx = _FROM_VOID_PTR(const struct barectf_ctx, vctx);
 
 	return _BITS_TO_BYTES(ctx->packet_size);
 }
 
 void barectf_packet_set_buf(void * const vctx, uint8_t * const buf,
-		const uint32_t buf_size)
-{
+                            const uint32_t buf_size) {
 	struct barectf_ctx * const ctx = _FROM_VOID_PTR(struct barectf_ctx, vctx);
 
 	ctx->buf = buf;
@@ -125,34 +116,28 @@ void barectf_packet_set_buf(void * const vctx, uint8_t * const buf,
 	ctx->packet_size = _BYTES_TO_BITS(buf_size);
 }
 
-int barectf_packet_is_open(const void * const vctx)
-{
+int barectf_packet_is_open(const void * const vctx) {
 	return _FROM_VOID_PTR(const struct barectf_ctx, vctx)->packet_is_open;
 }
 
-int barectf_is_in_tracing_section(const void * const vctx)
-{
+int barectf_is_in_tracing_section(const void * const vctx) {
 	return _FROM_VOID_PTR(const struct barectf_ctx, vctx)->in_tracing_section;
 }
 
-volatile const int *barectf_is_in_tracing_section_ptr(const void * const vctx)
-{
+volatile const int *barectf_is_in_tracing_section_ptr(const void * const vctx) {
 	return &_FROM_VOID_PTR(const struct barectf_ctx, vctx)->in_tracing_section;
 }
 
-int barectf_is_tracing_enabled(const void * const vctx)
-{
+int barectf_is_tracing_enabled(const void * const vctx) {
 	return _FROM_VOID_PTR(const struct barectf_ctx, vctx)->is_tracing_enabled;
 }
 
-void barectf_enable_tracing(void * const vctx, const int enable)
-{
+void barectf_enable_tracing(void * const vctx, const int enable) {
 	_FROM_VOID_PTR(struct barectf_ctx, vctx)->is_tracing_enabled = enable;
 }
 
 static
-void _write_c_str(struct barectf_ctx * const ctx, const char * const src)
-{
+void _write_c_str(struct barectf_ctx * const ctx, const char * const src) {
 	const uint32_t sz = strlen(src) + 1;
 
 	memcpy(&ctx->buf[_BITS_TO_BYTES(ctx->at)], src, sz);
@@ -160,8 +145,7 @@ void _write_c_str(struct barectf_ctx * const ctx, const char * const src)
 }
 
 static
-int _reserve_er_space(void * const vctx, const uint32_t er_size)
-{
+int _reserve_er_space(void * const vctx, const uint32_t er_size) {
 	int ret;
 	struct barectf_ctx * const ctx = _FROM_VOID_PTR(struct barectf_ctx, vctx);
 
@@ -216,8 +200,7 @@ end:
 }
 
 static
-void _commit_er(void * const vctx)
-{
+void _commit_er(void * const vctx) {
 	struct barectf_ctx * const ctx = _FROM_VOID_PTR(struct barectf_ctx, vctx);
 
 	/* Is the packet full? */
@@ -229,9 +212,8 @@ void _commit_er(void * const vctx)
 
 /* Initialize context */
 void barectf_init(void *vctx,
-	uint8_t * const buf, const uint32_t buf_size,
-	const struct barectf_platform_callbacks cbs, void * const data)
-{
+                  uint8_t * const buf, const uint32_t buf_size,
+                  const struct barectf_platform_callbacks cbs, void * const data) {
 	struct barectf_ctx * const ctx = _FROM_VOID_PTR(struct barectf_ctx, vctx);
 	ctx->cbs = cbs;
 	ctx->data = data;
@@ -248,12 +230,11 @@ void barectf_init(void *vctx,
 /* Open packet for data stream type `default` */
 void barectf_default_open_packet(
 	struct barectf_default_ctx * const sctx,
-	const uint32_t pc_cpu_id)
-{
+	const uint32_t pc_cpu_id) {
 	struct barectf_ctx * const ctx = &sctx->parent;
 	const uint64_t ts = ctx->use_cur_last_event_ts ?
-		sctx->cur_last_event_ts :
-		ctx->cbs.default_clock_get_value(ctx->data);
+	                    sctx->cur_last_event_ts :
+	                    ctx->cbs.default_clock_get_value(ctx->data);
 	const int saved_in_tracing_section = ctx->in_tracing_section;
 
 	/*
@@ -297,7 +278,7 @@ void barectf_default_open_packet(
 
 		/* Write magic number field */
 		{
-			const uint32_t tmp_val = (uint32_t) 0xc1fc1fc1UL;
+			const uint32_t tmp_val = (uint32_t)0xc1fc1fc1UL;
 
 			memcpy(&ctx->buf[_BITS_TO_BYTES(ctx->at)], &tmp_val, sizeof(tmp_val));
 			ctx->at += 32;
@@ -308,7 +289,7 @@ void barectf_default_open_packet(
 
 		/* Write data stream type ID field */
 		{
-			const uint64_t tmp_val = (uint64_t) 0;
+			const uint64_t tmp_val = (uint64_t)0;
 
 			memcpy(&ctx->buf[_BITS_TO_BYTES(ctx->at)], &tmp_val, sizeof(tmp_val));
 			ctx->at += 64;
@@ -325,7 +306,7 @@ void barectf_default_open_packet(
 
 		/* Write packet total size field */
 		{
-			const uint64_t tmp_val = (uint64_t) ctx->packet_size;
+			const uint64_t tmp_val = (uint64_t)ctx->packet_size;
 
 			memcpy(&ctx->buf[_BITS_TO_BYTES(ctx->at)], &tmp_val, sizeof(tmp_val));
 			ctx->at += 64;
@@ -343,7 +324,7 @@ void barectf_default_open_packet(
 
 		/* Write beginning timestamp field */
 		{
-			const uint64_t tmp_val = (uint64_t) ts;
+			const uint64_t tmp_val = (uint64_t)ts;
 
 			memcpy(&ctx->buf[_BITS_TO_BYTES(ctx->at)], &tmp_val, sizeof(tmp_val));
 			ctx->at += 64;
@@ -368,7 +349,7 @@ void barectf_default_open_packet(
 
 		/* Write `cpu_id` field */
 		{
-			const uint32_t tmp_val = (uint32_t) pc_cpu_id;
+			const uint32_t tmp_val = (uint32_t)pc_cpu_id;
 
 			memcpy(&ctx->buf[_BITS_TO_BYTES(ctx->at)], &tmp_val, sizeof(tmp_val));
 			ctx->at += 32;
@@ -389,12 +370,11 @@ end:
 }
 
 /* Close packet for data stream type `default` */
-void barectf_default_close_packet(struct barectf_default_ctx * const sctx)
-{
+void barectf_default_close_packet(struct barectf_default_ctx * const sctx) {
 	struct barectf_ctx * const ctx = &sctx->parent;
 	const uint64_t ts = ctx->use_cur_last_event_ts ?
-		sctx->cur_last_event_ts :
-		ctx->cbs.default_clock_get_value(ctx->data);
+	                    sctx->cur_last_event_ts :
+	                    ctx->cbs.default_clock_get_value(ctx->data);
 	const int saved_in_tracing_section = ctx->in_tracing_section;
 
 	/*
@@ -434,7 +414,7 @@ void barectf_default_close_packet(struct barectf_default_ctx * const sctx)
 
 	/* Write `timestamp_end` field */
 	{
-		const uint64_t tmp_val = (uint64_t) ts;
+		const uint64_t tmp_val = (uint64_t)ts;
 
 		memcpy(&ctx->buf[_BITS_TO_BYTES(ctx->at)], &tmp_val, sizeof(tmp_val));
 		ctx->at += 64;
@@ -445,7 +425,7 @@ void barectf_default_close_packet(struct barectf_default_ctx * const sctx)
 
 	/* Write `content_size` field */
 	{
-		const uint64_t tmp_val = (uint64_t) ctx->content_size;
+		const uint64_t tmp_val = (uint64_t)ctx->content_size;
 
 		memcpy(&ctx->buf[_BITS_TO_BYTES(ctx->at)], &tmp_val, sizeof(tmp_val));
 		ctx->at += 64;
@@ -456,7 +436,7 @@ void barectf_default_close_packet(struct barectf_default_ctx * const sctx)
 
 	/* Write `events_discarded` field */
 	{
-		const uint64_t tmp_val = (uint64_t) ctx->events_discarded;
+		const uint64_t tmp_val = (uint64_t)ctx->events_discarded;
 
 		memcpy(&ctx->buf[_BITS_TO_BYTES(ctx->at)], &tmp_val, sizeof(tmp_val));
 		ctx->at += 64;
@@ -476,8 +456,7 @@ end:
 }
 
 static void _serialize_er_header_default(void * const vctx,
-	const uint32_t ert_id)
-{
+                                         const uint32_t ert_id) {
 	struct barectf_ctx * const ctx = _FROM_VOID_PTR(struct barectf_ctx, vctx);
 	struct barectf_default_ctx * const sctx = _FROM_VOID_PTR(struct barectf_default_ctx, vctx);
 	const uint64_t ts = sctx->cur_last_event_ts;
@@ -492,7 +471,7 @@ static void _serialize_er_header_default(void * const vctx,
 
 		/* Write event record type ID field */
 		{
-			const uint64_t tmp_val = (uint64_t) ert_id;
+			const uint64_t tmp_val = (uint64_t)ert_id;
 
 			memcpy(&ctx->buf[_BITS_TO_BYTES(ctx->at)], &tmp_val, sizeof(tmp_val));
 			ctx->at += 64;
@@ -503,7 +482,7 @@ static void _serialize_er_header_default(void * const vctx,
 
 		/* Write timestamp field */
 		{
-			const uint64_t tmp_val = (uint64_t) ts;
+			const uint64_t tmp_val = (uint64_t)ts;
 
 			memcpy(&ctx->buf[_BITS_TO_BYTES(ctx->at)], &tmp_val, sizeof(tmp_val));
 			ctx->at += 64;
@@ -512,10 +491,9 @@ static void _serialize_er_header_default(void * const vctx,
 }
 
 static void _serialize_er_default_func_entry(void * const vctx,
-	const int32_t p_addr,
-	const int32_t p_call_site,
-	const int32_t p_vtid)
-{
+                                             const int32_t p_addr,
+                                             const int32_t p_call_site,
+                                             const int32_t p_vtid) {
 	struct barectf_ctx * const ctx = _FROM_VOID_PTR(struct barectf_ctx, vctx);
 
 	/* Serialize header */
@@ -531,7 +509,7 @@ static void _serialize_er_default_func_entry(void * const vctx,
 
 		/* Write `addr` field */
 		{
-			const uint32_t tmp_val = (uint32_t) p_addr;
+			const uint32_t tmp_val = (uint32_t)p_addr;
 
 			memcpy(&ctx->buf[_BITS_TO_BYTES(ctx->at)], &tmp_val, sizeof(tmp_val));
 			ctx->at += 32;
@@ -542,7 +520,7 @@ static void _serialize_er_default_func_entry(void * const vctx,
 
 		/* Write `call_site` field */
 		{
-			const uint32_t tmp_val = (uint32_t) p_call_site;
+			const uint32_t tmp_val = (uint32_t)p_call_site;
 
 			memcpy(&ctx->buf[_BITS_TO_BYTES(ctx->at)], &tmp_val, sizeof(tmp_val));
 			ctx->at += 32;
@@ -553,7 +531,7 @@ static void _serialize_er_default_func_entry(void * const vctx,
 
 		/* Write `vtid` field */
 		{
-			const uint32_t tmp_val = (uint32_t) p_vtid;
+			const uint32_t tmp_val = (uint32_t)p_vtid;
 
 			memcpy(&ctx->buf[_BITS_TO_BYTES(ctx->at)], &tmp_val, sizeof(tmp_val));
 			ctx->at += 32;
@@ -562,10 +540,9 @@ static void _serialize_er_default_func_entry(void * const vctx,
 }
 
 static void _serialize_er_default_func_exit(void * const vctx,
-	const int32_t p_addr,
-	const int32_t p_call_site,
-	const int32_t p_vtid)
-{
+                                            const int32_t p_addr,
+                                            const int32_t p_call_site,
+                                            const int32_t p_vtid) {
 	struct barectf_ctx * const ctx = _FROM_VOID_PTR(struct barectf_ctx, vctx);
 
 	/* Serialize header */
@@ -581,7 +558,7 @@ static void _serialize_er_default_func_exit(void * const vctx,
 
 		/* Write `addr` field */
 		{
-			const uint32_t tmp_val = (uint32_t) p_addr;
+			const uint32_t tmp_val = (uint32_t)p_addr;
 
 			memcpy(&ctx->buf[_BITS_TO_BYTES(ctx->at)], &tmp_val, sizeof(tmp_val));
 			ctx->at += 32;
@@ -592,7 +569,7 @@ static void _serialize_er_default_func_exit(void * const vctx,
 
 		/* Write `call_site` field */
 		{
-			const uint32_t tmp_val = (uint32_t) p_call_site;
+			const uint32_t tmp_val = (uint32_t)p_call_site;
 
 			memcpy(&ctx->buf[_BITS_TO_BYTES(ctx->at)], &tmp_val, sizeof(tmp_val));
 			ctx->at += 32;
@@ -603,7 +580,7 @@ static void _serialize_er_default_func_exit(void * const vctx,
 
 		/* Write `vtid` field */
 		{
-			const uint32_t tmp_val = (uint32_t) p_vtid;
+			const uint32_t tmp_val = (uint32_t)p_vtid;
 
 			memcpy(&ctx->buf[_BITS_TO_BYTES(ctx->at)], &tmp_val, sizeof(tmp_val));
 			ctx->at += 32;
@@ -611,8 +588,7 @@ static void _serialize_er_default_func_exit(void * const vctx,
 	}
 }
 
-static uint32_t _er_size_default_func_entry(void * const vctx)
-{
+static uint32_t _er_size_default_func_entry(void * const vctx) {
 	struct barectf_ctx * const ctx = _FROM_VOID_PTR(struct barectf_ctx, vctx);
 	uint32_t at = ctx->at;
 
@@ -661,8 +637,7 @@ static uint32_t _er_size_default_func_entry(void * const vctx)
 	return at - ctx->at;
 }
 
-static uint32_t _er_size_default_func_exit(void * const vctx)
-{
+static uint32_t _er_size_default_func_exit(void * const vctx) {
 	struct barectf_ctx * const ctx = _FROM_VOID_PTR(struct barectf_ctx, vctx);
 	uint32_t at = ctx->at;
 
@@ -713,10 +688,9 @@ static uint32_t _er_size_default_func_exit(void * const vctx)
 
 /* Trace (data stream type `default`, event record type `func_entry`) */
 void barectf_default_trace_func_entry(struct barectf_default_ctx * const sctx,
-	const int32_t p_addr,
-	const int32_t p_call_site,
-	const int32_t p_vtid)
-{
+                                      const int32_t p_addr,
+                                      const int32_t p_call_site,
+                                      const int32_t p_vtid) {
 	struct barectf_ctx * const ctx = &sctx->parent;
 	uint32_t er_size;
 
@@ -755,10 +729,9 @@ end:
 
 /* Trace (data stream type `default`, event record type `func_exit`) */
 void barectf_default_trace_func_exit(struct barectf_default_ctx * const sctx,
-	const int32_t p_addr,
-	const int32_t p_call_site,
-	const int32_t p_vtid)
-{
+                                     const int32_t p_addr,
+                                     const int32_t p_call_site,
+                                     const int32_t p_vtid) {
 	struct barectf_ctx * const ctx = &sctx->parent;
 	uint32_t er_size;
 

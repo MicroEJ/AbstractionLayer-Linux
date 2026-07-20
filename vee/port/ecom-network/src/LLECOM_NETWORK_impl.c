@@ -1,7 +1,7 @@
 /*
  * C
  *
- * Copyright 2020-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2020-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 
@@ -23,7 +23,7 @@
 #include "ecom_network_helper.h"
 
 #ifdef __cplusplus
-	extern "C" {
+extern "C" {
 #endif
 
 /**
@@ -41,24 +41,54 @@
 
 #ifndef ECOM_NETWORK_CUSTOM_WORKER
 /* Async worker task declaration ---------------------------------------------*/
-MICROEJ_ASYNC_WORKER_worker_declare(ecom_network_worker, ECOM_NETWORK_WORKER_JOB_COUNT, ECOM_NETWORK_worker_param_t, ECOM_NETWORK_WAITING_LIST_SIZE);
+MICROEJ_ASYNC_WORKER_worker_declare(ecom_network_worker, ECOM_NETWORK_WORKER_JOB_COUNT, ECOM_NETWORK_worker_param_t,
+                                    ECOM_NETWORK_WAITING_LIST_SIZE);
 OSAL_task_stack_declare(ecom_network_worker_stack, ECOM_NETWORK_WORKER_STACK_SIZE);
 #endif
 
-static int32_t LLECOM_NETWORK_async_exec_netif_context(int8_t* netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t getResult, SNI_callback retry_function, MICROEJ_ASYNC_WORKER_action_t action, SNI_callback on_done);
-static int32_t LLECOM_NETWORK_async_exec_netif_context_on_done(int8_t* netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t getResult);
-static int32_t LLECOM_NETWORK_async_exec_dns_context(int8_t* netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t* address, int32_t addressOffset, int32_t addressLength, int32_t index, int8_t getResult, bool exec_write, SNI_callback retry_function, MICROEJ_ASYNC_WORKER_action_t action, SNI_callback on_done);
-static int32_t LLECOM_NETWORK_async_exec_get_dns_context_on_done(int8_t* netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t* address, int32_t addressOffset, int32_t addressLength, int32_t index, int8_t getResult);
-static int32_t LLECOM_NETWORK_async_exec_set_dns_context_on_done(int8_t* netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t* address, int32_t addressOffset, int32_t addressLength, int32_t index, int8_t getResult);
-static int32_t LLECOM_NETWORK_async_exec_ip_context(int8_t* netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t* address, int32_t addressOffset, int32_t addressLength, int8_t getResult, bool exec_write, SNI_callback retry_function, MICROEJ_ASYNC_WORKER_action_t action, SNI_callback on_done);
-static int32_t LLECOM_NETWORK_async_exec_get_ip_context_on_done(int8_t* netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t* address, int32_t addressOffset, int32_t addressLength, int8_t getResult);
-static int32_t LLECOM_NETWORK_async_exec_set_ip_context_on_done(int8_t* netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t* address, int32_t addressOffset, int32_t addressLength, int8_t getResult);
-static int32_t LLECOM_NETWORK_async_exec_ip_config(int8_t* netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t use, int8_t getResult, SNI_callback retry_function, MICROEJ_ASYNC_WORKER_action_t action, SNI_callback on_done);
-static int32_t LLECOM_NETWORK_async_exec_ip_config_on_done(int8_t* netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t use, int8_t getResult);
+static int32_t LLECOM_NETWORK_async_exec_netif_context(int8_t *netifName, int32_t netifNameOffset,
+                                                       int32_t netifNameLength, int8_t getResult,
+                                                       SNI_callback retry_function,
+                                                       MICROEJ_ASYNC_WORKER_action_t action, SNI_callback on_done);
+static int32_t LLECOM_NETWORK_async_exec_netif_context_on_done(int8_t *netifName, int32_t netifNameOffset,
+                                                               int32_t netifNameLength, int8_t getResult);
+static int32_t LLECOM_NETWORK_async_exec_dns_context(int8_t *netifName, int32_t netifNameOffset,
+                                                     int32_t netifNameLength, int8_t *address, int32_t addressOffset,
+                                                     int32_t addressLength, int32_t index, int8_t getResult,
+                                                     bool exec_write, SNI_callback retry_function,
+                                                     MICROEJ_ASYNC_WORKER_action_t action, SNI_callback on_done);
+static int32_t LLECOM_NETWORK_async_exec_get_dns_context_on_done(int8_t *netifName, int32_t netifNameOffset,
+                                                                 int32_t netifNameLength, int8_t *address,
+                                                                 int32_t addressOffset, int32_t addressLength,
+                                                                 int32_t index, int8_t getResult);
+static int32_t LLECOM_NETWORK_async_exec_set_dns_context_on_done(int8_t *netifName, int32_t netifNameOffset,
+                                                                 int32_t netifNameLength, int8_t *address,
+                                                                 int32_t addressOffset, int32_t addressLength,
+                                                                 int32_t index, int8_t getResult);
+static int32_t LLECOM_NETWORK_async_exec_ip_context(int8_t *netifName, int32_t netifNameOffset, int32_t netifNameLength,
+                                                    int8_t *address, int32_t addressOffset, int32_t addressLength,
+                                                    int8_t getResult, bool exec_write, SNI_callback retry_function,
+                                                    MICROEJ_ASYNC_WORKER_action_t action, SNI_callback on_done);
+static int32_t LLECOM_NETWORK_async_exec_get_ip_context_on_done(int8_t *netifName, int32_t netifNameOffset,
+                                                                int32_t netifNameLength, int8_t *address,
+                                                                int32_t addressOffset, int32_t addressLength,
+                                                                int8_t getResult);
+static int32_t LLECOM_NETWORK_async_exec_set_ip_context_on_done(int8_t *netifName, int32_t netifNameOffset,
+                                                                int32_t netifNameLength, int8_t *address,
+                                                                int32_t addressOffset, int32_t addressLength,
+                                                                int8_t getResult);
+static int32_t LLECOM_NETWORK_async_exec_ip_config(int8_t *netifName, int32_t netifNameOffset, int32_t netifNameLength,
+                                                   int8_t use, int8_t getResult, SNI_callback retry_function,
+                                                   MICROEJ_ASYNC_WORKER_action_t action, SNI_callback on_done);
+static int32_t LLECOM_NETWORK_async_exec_ip_config_on_done(int8_t *netifName, int32_t netifNameOffset,
+                                                           int32_t netifNameLength, int8_t use, int8_t getResult);
 
 void LLECOM_NETWORK_initialize(void) {
 #ifndef ECOM_NETWORK_CUSTOM_WORKER
-	MICROEJ_ASYNC_WORKER_status_t status = MICROEJ_ASYNC_WORKER_initialize(&ecom_network_worker, (uint8_t*)"MicroEJ ECOM-NETWORK", ecom_network_worker_stack, ECOM_NETWORK_WORKER_PRIORITY);
+	MICROEJ_ASYNC_WORKER_status_t status = MICROEJ_ASYNC_WORKER_initialize(&ecom_network_worker,
+	                                                                       (uint8_t *)"MicroEJ ECOM-NETWORK",
+	                                                                       ecom_network_worker_stack,
+	                                                                       ECOM_NETWORK_WORKER_PRIORITY);
 	if (status == MICROEJ_ASYNC_WORKER_INVALID_ARGS) {
 		SNI_throwNativeException(status, "Invalid argument for ECOM-NETWORK async worker");
 	} else if (status == MICROEJ_ASYNC_WORKER_ERROR) {
@@ -69,88 +99,182 @@ void LLECOM_NETWORK_initialize(void) {
 	llecom_network_init();
 }
 
-int32_t LLECOM_NETWORK_IMPL_enable(int8_t* netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t getResult) {
-	return LLECOM_NETWORK_async_exec_netif_context(netifName, netifNameOffset, netifNameLength, getResult, (SNI_callback)LLECOM_NETWORK_IMPL_enable, LLECOM_NETWORK_IMPL_enable_action, (SNI_callback)LLECOM_NETWORK_async_exec_netif_context_on_done);
+int32_t LLECOM_NETWORK_IMPL_enable(int8_t *netifName, int32_t netifNameOffset, int32_t netifNameLength,
+                                   int8_t getResult) {
+	return LLECOM_NETWORK_async_exec_netif_context(netifName, netifNameOffset, netifNameLength, getResult,
+	                                               (SNI_callback)LLECOM_NETWORK_IMPL_enable,
+	                                               LLECOM_NETWORK_IMPL_enable_action,
+	                                               (SNI_callback)LLECOM_NETWORK_async_exec_netif_context_on_done);
 }
 
-int32_t LLECOM_NETWORK_IMPL_disable(int8_t* netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t getResult) {
-	return LLECOM_NETWORK_async_exec_netif_context(netifName, netifNameOffset, netifNameLength, getResult, (SNI_callback)LLECOM_NETWORK_IMPL_disable, LLECOM_NETWORK_IMPL_disable_action, (SNI_callback)LLECOM_NETWORK_async_exec_netif_context_on_done);
+int32_t LLECOM_NETWORK_IMPL_disable(int8_t *netifName, int32_t netifNameOffset, int32_t netifNameLength,
+                                    int8_t getResult) {
+	return LLECOM_NETWORK_async_exec_netif_context(netifName, netifNameOffset, netifNameLength, getResult,
+	                                               (SNI_callback)LLECOM_NETWORK_IMPL_disable,
+	                                               LLECOM_NETWORK_IMPL_disable_action,
+	                                               (SNI_callback)LLECOM_NETWORK_async_exec_netif_context_on_done);
 }
 
-int32_t LLECOM_NETWORK_IMPL_isEnabled(int8_t* netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t getResult) {
-	return LLECOM_NETWORK_async_exec_netif_context(netifName, netifNameOffset, netifNameLength, getResult, (SNI_callback)LLECOM_NETWORK_IMPL_isEnabled, LLECOM_NETWORK_IMPL_isEnabled_action, (SNI_callback)LLECOM_NETWORK_async_exec_netif_context_on_done);
+int32_t LLECOM_NETWORK_IMPL_isEnabled(int8_t *netifName, int32_t netifNameOffset, int32_t netifNameLength,
+                                      int8_t getResult) {
+	return LLECOM_NETWORK_async_exec_netif_context(netifName, netifNameOffset, netifNameLength, getResult,
+	                                               (SNI_callback)LLECOM_NETWORK_IMPL_isEnabled,
+	                                               LLECOM_NETWORK_IMPL_isEnabled_action,
+	                                               (SNI_callback)LLECOM_NETWORK_async_exec_netif_context_on_done);
 }
 
-int32_t LLECOM_NETWORK_IMPL_start(int8_t* netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t getResult) {
-	return LLECOM_NETWORK_async_exec_netif_context(netifName, netifNameOffset, netifNameLength, getResult, (SNI_callback)LLECOM_NETWORK_IMPL_start, LLECOM_NETWORK_IMPL_start_action, (SNI_callback)LLECOM_NETWORK_async_exec_netif_context_on_done);
+int32_t LLECOM_NETWORK_IMPL_start(int8_t *netifName, int32_t netifNameOffset, int32_t netifNameLength,
+                                  int8_t getResult) {
+	return LLECOM_NETWORK_async_exec_netif_context(netifName, netifNameOffset, netifNameLength, getResult,
+	                                               (SNI_callback)LLECOM_NETWORK_IMPL_start,
+	                                               LLECOM_NETWORK_IMPL_start_action,
+	                                               (SNI_callback)LLECOM_NETWORK_async_exec_netif_context_on_done);
 }
 
-int32_t LLECOM_NETWORK_IMPL_stop(int8_t* netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t getResult) {
-	return LLECOM_NETWORK_async_exec_netif_context(netifName, netifNameOffset, netifNameLength, getResult, (SNI_callback)LLECOM_NETWORK_IMPL_stop, LLECOM_NETWORK_IMPL_stop_action, (SNI_callback)LLECOM_NETWORK_async_exec_netif_context_on_done);
+int32_t LLECOM_NETWORK_IMPL_stop(int8_t *netifName, int32_t netifNameOffset, int32_t netifNameLength,
+                                 int8_t getResult) {
+	return LLECOM_NETWORK_async_exec_netif_context(netifName, netifNameOffset, netifNameLength, getResult,
+	                                               (SNI_callback)LLECOM_NETWORK_IMPL_stop,
+	                                               LLECOM_NETWORK_IMPL_stop_action,
+	                                               (SNI_callback)LLECOM_NETWORK_async_exec_netif_context_on_done);
 }
 
-int32_t LLECOM_NETWORK_IMPL_isStarted(int8_t* netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t getResult) {
-	return LLECOM_NETWORK_async_exec_netif_context(netifName, netifNameOffset, netifNameLength, getResult, (SNI_callback)LLECOM_NETWORK_IMPL_isStarted, LLECOM_NETWORK_IMPL_isStarted_action, (SNI_callback)LLECOM_NETWORK_async_exec_netif_context_on_done);
+int32_t LLECOM_NETWORK_IMPL_isStarted(int8_t *netifName, int32_t netifNameOffset, int32_t netifNameLength,
+                                      int8_t getResult) {
+	return LLECOM_NETWORK_async_exec_netif_context(netifName, netifNameOffset, netifNameLength, getResult,
+	                                               (SNI_callback)LLECOM_NETWORK_IMPL_isStarted,
+	                                               LLECOM_NETWORK_IMPL_isStarted_action,
+	                                               (SNI_callback)LLECOM_NETWORK_async_exec_netif_context_on_done);
 }
 
-int32_t LLECOM_NETWORK_IMPL_getDNSCount(int8_t* netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t getResult) {
-	return LLECOM_NETWORK_async_exec_netif_context(netifName, netifNameOffset, netifNameLength, getResult, (SNI_callback)LLECOM_NETWORK_IMPL_getDNSCount, LLECOM_NETWORK_IMPL_getDNSCount_action, (SNI_callback)LLECOM_NETWORK_async_exec_netif_context_on_done);
+int32_t LLECOM_NETWORK_IMPL_getDNSCount(int8_t *netifName, int32_t netifNameOffset, int32_t netifNameLength,
+                                        int8_t getResult) {
+	return LLECOM_NETWORK_async_exec_netif_context(netifName, netifNameOffset, netifNameLength, getResult,
+	                                               (SNI_callback)LLECOM_NETWORK_IMPL_getDNSCount,
+	                                               LLECOM_NETWORK_IMPL_getDNSCount_action,
+	                                               (SNI_callback)LLECOM_NETWORK_async_exec_netif_context_on_done);
 }
 
-int32_t LLECOM_NETWORK_IMPL_getDNS(int8_t* netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t* address, int32_t addressOffset, int32_t addressLength, int32_t index, int8_t getResult) {
-	return LLECOM_NETWORK_async_exec_dns_context(netifName, netifNameOffset, netifNameLength, address, addressOffset, addressLength, index, getResult, false, (SNI_callback)LLECOM_NETWORK_IMPL_getDNS, LLECOM_NETWORK_IMPL_getDNS_action, (SNI_callback)LLECOM_NETWORK_async_exec_get_dns_context_on_done);
+int32_t LLECOM_NETWORK_IMPL_getDNS(int8_t *netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t *address,
+                                   int32_t addressOffset, int32_t addressLength, int32_t index, int8_t getResult) {
+	return LLECOM_NETWORK_async_exec_dns_context(netifName, netifNameOffset, netifNameLength, address, addressOffset,
+	                                             addressLength, index, getResult, false,
+	                                             (SNI_callback)LLECOM_NETWORK_IMPL_getDNS,
+	                                             LLECOM_NETWORK_IMPL_getDNS_action,
+	                                             (SNI_callback)LLECOM_NETWORK_async_exec_get_dns_context_on_done);
 }
 
-int32_t LLECOM_NETWORK_IMPL_getGateway(int8_t* netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t* address, int32_t addressOffset, int32_t addressLength, int8_t getResult) {
-	return LLECOM_NETWORK_async_exec_ip_context(netifName, netifNameOffset, netifNameLength, address, addressOffset, addressLength, getResult, false, (SNI_callback)LLECOM_NETWORK_IMPL_getGateway, LLECOM_NETWORK_IMPL_getGateway_action, (SNI_callback)LLECOM_NETWORK_async_exec_get_ip_context_on_done);
+int32_t LLECOM_NETWORK_IMPL_getGateway(int8_t *netifName, int32_t netifNameOffset, int32_t netifNameLength,
+                                       int8_t *address, int32_t addressOffset, int32_t addressLength,
+                                       int8_t getResult) {
+	return LLECOM_NETWORK_async_exec_ip_context(netifName, netifNameOffset, netifNameLength, address, addressOffset,
+	                                            addressLength, getResult, false,
+	                                            (SNI_callback)LLECOM_NETWORK_IMPL_getGateway,
+	                                            LLECOM_NETWORK_IMPL_getGateway_action,
+	                                            (SNI_callback)LLECOM_NETWORK_async_exec_get_ip_context_on_done);
 }
 
-int32_t LLECOM_NETWORK_IMPL_getNetmask(int8_t* netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t* address, int32_t addressOffset, int32_t addressLength, int8_t getResult) {
-	return LLECOM_NETWORK_async_exec_ip_context(netifName, netifNameOffset, netifNameLength, address, addressOffset, addressLength, getResult, false, (SNI_callback)LLECOM_NETWORK_IMPL_getNetmask, LLECOM_NETWORK_IMPL_getNetmask_action, (SNI_callback)LLECOM_NETWORK_async_exec_get_ip_context_on_done);
+int32_t LLECOM_NETWORK_IMPL_getNetmask(int8_t *netifName, int32_t netifNameOffset, int32_t netifNameLength,
+                                       int8_t *address, int32_t addressOffset, int32_t addressLength,
+                                       int8_t getResult) {
+	return LLECOM_NETWORK_async_exec_ip_context(netifName, netifNameOffset, netifNameLength, address, addressOffset,
+	                                            addressLength, getResult, false,
+	                                            (SNI_callback)LLECOM_NETWORK_IMPL_getNetmask,
+	                                            LLECOM_NETWORK_IMPL_getNetmask_action,
+	                                            (SNI_callback)LLECOM_NETWORK_async_exec_get_ip_context_on_done);
 }
 
-int32_t LLECOM_NETWORK_IMPL_isDNSStatic(int8_t* netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t getResult) {
-	return LLECOM_NETWORK_async_exec_netif_context(netifName, netifNameOffset, netifNameLength, getResult, (SNI_callback)LLECOM_NETWORK_IMPL_isDNSStatic, LLECOM_NETWORK_IMPL_isDNSStatic_action, (SNI_callback)LLECOM_NETWORK_async_exec_netif_context_on_done);
+int32_t LLECOM_NETWORK_IMPL_isDNSStatic(int8_t *netifName, int32_t netifNameOffset, int32_t netifNameLength,
+                                        int8_t getResult) {
+	return LLECOM_NETWORK_async_exec_netif_context(netifName, netifNameOffset, netifNameLength, getResult,
+	                                               (SNI_callback)LLECOM_NETWORK_IMPL_isDNSStatic,
+	                                               LLECOM_NETWORK_IMPL_isDNSStatic_action,
+	                                               (SNI_callback)LLECOM_NETWORK_async_exec_netif_context_on_done);
 }
 
-int32_t LLECOM_NETWORK_IMPL_isStatic(int8_t* netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t getResult) {
-	return LLECOM_NETWORK_async_exec_netif_context(netifName, netifNameOffset, netifNameLength, getResult, (SNI_callback)LLECOM_NETWORK_IMPL_isStatic, LLECOM_NETWORK_IMPL_isStatic_action, (SNI_callback)LLECOM_NETWORK_async_exec_netif_context_on_done);
+int32_t LLECOM_NETWORK_IMPL_isStatic(int8_t *netifName, int32_t netifNameOffset, int32_t netifNameLength,
+                                     int8_t getResult) {
+	return LLECOM_NETWORK_async_exec_netif_context(netifName, netifNameOffset, netifNameLength, getResult,
+	                                               (SNI_callback)LLECOM_NETWORK_IMPL_isStatic,
+	                                               LLECOM_NETWORK_IMPL_isStatic_action,
+	                                               (SNI_callback)LLECOM_NETWORK_async_exec_netif_context_on_done);
 }
 
-int32_t LLECOM_NETWORK_IMPL_endConfiguration(int8_t* netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t getResult) {
-	return LLECOM_NETWORK_async_exec_netif_context(netifName, netifNameOffset, netifNameLength, getResult, (SNI_callback)LLECOM_NETWORK_IMPL_endConfiguration, LLECOM_NETWORK_IMPL_endConfiguration_action, (SNI_callback)LLECOM_NETWORK_async_exec_netif_context_on_done);
+int32_t LLECOM_NETWORK_IMPL_endConfiguration(int8_t *netifName, int32_t netifNameOffset, int32_t netifNameLength,
+                                             int8_t getResult) {
+	return LLECOM_NETWORK_async_exec_netif_context(netifName, netifNameOffset, netifNameLength, getResult,
+	                                               (SNI_callback)LLECOM_NETWORK_IMPL_endConfiguration,
+	                                               LLECOM_NETWORK_IMPL_endConfiguration_action,
+	                                               (SNI_callback)LLECOM_NETWORK_async_exec_netif_context_on_done);
 }
 
-int32_t LLECOM_NETWORK_IMPL_startConfiguration(int8_t* netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t getResult) {
-	return LLECOM_NETWORK_async_exec_netif_context(netifName, netifNameOffset, netifNameLength, getResult, (SNI_callback)LLECOM_NETWORK_IMPL_startConfiguration, LLECOM_NETWORK_IMPL_startConfiguration_action, (SNI_callback)LLECOM_NETWORK_async_exec_netif_context_on_done);
+int32_t LLECOM_NETWORK_IMPL_startConfiguration(int8_t *netifName, int32_t netifNameOffset, int32_t netifNameLength,
+                                               int8_t getResult) {
+	return LLECOM_NETWORK_async_exec_netif_context(netifName, netifNameOffset, netifNameLength, getResult,
+	                                               (SNI_callback)LLECOM_NETWORK_IMPL_startConfiguration,
+	                                               LLECOM_NETWORK_IMPL_startConfiguration_action,
+	                                               (SNI_callback)LLECOM_NETWORK_async_exec_netif_context_on_done);
 }
 
-int32_t LLECOM_NETWORK_IMPL_setDNS(int8_t* netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t* address, int32_t addressOffset, int32_t addressLength, int32_t index, int8_t getResult) {
-	return LLECOM_NETWORK_async_exec_dns_context(netifName, netifNameOffset, netifNameLength, address, addressOffset, addressLength, index, getResult, true, (SNI_callback)LLECOM_NETWORK_IMPL_setDNS, LLECOM_NETWORK_IMPL_setDNS_action, (SNI_callback)LLECOM_NETWORK_async_exec_set_dns_context_on_done);
+int32_t LLECOM_NETWORK_IMPL_setDNS(int8_t *netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t *address,
+                                   int32_t addressOffset, int32_t addressLength, int32_t index, int8_t getResult) {
+	return LLECOM_NETWORK_async_exec_dns_context(netifName, netifNameOffset, netifNameLength, address, addressOffset,
+	                                             addressLength, index, getResult, true,
+	                                             (SNI_callback)LLECOM_NETWORK_IMPL_setDNS,
+	                                             LLECOM_NETWORK_IMPL_setDNS_action,
+	                                             (SNI_callback)LLECOM_NETWORK_async_exec_set_dns_context_on_done);
 }
 
-int32_t LLECOM_NETWORK_IMPL_setGateway(int8_t* netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t* address, int32_t addressOffset, int32_t addressLength, int8_t getResult) {
-	return LLECOM_NETWORK_async_exec_ip_context(netifName, netifNameOffset, netifNameLength, address, addressOffset, addressLength, getResult, true, (SNI_callback)LLECOM_NETWORK_IMPL_setGateway, LLECOM_NETWORK_IMPL_setGateway_action, (SNI_callback)LLECOM_NETWORK_async_exec_set_ip_context_on_done);
+int32_t LLECOM_NETWORK_IMPL_setGateway(int8_t *netifName, int32_t netifNameOffset, int32_t netifNameLength,
+                                       int8_t *address, int32_t addressOffset, int32_t addressLength,
+                                       int8_t getResult) {
+	return LLECOM_NETWORK_async_exec_ip_context(netifName, netifNameOffset, netifNameLength, address, addressOffset,
+	                                            addressLength, getResult, true,
+	                                            (SNI_callback)LLECOM_NETWORK_IMPL_setGateway,
+	                                            LLECOM_NETWORK_IMPL_setGateway_action,
+	                                            (SNI_callback)LLECOM_NETWORK_async_exec_set_ip_context_on_done);
 }
 
-int32_t LLECOM_NETWORK_IMPL_setIP(int8_t* netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t* address, int32_t addressOffset, int32_t addressLength, int8_t getResult) {
-	return LLECOM_NETWORK_async_exec_ip_context(netifName, netifNameOffset, netifNameLength, address, addressOffset, addressLength, getResult, true, (SNI_callback)LLECOM_NETWORK_IMPL_setIP, LLECOM_NETWORK_IMPL_setIP_action, (SNI_callback)LLECOM_NETWORK_async_exec_set_ip_context_on_done);
+int32_t LLECOM_NETWORK_IMPL_setIP(int8_t *netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t *address,
+                                  int32_t addressOffset, int32_t addressLength, int8_t getResult) {
+	return LLECOM_NETWORK_async_exec_ip_context(netifName, netifNameOffset, netifNameLength, address, addressOffset,
+	                                            addressLength, getResult, true, (SNI_callback)LLECOM_NETWORK_IMPL_setIP,
+	                                            LLECOM_NETWORK_IMPL_setIP_action,
+	                                            (SNI_callback)LLECOM_NETWORK_async_exec_set_ip_context_on_done);
 }
 
-int32_t LLECOM_NETWORK_IMPL_setNetmask(int8_t* netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t* address, int32_t addressOffset, int32_t addressLength, int8_t getResult) {
-	return LLECOM_NETWORK_async_exec_ip_context(netifName, netifNameOffset, netifNameLength, address, addressOffset, addressLength, getResult, true, (SNI_callback)LLECOM_NETWORK_IMPL_setNetmask, LLECOM_NETWORK_IMPL_setNetmask_action, (SNI_callback)LLECOM_NETWORK_async_exec_set_ip_context_on_done);
+int32_t LLECOM_NETWORK_IMPL_setNetmask(int8_t *netifName, int32_t netifNameOffset, int32_t netifNameLength,
+                                       int8_t *address, int32_t addressOffset, int32_t addressLength,
+                                       int8_t getResult) {
+	return LLECOM_NETWORK_async_exec_ip_context(netifName, netifNameOffset, netifNameLength, address, addressOffset,
+	                                            addressLength, getResult, true,
+	                                            (SNI_callback)LLECOM_NETWORK_IMPL_setNetmask,
+	                                            LLECOM_NETWORK_IMPL_setNetmask_action,
+	                                            (SNI_callback)LLECOM_NETWORK_async_exec_set_ip_context_on_done);
 }
 
-int32_t LLECOM_NETWORK_IMPL_useDHCP(int8_t* netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t use, int8_t getResult) {
-	return LLECOM_NETWORK_async_exec_ip_config(netifName, netifNameOffset, netifNameLength, use, getResult, (SNI_callback)LLECOM_NETWORK_IMPL_useDHCP, LLECOM_NETWORK_IMPL_useDHCP_action, (SNI_callback)LLECOM_NETWORK_async_exec_ip_config_on_done);
+int32_t LLECOM_NETWORK_IMPL_useDHCP(int8_t *netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t use,
+                                    int8_t getResult) {
+	return LLECOM_NETWORK_async_exec_ip_config(netifName, netifNameOffset, netifNameLength, use, getResult,
+	                                           (SNI_callback)LLECOM_NETWORK_IMPL_useDHCP,
+	                                           LLECOM_NETWORK_IMPL_useDHCP_action,
+	                                           (SNI_callback)LLECOM_NETWORK_async_exec_ip_config_on_done);
 }
 
-int32_t LLECOM_NETWORK_IMPL_useStaticDNS(int8_t* netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t use, int8_t getResult) {
-	return LLECOM_NETWORK_async_exec_ip_config(netifName, netifNameOffset, netifNameLength, use, getResult, (SNI_callback)LLECOM_NETWORK_IMPL_useStaticDNS, LLECOM_NETWORK_IMPL_useStaticDNS_action, (SNI_callback)LLECOM_NETWORK_async_exec_ip_config_on_done);
+int32_t LLECOM_NETWORK_IMPL_useStaticDNS(int8_t *netifName, int32_t netifNameOffset, int32_t netifNameLength,
+                                         int8_t use, int8_t getResult) {
+	return LLECOM_NETWORK_async_exec_ip_config(netifName, netifNameOffset, netifNameLength, use, getResult,
+	                                           (SNI_callback)LLECOM_NETWORK_IMPL_useStaticDNS,
+	                                           LLECOM_NETWORK_IMPL_useStaticDNS_action,
+	                                           (SNI_callback)LLECOM_NETWORK_async_exec_ip_config_on_done);
 }
 
-int32_t LLECOM_NETWORK_IMPL_setDefault(int8_t* netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t getResult) {
-	return LLECOM_NETWORK_async_exec_netif_context(netifName, netifNameOffset, netifNameLength, getResult, (SNI_callback)LLECOM_NETWORK_IMPL_setDefault, LLECOM_NETWORK_IMPL_setDefault_action, (SNI_callback)LLECOM_NETWORK_async_exec_netif_context_on_done);
+int32_t LLECOM_NETWORK_IMPL_setDefault(int8_t *netifName, int32_t netifNameOffset, int32_t netifNameLength,
+                                       int8_t getResult) {
+	return LLECOM_NETWORK_async_exec_netif_context(netifName, netifNameOffset, netifNameLength, getResult,
+	                                               (SNI_callback)LLECOM_NETWORK_IMPL_setDefault,
+	                                               LLECOM_NETWORK_IMPL_setDefault_action,
+	                                               (SNI_callback)LLECOM_NETWORK_async_exec_netif_context_on_done);
 }
 
 /**
@@ -172,8 +296,11 @@ int32_t LLECOM_NETWORK_IMPL_setDefault(int8_t* netifName, int32_t netifNameOffse
  *
  * @return <code>SNI_IGNORED_RETURNED_VALUE</code> on success, else a negative error code.
  */
-static int32_t LLECOM_NETWORK_async_exec_netif_context(int8_t* netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t getResult, SNI_callback retry_function, MICROEJ_ASYNC_WORKER_action_t action, SNI_callback on_done) {
-	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_allocate_job(&ecom_network_worker, retry_function);
+static int32_t LLECOM_NETWORK_async_exec_netif_context(int8_t *netifName, int32_t netifNameOffset,
+                                                       int32_t netifNameLength, int8_t getResult,
+                                                       SNI_callback retry_function,
+                                                       MICROEJ_ASYNC_WORKER_action_t action, SNI_callback on_done) {
+	MICROEJ_ASYNC_WORKER_job_t *job = MICROEJ_ASYNC_WORKER_allocate_job(&ecom_network_worker, retry_function);
 	if (job == NULL) {
 		// No job available, either:
 		// - wait for a job to be available and this function to be executed again,
@@ -181,18 +308,21 @@ static int32_t LLECOM_NETWORK_async_exec_netif_context(int8_t* netifName, int32_
 		return ECOM_NETWORK_ERROR;
 	}
 
-	ECOM_NETWORK_netif_context_t* params = (ECOM_NETWORK_netif_context_t*)job->params;
+	ECOM_NETWORK_netif_context_t *params = (ECOM_NETWORK_netif_context_t *)job->params;
 
 	params->netifNameOffset = netifNameOffset;
 	params->netifNameLength = netifNameLength;
 	params->getResult = getResult;
 
-	int32_t result = SNI_retrieveArrayElements(netifName, netifNameOffset, netifNameLength, (int8_t*)&params->netifBuffer,
-			sizeof(params->netifBuffer), (int8_t**)&params->netifName, (uint32_t*)&params->netifNameLength, true);
+	int32_t result = SNI_retrieveArrayElements(netifName, netifNameOffset, netifNameLength,
+	                                           (int8_t *)&params->netifBuffer,
+	                                           sizeof(params->netifBuffer), (int8_t **)&params->netifName,
+	                                           (uint32_t *)&params->netifNameLength, true);
 	if (result != SNI_OK) {
 		SNI_throwNativeIOException(result, "SNI_retrieveArrayElements: Internal error");
 	} else {
-		MICROEJ_ASYNC_WORKER_status_t status = MICROEJ_ASYNC_WORKER_async_exec(&ecom_network_worker, job, action, on_done);
+		MICROEJ_ASYNC_WORKER_status_t status = MICROEJ_ASYNC_WORKER_async_exec(&ecom_network_worker, job, action,
+		                                                                       on_done);
 		if (status == MICROEJ_ASYNC_WORKER_OK) {
 			// Wait for the action to be done
 			return SNI_IGNORED_RETURNED_VALUE;//returned value not used
@@ -225,9 +355,10 @@ static int32_t LLECOM_NETWORK_async_exec_netif_context(int8_t* netifName, int32_
  * <code>LLECOM_NETWORK_IMPL_isStatic_action</code>, <code>LLECOM_NETWORK_IMPL_endConfiguration_action</code> or
  * <code>LLECOM_NETWORK_IMPL_startConfiguration_action</code> function return code.
  */
-static int32_t LLECOM_NETWORK_async_exec_netif_context_on_done(int8_t* netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t getResult) {
-	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_get_job_done();
-	ECOM_NETWORK_netif_context_t* params = (ECOM_NETWORK_netif_context_t*)job->params;
+static int32_t LLECOM_NETWORK_async_exec_netif_context_on_done(int8_t *netifName, int32_t netifNameOffset,
+                                                               int32_t netifNameLength, int8_t getResult) {
+	MICROEJ_ASYNC_WORKER_job_t *job = MICROEJ_ASYNC_WORKER_get_job_done();
+	ECOM_NETWORK_netif_context_t *params = (ECOM_NETWORK_netif_context_t *)job->params;
 
 	(void)netifName;
 	(void)netifNameOffset;
@@ -260,8 +391,12 @@ static int32_t LLECOM_NETWORK_async_exec_netif_context_on_done(int8_t* netifName
  *
  * @return <code>SNI_IGNORED_RETURNED_VALUE</code> on success, else a negative error code.
  */
-static int32_t LLECOM_NETWORK_async_exec_dns_context(int8_t* netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t* address, int32_t addressOffset, int32_t addressLength, int32_t index, int8_t getResult, bool exec_write, SNI_callback retry_function, MICROEJ_ASYNC_WORKER_action_t action, SNI_callback on_done) {
-	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_allocate_job(&ecom_network_worker, retry_function);
+static int32_t LLECOM_NETWORK_async_exec_dns_context(int8_t *netifName, int32_t netifNameOffset,
+                                                     int32_t netifNameLength, int8_t *address, int32_t addressOffset,
+                                                     int32_t addressLength, int32_t index, int8_t getResult,
+                                                     bool exec_write, SNI_callback retry_function,
+                                                     MICROEJ_ASYNC_WORKER_action_t action, SNI_callback on_done) {
+	MICROEJ_ASYNC_WORKER_job_t *job = MICROEJ_ASYNC_WORKER_allocate_job(&ecom_network_worker, retry_function);
 	if (job == NULL) {
 		// No job available, either:
 		// - wait for a job to be available and this function to be executed again,
@@ -269,7 +404,7 @@ static int32_t LLECOM_NETWORK_async_exec_dns_context(int8_t* netifName, int32_t 
 		return ECOM_NETWORK_ERROR;
 	}
 
-	ECOM_NETWORK_dns_context_t* params = (ECOM_NETWORK_dns_context_t*)job->params;
+	ECOM_NETWORK_dns_context_t *params = (ECOM_NETWORK_dns_context_t *)job->params;
 
 	params->netifNameOffset = netifNameOffset;
 	params->netifNameLength = netifNameLength;
@@ -280,14 +415,17 @@ static int32_t LLECOM_NETWORK_async_exec_dns_context(int8_t* netifName, int32_t 
 
 	bool do_copy = exec_write;
 	int32_t result = 0;
-	result = SNI_retrieveArrayElements(netifName, netifNameOffset, netifNameLength, (int8_t*)&params->netifBuffer,
-			sizeof(params->netifBuffer), (int8_t**)&params->netifName, (uint32_t*)&params->netifNameLength, true);
-	result |= SNI_retrieveArrayElements(address, addressOffset, addressLength, (int8_t*)&params->addrBuffer,
-			sizeof(params->addrBuffer), (int8_t**)&params->address, (uint32_t*)&params->addressLength, do_copy);
+	result = SNI_retrieveArrayElements(netifName, netifNameOffset, netifNameLength, (int8_t *)&params->netifBuffer,
+	                                   sizeof(params->netifBuffer), (int8_t **)&params->netifName,
+	                                   (uint32_t *)&params->netifNameLength, true);
+	result |= SNI_retrieveArrayElements(address, addressOffset, addressLength, (int8_t *)&params->addrBuffer,
+	                                    sizeof(params->addrBuffer), (int8_t **)&params->address,
+	                                    (uint32_t *)&params->addressLength, do_copy);
 	if (result != SNI_OK) {
 		SNI_throwNativeIOException(result, "SNI_retrieveArrayElements: Internal error");
 	} else {
-		MICROEJ_ASYNC_WORKER_status_t status = MICROEJ_ASYNC_WORKER_async_exec(&ecom_network_worker, job, action, on_done);
+		MICROEJ_ASYNC_WORKER_status_t status = MICROEJ_ASYNC_WORKER_async_exec(&ecom_network_worker, job, action,
+		                                                                       on_done);
 		if (status == MICROEJ_ASYNC_WORKER_OK) {
 			// Wait for the action to be done
 			return SNI_IGNORED_RETURNED_VALUE;//returned value not used
@@ -314,9 +452,12 @@ static int32_t LLECOM_NETWORK_async_exec_dns_context(int8_t* netifName, int32_t 
  *
  * @return <code>LLECOM_NETWORK_IMPL_getDNS_action</code> function return code.
  */
-static int32_t LLECOM_NETWORK_async_exec_get_dns_context_on_done(int8_t* netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t* address, int32_t addressOffset, int32_t addressLength, int32_t index, int8_t getResult) {
-	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_get_job_done();
-	ECOM_NETWORK_dns_context_t* params = (ECOM_NETWORK_dns_context_t*)job->params;
+static int32_t LLECOM_NETWORK_async_exec_get_dns_context_on_done(int8_t *netifName, int32_t netifNameOffset,
+                                                                 int32_t netifNameLength, int8_t *address,
+                                                                 int32_t addressOffset, int32_t addressLength,
+                                                                 int32_t index, int8_t getResult) {
+	MICROEJ_ASYNC_WORKER_job_t *job = MICROEJ_ASYNC_WORKER_get_job_done();
+	ECOM_NETWORK_dns_context_t *params = (ECOM_NETWORK_dns_context_t *)job->params;
 
 	(void)netifName;
 	(void)netifNameOffset;
@@ -326,7 +467,9 @@ static int32_t LLECOM_NETWORK_async_exec_get_dns_context_on_done(int8_t* netifNa
 
 	int32_t result = params->result;
 	if (result >= 0) {
-		int32_t release_result = SNI_flushArrayElements(address, addressOffset, addressLength, (int8_t*)(params->address + params->addressOffset), params->addressLength);
+		int32_t release_result = SNI_flushArrayElements(address, addressOffset, addressLength,
+		                                                (int8_t *)(params->address + params->addressOffset),
+		                                                params->addressLength);
 		if (release_result != SNI_OK) {
 			SNI_throwNativeIOException(release_result, "SNI_flushArrayElements: Internal error");
 		}
@@ -351,9 +494,12 @@ static int32_t LLECOM_NETWORK_async_exec_get_dns_context_on_done(int8_t* netifNa
  *
  * @return <code>LLECOM_NETWORK_IMPL_setDNS_action</code> function return code.
  */
-static int32_t LLECOM_NETWORK_async_exec_set_dns_context_on_done(int8_t* netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t* address, int32_t addressOffset, int32_t addressLength, int32_t index, int8_t getResult) {
-	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_get_job_done();
-	ECOM_NETWORK_dns_context_t* params = (ECOM_NETWORK_dns_context_t*)job->params;
+static int32_t LLECOM_NETWORK_async_exec_set_dns_context_on_done(int8_t *netifName, int32_t netifNameOffset,
+                                                                 int32_t netifNameLength, int8_t *address,
+                                                                 int32_t addressOffset, int32_t addressLength,
+                                                                 int32_t index, int8_t getResult) {
+	MICROEJ_ASYNC_WORKER_job_t *job = MICROEJ_ASYNC_WORKER_get_job_done();
+	ECOM_NETWORK_dns_context_t *params = (ECOM_NETWORK_dns_context_t *)job->params;
 
 	(void)netifName;
 	(void)netifNameOffset;
@@ -391,8 +537,11 @@ static int32_t LLECOM_NETWORK_async_exec_set_dns_context_on_done(int8_t* netifNa
  *
  * @return <code>SNI_IGNORED_RETURNED_VALUE</code> on success, else a negative error code.
  */
-static int32_t LLECOM_NETWORK_async_exec_ip_context(int8_t* netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t* address, int32_t addressOffset, int32_t addressLength, int8_t getResult, bool exec_write, SNI_callback retry_function, MICROEJ_ASYNC_WORKER_action_t action, SNI_callback on_done) {
-	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_allocate_job(&ecom_network_worker, retry_function);
+static int32_t LLECOM_NETWORK_async_exec_ip_context(int8_t *netifName, int32_t netifNameOffset, int32_t netifNameLength,
+                                                    int8_t *address, int32_t addressOffset, int32_t addressLength,
+                                                    int8_t getResult, bool exec_write, SNI_callback retry_function,
+                                                    MICROEJ_ASYNC_WORKER_action_t action, SNI_callback on_done) {
+	MICROEJ_ASYNC_WORKER_job_t *job = MICROEJ_ASYNC_WORKER_allocate_job(&ecom_network_worker, retry_function);
 	if (job == NULL) {
 		// No job available, either:
 		// - wait for a job to be available and this function to be executed again,
@@ -400,7 +549,7 @@ static int32_t LLECOM_NETWORK_async_exec_ip_context(int8_t* netifName, int32_t n
 		return ECOM_NETWORK_ERROR;
 	}
 
-	ECOM_NETWORK_ip_context_t* params = (ECOM_NETWORK_ip_context_t*)job->params;
+	ECOM_NETWORK_ip_context_t *params = (ECOM_NETWORK_ip_context_t *)job->params;
 
 	params->netifNameOffset = netifNameOffset;
 	params->netifNameLength = netifNameLength;
@@ -410,14 +559,17 @@ static int32_t LLECOM_NETWORK_async_exec_ip_context(int8_t* netifName, int32_t n
 
 	bool do_copy = exec_write;
 	int32_t result = 0;
-	result = SNI_retrieveArrayElements(netifName, netifNameOffset, netifNameLength, (int8_t*)&params->netifBuffer,
-			sizeof(params->netifBuffer), (int8_t**)&params->netifName, (uint32_t*)&params->netifNameLength, true);
-	result |= SNI_retrieveArrayElements(address, addressOffset, addressLength, (int8_t*)&params->addrBuffer,
-			sizeof(params->addrBuffer), (int8_t**)&params->address, (uint32_t*)&params->addressLength, do_copy);
+	result = SNI_retrieveArrayElements(netifName, netifNameOffset, netifNameLength, (int8_t *)&params->netifBuffer,
+	                                   sizeof(params->netifBuffer), (int8_t **)&params->netifName,
+	                                   (uint32_t *)&params->netifNameLength, true);
+	result |= SNI_retrieveArrayElements(address, addressOffset, addressLength, (int8_t *)&params->addrBuffer,
+	                                    sizeof(params->addrBuffer), (int8_t **)&params->address,
+	                                    (uint32_t *)&params->addressLength, do_copy);
 	if (result != SNI_OK) {
 		SNI_throwNativeIOException(result, "SNI_retrieveArrayElements: Internal error");
 	} else {
-		MICROEJ_ASYNC_WORKER_status_t status = MICROEJ_ASYNC_WORKER_async_exec(&ecom_network_worker, job, action, on_done);
+		MICROEJ_ASYNC_WORKER_status_t status = MICROEJ_ASYNC_WORKER_async_exec(&ecom_network_worker, job, action,
+		                                                                       on_done);
 		if (status == MICROEJ_ASYNC_WORKER_OK) {
 			// Wait for the action to be done
 			return SNI_IGNORED_RETURNED_VALUE;//returned value not used
@@ -441,11 +593,15 @@ static int32_t LLECOM_NETWORK_async_exec_ip_context(int8_t* netifName, int32_t n
  * @param[in] addressLength the address buffer length
  * @param[in] getResult unused parameter.
  *
- * @return <code>LLECOM_NETWORK_IMPL_getGateway_action</code> or <code>LLECOM_NETWORK_IMPL_getNetmask_action</code> function return code.
+ * @return <code>LLECOM_NETWORK_IMPL_getGateway_action</code> or <code>LLECOM_NETWORK_IMPL_getNetmask_action</code>
+ * function return code.
  */
-static int32_t LLECOM_NETWORK_async_exec_get_ip_context_on_done(int8_t* netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t* address, int32_t addressOffset, int32_t addressLength, int8_t getResult) {
-	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_get_job_done();
-	ECOM_NETWORK_ip_context_t* params = (ECOM_NETWORK_ip_context_t*)job->params;
+static int32_t LLECOM_NETWORK_async_exec_get_ip_context_on_done(int8_t *netifName, int32_t netifNameOffset,
+                                                                int32_t netifNameLength, int8_t *address,
+                                                                int32_t addressOffset, int32_t addressLength,
+                                                                int8_t getResult) {
+	MICROEJ_ASYNC_WORKER_job_t *job = MICROEJ_ASYNC_WORKER_get_job_done();
+	ECOM_NETWORK_ip_context_t *params = (ECOM_NETWORK_ip_context_t *)job->params;
 
 	(void)netifName;
 	(void)netifNameOffset;
@@ -454,7 +610,9 @@ static int32_t LLECOM_NETWORK_async_exec_get_ip_context_on_done(int8_t* netifNam
 
 	int32_t result = params->result;
 	if (result >= 0) {
-		int32_t release_result = SNI_flushArrayElements(address, addressOffset, addressLength, (int8_t*)(params->address + params->addressOffset), params->addressLength);
+		int32_t release_result = SNI_flushArrayElements(address, addressOffset, addressLength,
+		                                                (int8_t *)(params->address + params->addressOffset),
+		                                                params->addressLength);
 		if (release_result != SNI_OK) {
 			SNI_throwNativeIOException(release_result, "SNI_flushArrayElements: Internal error");
 		}
@@ -478,11 +636,15 @@ static int32_t LLECOM_NETWORK_async_exec_get_ip_context_on_done(int8_t* netifNam
  * @param[in] getResult unused parameter.
  *
  * @return <code>LLECOM_NETWORK_IMPL_setGateway_action</code>,
- * <code>LLECOM_NETWORK_IMPL_setIP_action</code> or <code>LLECOM_NETWORK_IMPL_setNetmask_action</code> function return code.
+ * <code>LLECOM_NETWORK_IMPL_setIP_action</code> or <code>LLECOM_NETWORK_IMPL_setNetmask_action</code> function return
+ * code.
  */
-static int32_t LLECOM_NETWORK_async_exec_set_ip_context_on_done(int8_t* netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t* address, int32_t addressOffset, int32_t addressLength, int8_t getResult) {
-	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_get_job_done();
-	ECOM_NETWORK_ip_context_t* params = (ECOM_NETWORK_ip_context_t*)job->params;
+static int32_t LLECOM_NETWORK_async_exec_set_ip_context_on_done(int8_t *netifName, int32_t netifNameOffset,
+                                                                int32_t netifNameLength, int8_t *address,
+                                                                int32_t addressOffset, int32_t addressLength,
+                                                                int8_t getResult) {
+	MICROEJ_ASYNC_WORKER_job_t *job = MICROEJ_ASYNC_WORKER_get_job_done();
+	ECOM_NETWORK_ip_context_t *params = (ECOM_NETWORK_ip_context_t *)job->params;
 
 	(void)netifName;
 	(void)netifNameOffset;
@@ -514,8 +676,10 @@ static int32_t LLECOM_NETWORK_async_exec_set_ip_context_on_done(int8_t* netifNam
  *
  * @return <code>SNI_IGNORED_RETURNED_VALUE</code> on success, else a negative error code.
  */
-static int32_t LLECOM_NETWORK_async_exec_ip_config(int8_t* netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t use, int8_t getResult, SNI_callback retry_function, MICROEJ_ASYNC_WORKER_action_t action, SNI_callback on_done) {
-	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_allocate_job(&ecom_network_worker, retry_function);
+static int32_t LLECOM_NETWORK_async_exec_ip_config(int8_t *netifName, int32_t netifNameOffset, int32_t netifNameLength,
+                                                   int8_t use, int8_t getResult, SNI_callback retry_function,
+                                                   MICROEJ_ASYNC_WORKER_action_t action, SNI_callback on_done) {
+	MICROEJ_ASYNC_WORKER_job_t *job = MICROEJ_ASYNC_WORKER_allocate_job(&ecom_network_worker, retry_function);
 	if (job == NULL) {
 		// No job available, either:
 		// - wait for a job to be available and this function to be executed again,
@@ -523,19 +687,22 @@ static int32_t LLECOM_NETWORK_async_exec_ip_config(int8_t* netifName, int32_t ne
 		return ECOM_NETWORK_ERROR;
 	}
 
-	ECOM_NETWORK_ip_config_t* params = (ECOM_NETWORK_ip_config_t*)job->params;
+	ECOM_NETWORK_ip_config_t *params = (ECOM_NETWORK_ip_config_t *)job->params;
 
 	params->netifNameOffset = netifNameOffset;
 	params->netifNameLength = netifNameLength;
 	params->use = use;
 	params->getResult = getResult;
 
-	int32_t result = SNI_retrieveArrayElements(netifName, netifNameOffset, netifNameLength, (int8_t*)&params->netifBuffer,
-			sizeof(params->netifBuffer), (int8_t**)&params->netifName, (uint32_t*)&params->netifNameLength, true);
+	int32_t result = SNI_retrieveArrayElements(netifName, netifNameOffset, netifNameLength,
+	                                           (int8_t *)&params->netifBuffer,
+	                                           sizeof(params->netifBuffer), (int8_t **)&params->netifName,
+	                                           (uint32_t *)&params->netifNameLength, true);
 	if (result != SNI_OK) {
 		SNI_throwNativeIOException(result, "SNI_retrieveArrayElements: Internal error");
 	} else {
-		MICROEJ_ASYNC_WORKER_status_t status = MICROEJ_ASYNC_WORKER_async_exec(&ecom_network_worker, job, action, on_done);
+		MICROEJ_ASYNC_WORKER_status_t status = MICROEJ_ASYNC_WORKER_async_exec(&ecom_network_worker, job, action,
+		                                                                       on_done);
 		if (status == MICROEJ_ASYNC_WORKER_OK) {
 			// Wait for the action to be done
 			return SNI_IGNORED_RETURNED_VALUE;//returned value not used
@@ -560,9 +727,10 @@ static int32_t LLECOM_NETWORK_async_exec_ip_config(int8_t* netifName, int32_t ne
  * @return <code>LLECOM_NETWORK_IMPL_useDHCP_action</code> or
  * <code>LLECOM_NETWORK_IMPL_useStaticDNS_action</code> function return code.
  */
-static int32_t LLECOM_NETWORK_async_exec_ip_config_on_done(int8_t* netifName, int32_t netifNameOffset, int32_t netifNameLength, int8_t use, int8_t getResult) {
-	MICROEJ_ASYNC_WORKER_job_t* job = MICROEJ_ASYNC_WORKER_get_job_done();
-	ECOM_NETWORK_ip_config_t* params = (ECOM_NETWORK_ip_config_t*)job->params;
+static int32_t LLECOM_NETWORK_async_exec_ip_config_on_done(int8_t *netifName, int32_t netifNameOffset,
+                                                           int32_t netifNameLength, int8_t use, int8_t getResult) {
+	MICROEJ_ASYNC_WORKER_job_t *job = MICROEJ_ASYNC_WORKER_get_job_done();
+	ECOM_NETWORK_ip_config_t *params = (ECOM_NETWORK_ip_config_t *)job->params;
 
 	(void)netifName;
 	(void)netifNameOffset;
@@ -578,5 +746,5 @@ static int32_t LLECOM_NETWORK_async_exec_ip_config_on_done(int8_t* netifName, in
 }
 
 #ifdef __cplusplus
-	}
+}
 #endif

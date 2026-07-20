@@ -1,8 +1,9 @@
 /*
  * C
  *
- * Copyright 2014-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2014-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
+ * Build: 7E4D1F7C
  */
 
 #include <assert.h>
@@ -31,15 +32,19 @@
 #ifdef LLTOUCH_DEBUG
 #define LLTOUCH_LOG_DEBUG printf
 #else // LLTOUCH_DEBUG
-#define LLTOUCH_LOG_DEBUG(...) ((void) 0)
+#define LLTOUCH_LOG_DEBUG(...) ((void)0)
 #endif
-#define LLTOUCH_LOG_WARNING printf("[LLTOUCH][WARNING] ");printf
+#define LLTOUCH_LOG_WARNING printf("[LLTOUCH][WARNING] "); printf
 
 static volatile int pressed;
 
 #define TSDEVICE_RETRY_TIMEOUT_SEC 1
 #define TSDEVICE_RETRY_TIMEOUT_NB 10
-#define TSDEVICE_DEFAULT_NAME "/dev/input/touchscreen0"
+/** Touchscreen device path. Project-specific; set at build time from
+ *  project_options.cmake via -DLLTOUCH_TSDEVICE="...". */
+#ifndef LLTOUCH_TSDEVICE
+#define LLTOUCH_TSDEVICE "/dev/input/touchscreen0"
+#endif
 
 #ifdef TOUCH_POLLING
 static int64_t touch_poll_delay = 20;
@@ -47,13 +52,8 @@ static int64_t touch_poll_delay = 20;
 
 struct tsdev *TOUCH_MANAGER_ts_init() {
 	struct tsdev *ts = NULL;
-	char *tsdevice = NULL;
+	const char *tsdevice = LLTOUCH_TSDEVICE;
 	int retries = TSDEVICE_RETRY_TIMEOUT_NB;
-
-	tsdevice = getenv("TSLIB_TSDEVICE");
-	if (NULL == tsdevice) {
-		tsdevice = TSDEVICE_DEFAULT_NAME;
-	}
 
 	/* retry in case the device is not ready yet */
 	while (retries > 0) {
@@ -61,7 +61,8 @@ struct tsdev *TOUCH_MANAGER_ts_init() {
 		if (NULL != ts) {
 			break;
 		}
-		LLTOUCH_LOG_DEBUG("Touch initialization failed. retry in %d seconds (ts_open error %d: %m)\n", TSDEVICE_RETRY_TIMEOUT_SEC, errno);
+		LLTOUCH_LOG_DEBUG("Touch initialization failed. retry in %d seconds (ts_open error %d: %m)\n",
+		                  TSDEVICE_RETRY_TIMEOUT_SEC, errno);
 		retries--;
 		sleep(TSDEVICE_RETRY_TIMEOUT_SEC);
 	}
@@ -78,7 +79,8 @@ struct tsdev *TOUCH_MANAGER_ts_init() {
 	return ts;
 }
 
-void* TOUCH_MANAGER_work(void* p_args) {
+void * TOUCH_MANAGER_work(void *p_args) {
+	(void)p_args;
 	struct tsdev *ts = NULL;
 	struct ts_sample samp;
 	int ret;
@@ -95,7 +97,7 @@ void* TOUCH_MANAGER_work(void* p_args) {
 
 	while (1) {
 #ifdef TOUCH_POLLING
-		if(t0 == 0l) {
+		if (t0 == 0l) {
 //			LLTOUCH_LOG_DEBUG("[TOUCH] init time \n");
 			t0 = posix_time_getcurrenttime(1);
 		}
@@ -116,29 +118,29 @@ void* TOUCH_MANAGER_work(void* p_args) {
 		}
 
 //		LLTOUCH_LOG_DEBUG("%ld.%06ld: %6d %6d %6d\n", samp.tv.tv_sec, samp.tv.tv_usec, samp.x, samp.y, samp.pressure);
-		if(samp.pressure > 0) {
-
-			if(pressed == 0) {
-				TOUCH_HELPER_pressed(samp.x,samp.y);
+		if (samp.pressure > 0) {
+			if (pressed == 0) {
+				TOUCH_HELPER_pressed(samp.x, samp.y);
 				pressed = 1;
 			} else {
 #ifdef TOUCH_POLLING
 				t1 = posix_time_getcurrenttime(1) - t0;
 //				LLTOUCH_LOG_DEBUG("[TOUCH] t0=%l ms, t1=%l \n", t0, t1);
 //				LLTOUCH_LOG_DEBUG("[TOUCH] test (%l ms, ret=%d)\n", t1, ret);
-				if(t1 < touch_poll_delay){
+				if (t1 < touch_poll_delay) {
 //					LLTOUCH_LOG_DEBUG("[TOUCH] continue (%l ms, ret=%d)\n", t1, ret);
 					continue;
-				}else{
+				} else {
 //					LLTOUCH_LOG_DEBUG("[TOUCH] reset (%l ms, ret=%d)\n", t1, ret);
 					t0 = 0;
 				}
-//				LLTOUCH_LOG_DEBUG("%ld.%06ld: %6d %6d %6d\n", samp.tv.tv_sec, samp.tv.tv_usec, samp.x, samp.y, samp.pressure);
+//				LLTOUCH_LOG_DEBUG("%ld.%06ld: %6d %6d %6d\n", samp.tv.tv_sec, samp.tv.tv_usec, samp.x, samp.y,
+// samp.pressure);
 #endif
 				TOUCH_HELPER_moved(samp.x, samp.y);
 			}
 		} else {
-			if(pressed == 1) {
+			if (pressed == 1) {
 				//post the event
 				TOUCH_HELPER_released();
 				pressed = 0;
@@ -150,14 +152,16 @@ void* TOUCH_MANAGER_work(void* p_args) {
 void TOUCH_MANAGER_initialize(void) {
 	pthread_t thread;
 	pthread_attr_t attributes;
-	int32_t result;
+	int32_t result __attribute__((unused));
 
 	result = pthread_attr_init(&attributes);
-	assert(result==0);
+	assert(result == 0);
 	result = pthread_attr_setstacksize(&attributes, PTHREAD_STACK_MIN);
-	assert(result==0);
+	assert(result == 0);
 	result = pthread_create(&thread, &attributes, TOUCH_MANAGER_work, NULL);
-	assert(result==0);
+	assert(result == 0);
+	result = pthread_setname_np(thread, "MICROUI touch");
+	assert(result == 0);
 	result = pthread_attr_destroy(&attributes);
-	assert(result==0);
+	assert(result == 0);
 }

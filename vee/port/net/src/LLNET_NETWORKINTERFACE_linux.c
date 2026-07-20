@@ -1,7 +1,7 @@
 /*
  * C
  *
- * Copyright 2014-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2014-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 
@@ -61,10 +61,14 @@ extern "C" {
 extern int32_t LLNET_map_to_java_exception(int32_t err);
 
 static int32_t openSocketDatagram(int32_t *fdPtr, int32_t family);
-static int32_t iff_flags(int8_t *name, int32_t length, int32_t *flags);
-static int32_t checkFeature(int8_t *name, int32_t length, int32_t feature);
+static int32_t iff_flags(uint8_t *name, int32_t length, int32_t *flags);
+static int32_t checkFeature(uint8_t *name, int32_t length, int32_t feature);
+#if LLNET_AF & LLNET_AF_IPV4
 static int8_t getMaskLen(struct ifaddrs *ifaddrs);
+#endif
+#if LLNET_AF & LLNET_AF_IPV6
 static int8_t getMaskLen6(struct ifaddrs *ifaddrs);
+#endif
 
 int32_t LLNET_NETWORKINTERFACE_IMPL_getVMInterface(int32_t id, uint8_t *nameReturned, int32_t length) {
 	LLNET_DEBUG_TRACE("%s(id=%d)\n", __func__, id);
@@ -83,20 +87,20 @@ int32_t LLNET_NETWORKINTERFACE_IMPL_getVMInterface(int32_t id, uint8_t *nameRetu
 
 	// Walk the pointer chain looking for a matching index
 	for (i = if_ni; !(i->if_index == 0 && i->if_name == NULL); i++) {
-		if (i->if_index == (id + 1)) {  // if_index is one-based, id is zero-based
+		if (i->if_index == (unsigned int)(id + 1)) {  // if_index is one-based, id is zero-based
 			break;
 		}
 	}
 
 	if (NULL != i->if_name) {
-		strncpy(nameReturned, i->if_name, length);
+		strncpy((char *)nameReturned, i->if_name, length);
 		// From strncpy() man:
 		// * Warning: If there is no null byte among the first n bytes
 		// * of src, the string placed in dest will not be null terminated.
 		//
 		// To avoid any issue, we set to 0 the last char.
 		nameReturned[length - 1] = 0;
-		retVal = strlen(nameReturned);
+		retVal = strlen((char *)nameReturned);
 	}
 
 	if_freenameindex(if_ni);
@@ -115,7 +119,7 @@ int32_t LLNET_NETWORKINTERFACE_IMPL_getVMInterface(int32_t id, uint8_t *nameRetu
 		if (ifAddr != NULL && ifAddr->sa_family == AF_INET) {
 			if (ifCount++ == id) {
 				int32_t maxNameLength = length;
-				strncpy(nameReturned, i->ifa_name, maxNameLength);
+				strncpy((char *)nameReturned, i->ifa_name, maxNameLength);
 				freeifaddrs(ifaddrs);
 
 				// From strncpy() man:
@@ -124,7 +128,7 @@ int32_t LLNET_NETWORKINTERFACE_IMPL_getVMInterface(int32_t id, uint8_t *nameRetu
 				//
 				// To avoid any issue, we set to 0 the last char.
 				nameReturned[length - 1] = 0;
-				return strlen(nameReturned);
+				return strlen((char *)nameReturned);
 			}
 		}
 	}
@@ -136,17 +140,17 @@ int32_t LLNET_NETWORKINTERFACE_IMPL_getVMInterface(int32_t id, uint8_t *nameRetu
 
 int32_t LLNET_NETWORKINTERFACE_IMPL_getVMInterfaceAddress(int32_t idIf, uint8_t *ifname, int32_t ifname_length,
                                                           int32_t idAddr, int8_t *addrInfo, int32_t length) {
-	struct sockaddr *ifAddr;
-	struct sockaddr_dl *ifAddr1;
+	(void)ifname;
+	(void)ifname_length;
+	(void)length;
 	struct ifaddrs *i;
 	char currentIfNameString[IFADDRNAMEMAX];
-	int nameStringLength;
 	int thisAddrCount = -1;
 	int32_t addrSize = 0;
 	LLNET_DEBUG_TRACE("%s(idIF=%d idAddr = %d)\n", __func__, idIf, idAddr);
 
 	// Get the interface name string for interface number idIf
-	nameStringLength = LLNET_NETWORKINTERFACE_IMPL_getVMInterface(idIf, currentIfNameString, IFADDRNAMEMAX);
+	(void)LLNET_NETWORKINTERFACE_IMPL_getVMInterface(idIf, (uint8_t *)currentIfNameString, IFADDRNAMEMAX);
 
 	struct ifaddrs *ifaddrs = NULL;
 
@@ -228,19 +232,20 @@ int32_t LLNET_NETWORKINTERFACE_IMPL_getVMInterfaceAddress(int32_t idIf, uint8_t 
 }
 
 int32_t LLNET_NETWORKINTERFACE_IMPL_getVMInterfaceAddressesCount(int32_t id, uint8_t *ifname, int32_t ifname_length) {
+	(void)ifname;
+	(void)ifname_length;
 	LLNET_DEBUG_TRACE("%s id = %d\n", __func__, id);
 	unsigned addressCount = 0;
 	char currentIfNameString[IFADDRNAMEMAX];
 	struct ifaddrs *i;
 
 	// Get the interface name string for interface number idIf
-	LLNET_NETWORKINTERFACE_IMPL_getVMInterface(id, currentIfNameString, IFADDRNAMEMAX);
+	(void)LLNET_NETWORKINTERFACE_IMPL_getVMInterface(id, (uint8_t *)currentIfNameString, IFADDRNAMEMAX);
 
 	struct ifaddrs *ifaddrs = NULL;
 	if (getifaddrs(&ifaddrs) != 0) {
 		return J_EUNKNOWN;
 	}
-	int ifCount = 0;    // ONE is the first interface number
 
 	// Walk the interface address structures counting the matches to the interface name string
 	for (i = ifaddrs; i != NULL; i = i->ifa_next) {
@@ -321,7 +326,7 @@ int32_t LLNET_NETWORKINTERFACE_IMPL_getHardwareAddress(uint8_t *name, int32_t le
 	}
 
 	struct ifreq iff;
-	if (length < sizeof(iff.ifr_name)) {
+	if ((size_t)length < sizeof(iff.ifr_name)) {
 		memcpy(iff.ifr_name, name, length);
 		iff.ifr_name[length] = 0; //null terminated
 
@@ -358,7 +363,7 @@ int32_t LLNET_NETWORKINTERFACE_IMPL_getMTU(uint8_t *name, int32_t length) {
 	}
 
 	struct ifreq iff;
-	if (length < sizeof(iff.ifr_name)) {
+	if ((size_t)length < sizeof(iff.ifr_name)) {
 		memcpy(iff.ifr_name, name, length);
 		iff.ifr_name[length] = 0; //null terminated
 
@@ -377,8 +382,8 @@ int32_t LLNET_NETWORKINTERFACE_IMPL_getMTU(uint8_t *name, int32_t length) {
 	return retval;
 }
 
-static int checkFeature(int8_t *name, int32_t length, int32_t feature) {
-	int32_t flags;
+static int checkFeature(uint8_t *name, int32_t length, int32_t feature) {
+	int32_t flags = 0;
 	if (iff_flags(name, length, &flags) != 0) {
 		return J_EUNKNOWN;
 	} else {
@@ -386,7 +391,7 @@ static int checkFeature(int8_t *name, int32_t length, int32_t feature) {
 	}
 }
 
-static int32_t iff_flags(int8_t *name, int32_t length, int32_t *flags) {
+static int32_t iff_flags(uint8_t *name, int32_t length, int32_t *flags) {
 	int32_t socket;
 	int32_t error;
 	int32_t retval;
@@ -395,7 +400,7 @@ static int32_t iff_flags(int8_t *name, int32_t length, int32_t *flags) {
 	}
 
 	struct ifreq iff;
-	if (length < sizeof(iff.ifr_name)) {
+	if ((size_t)length < sizeof(iff.ifr_name)) {
 		memcpy(iff.ifr_name, name, length);
 		iff.ifr_name[length] = 0; //null terminated
 
@@ -424,6 +429,7 @@ int32_t openSocketDatagram(int32_t *fdPtr, int32_t family) {
 	return 0;
 }
 
+#if LLNET_AF & LLNET_AF_IPV4
 static int8_t getMaskLen(struct ifaddrs *ifaddrs) {
 	struct sockaddr *netmaskAddr;
 	int8_t len = 0;
@@ -440,6 +446,9 @@ static int8_t getMaskLen(struct ifaddrs *ifaddrs) {
 	return len;
 }
 
+#endif /* if LLNET_AF & LLNET_AF_IPV4 */
+
+#if LLNET_AF & LLNET_AF_IPV6
 static int8_t getMaskLen6(struct ifaddrs *ifaddrs) {
 	struct sockaddr *netmaskAddr;
 	uint8_t maskLenInBytes = sizeof(((struct in6_addr *)0)->s6_addr);
@@ -461,6 +470,8 @@ static int8_t getMaskLen6(struct ifaddrs *ifaddrs) {
 	}
 	return len;
 }
+
+#endif /* if LLNET_AF & LLNET_AF_IPV6 */
 
 #ifdef __cplusplus
 }

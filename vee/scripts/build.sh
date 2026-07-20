@@ -2,8 +2,10 @@
 #
 # BASH
 #
-# Copyright 2021-2025 MicroEJ Corp. All rights reserved.
+# Copyright 2021-2026 MicroEJ Corp. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be found with this software.
+#
+# Build: 7E4D1F7C
 
 # 'build.sh' implementation for MicroEJ Linux builds.
 
@@ -16,8 +18,6 @@ set -euo pipefail
 CURRENT_DIR=$(pwd)
 
 SCRIPTS_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd) || exit
-
-unset LD_LIBRARY_PATH
 
 # Ensure we always return to the original directory
 function cleanup {
@@ -54,7 +54,7 @@ if [ ! -f "/.dockerenv" ] && [ ! -f "${HOME}/.dockerenv" ]; then
                    --net=host \
                    --platform linux/amd64 \
                    "${DOCKER_IMAGE}" \
-                   bash -c "${SCRIPTS_DIR}/$(basename "${0}")" "$@"
+                   bash "${SCRIPTS_DIR}/$(basename "${0}")" "$@"
         exit $?
     fi
 fi
@@ -81,7 +81,7 @@ echo "BUILD_DIR = ${BUILD_DIR}"
 
 cmake -DCMAKE_TOOLCHAIN_FILE=scripts/toolchain.cmake "${SCRIPTS_DIR}/.."
 
-#make -j VERBOSE=1
+#make -j"$(nproc)" VERBOSE=1
 make -j"$(nproc)"
 
 # Copy the application file

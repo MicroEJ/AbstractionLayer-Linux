@@ -1,7 +1,7 @@
 /*
  * C
  *
- * Copyright 2014-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2014-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 
@@ -20,7 +20,7 @@
 #include "microej_async_worker.h"
 
 #ifdef __cplusplus
-	extern "C" {
+extern "C" {
 #endif
 
 /**
@@ -29,7 +29,8 @@
  * is compatible with the implementation.
  *
  * This value must not be changed by the user of the CCO.
- * This value must be incremented by the implementor of the CCO when a configuration define is added, deleted or modified.
+ * This value must be incremented by the implementor of the CCO when a configuration define is added, deleted or
+ * modified.
  */
 #define FS_CONFIGURATION_VERSION (1)
 
@@ -38,7 +39,7 @@
  * Called from LLFS_IMPL_initialize().
  * By default this macro does nothing.
  */
-#define llfs_init()	((void)0)
+#define llfs_init() ((void)0)
 
 /**
  * @brief Set this define to use a custom worker to handle FS asynchronous jobs.
@@ -69,13 +70,14 @@ extern MICROEJ_ASYNC_WORKER_handle_t fs_worker;
 /**
  * @brief Size of the FS stack in bytes.
  */
-#define FS_WORKER_STACK_SIZE (1024*2)
+#define FS_WORKER_STACK_SIZE (1024 * 2)
 
 /**
  * @brief FS worker stack size must be calibrated, unless using a custom worker defined in another module.
  */
 #if !defined(FS_CUSTOM_WORKER) && !defined(FS_WORKER_STACK_SIZE)
-#error "FS_WORKER_STACK_SIZE not declared. Please uncomment the line above to enable macro declaration and put the right value according to the stack size calibration done for your environment"
+#error \
+	"FS_WORKER_STACK_SIZE not declared. Please uncomment the line above to enable macro declaration and put the right value according to the stack size calibration done for your environment"
 #endif // FS_WORKER_STACK_SIZE
 
 /**
@@ -102,7 +104,7 @@ extern MICROEJ_ASYNC_WORKER_handle_t fs_worker;
  *
  * @return <code>LLFS_OK</code> on success, else a negative error code.
  */
-int32_t LLFS_set_path_param(uint8_t* path, uint8_t* path_param);
+int32_t LLFS_set_path_param(uint8_t *path, uint8_t *path_param);
 
 /**
  * @brief Set this define to print debug traces.
@@ -110,13 +112,13 @@ int32_t LLFS_set_path_param(uint8_t* path, uint8_t* path_param);
 //#define LLFS_DEBUG
 
 #ifdef LLFS_DEBUG
-#define LLFS_DEBUG_TRACE printf("[DEBUG] ");printf
+#define LLFS_DEBUG_TRACE printf("[DEBUG] "); printf
 #else
-#define LLFS_DEBUG_TRACE(...) ((void) 0)
+#define LLFS_DEBUG_TRACE(...) ((void)0)
 #endif
 
 #ifdef __cplusplus
-	}
+}
 #endif
 
 #endif // FS_CONFIGURATION_H

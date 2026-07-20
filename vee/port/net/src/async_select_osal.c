@@ -1,7 +1,7 @@
 /*
  * C
  *
- * Copyright 2017-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2017-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 
@@ -19,7 +19,7 @@
 #include <stddef.h>
 
 #ifdef __cplusplus
-	extern "C" {
+extern "C" {
 #endif
 
 /**
@@ -65,9 +65,9 @@ static OSAL_mutex_handle_t async_select_mutex;
  *
  * @return 0 on success, -1 on failure.
  */
-int32_t async_select_init(){
+int32_t async_select_init() {
 	// init the async select mutex
-	if(OSAL_OK != OSAL_mutex_create((uint8_t*)ASYNC_SELECT_MUTEX_NAME, &async_select_mutex)){
+	if (OSAL_OK != OSAL_mutex_create((uint8_t *)ASYNC_SELECT_MUTEX_NAME, &async_select_mutex)) {
 		return -1;
 	}
 	//init the async select fifo
@@ -75,7 +75,7 @@ int32_t async_select_init(){
 
 #ifdef USE_ASYNC_SELECT_THREAD
 	//start async select task
-	if(async_select_start_task() != 0){
+	if (async_select_start_task() != 0) {
 		return -1;
 	}
 #endif //USE_ASYNC_SELECT_THREAD
@@ -86,34 +86,35 @@ int32_t async_select_init(){
 /**
  * @brief Start RTOS task and init RTOS specific structures.
  */
-static int32_t async_select_start_task(){
+static int32_t async_select_start_task() {
 	OSAL_status_t status;
-	
-	status = OSAL_task_create((OSAL_task_entry_point_t)async_select_task_main, ASYNC_SELECT_TASK_NAME, async_select_task_stack, ASYNC_SELECT_TASK_PRIORITY, NULL, &async_select_task);
 
-	if(status == OSAL_OK){
+	status = OSAL_task_create((OSAL_task_entry_point_t)async_select_task_main, ASYNC_SELECT_TASK_NAME,
+	                          async_select_task_stack, ASYNC_SELECT_TASK_PRIORITY, NULL, &async_select_task);
+
+	if (status == OSAL_OK) {
 		return 0;
-	}
-	else{
+	} else {
 		return -1;
 	}
 }
+
 #endif //USE_ASYNC_SELECT_THREAD
 
 /**
  * @brief Enter critical section for the async_select component.
  */
-void async_select_lock(void){
+void async_select_lock(void) {
 	OSAL_mutex_take(&async_select_mutex, OSAL_INFINITE_TIME);
 }
 
 /**
  * @brief Exit critical section for the async_select component.
  */
-void async_select_unlock(void){
+void async_select_unlock(void) {
 	OSAL_mutex_give(&async_select_mutex);
 }
 
 #ifdef __cplusplus
-	}
+}
 #endif

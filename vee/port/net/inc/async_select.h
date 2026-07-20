@@ -1,7 +1,7 @@
 /*
  * C
  *
- * Copyright 2017-2024 MicroEJ Corp. All rights reserved.
+ * Copyright 2017-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 
@@ -20,16 +20,14 @@
 #include <sni.h>
 
 #ifdef __cplusplus
-	extern "C" {
+extern "C" {
 #endif
 
 /** @brief Select operations list. */
-typedef enum
-{
-  SELECT_READ,
-  SELECT_WRITE
+typedef enum {
+	SELECT_READ,
+	SELECT_WRITE
 }select_operation;
-
 
 /**
  * @brief Executes asynchronously an I/0 operation on the given file descriptor.
@@ -52,12 +50,14 @@ typedef enum
  * @note Throws NativeIOException on failure.
  *
  * @warning: This function needs to register the created asynchronous select request as a scoped native resource.
- * Since several scoped native resources cannot be registered in the same native context, the function <code>SNI_unregisterScopedResource()</code>
+ * Since several scoped native resources cannot be registered in the same native context, the function
+ * <code>SNI_unregisterScopedResource()</code>
  * is called to unregister a potential existing scoped resource before registering the new one.
  * Make sure that no scoped resource is registered before calling this function otherwise it will be unregistered.
  * <code>SNI_getScopedResource()</code> can be called to check if there is an existing scoped resource.
  */
-int32_t async_select(int32_t fd, select_operation operation, int64_t absolute_timeout_ms, SNI_callback callback, void* callback_suspend_arg);
+int32_t async_select(int32_t fd, select_operation operation, int64_t absolute_timeout_ms, SNI_callback callback,
+                     void *callback_suspend_arg);
 
 /**
  * @brief Initialize the async_select component. This function must be called prior to any call of
@@ -82,12 +82,13 @@ void async_select_notify_closed_fd(int32_t fd);
  * @param[in] fd The file descriptor.
  * @param[in] on_read true if the file descriptor is ready for "read" operation; false otherwise.
  * @param[in] on_write true if the file descriptor is ready for "write" operation; false otherwise.
- * @param[in] on_error true if an error has occurred on the file descriptor; In this case, read and write will not block and will result in an error.
+ * @param[in] on_error true if an error has occurred on the file descriptor; In this case, read and write will not block
+ * and will result in an error.
  */
 void async_select_update_notified_requests(int32_t fd, uint8_t on_read, uint8_t on_write, uint8_t on_error);
 
 #ifdef __cplusplus
-	}
+}
 #endif
 
 #endif // ASYNC_SELECT_H
