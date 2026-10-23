@@ -54,6 +54,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "veeport_logger.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -72,16 +74,23 @@ extern "C" {
 #define FD_MONITOR_STACK_SIZE        (16U * 1024U)
 #endif
 
-/* ── trace macros ────────────────────────────────────────────────────── */
+/* ── log module ──────────────────────────────────────────────────────── */
 
-#ifndef FD_MONITOR_ERROR_TRACE
-#include <stdio.h>
-#define FD_MONITOR_ERROR_TRACE(...) \
-		do { (void)printf("[ERR] "); (void)printf(__VA_ARGS__); } while (0)
-#endif
+/**
+ * @brief Name of the log module shared by every source file of the file descriptor monitor.
+ *
+ * Each source file that logs registers the module with VEEPORT_LOGGER_DEFINE_MODULE().
+ */
+#define FD_MONITOR_LOG_MODULE_NAME "fd-monitor"
 
-#ifndef FD_MONITOR_DEBUG_TRACE
-#define FD_MONITOR_DEBUG_TRACE(...)  ((void)0)
+/**
+ * @brief Verbosity of the file descriptor monitor.
+ *
+ * Override it in veeport_configuration.h with one of VEEPORT_LOGGER_LEVEL_NONE, _ERR, _WRN, _INF
+ * or _DBG.
+ */
+#ifndef FD_MONITOR_LOG_LEVEL
+#define FD_MONITOR_LOG_LEVEL (VEEPORT_LOGGER_LEVEL_ERR)
 #endif
 
 /* ── return codes ────────────────────────────────────────────────────── */

@@ -24,20 +24,18 @@
  * key/cert acquisition.
  */
 
-#include <sni.h>
-
-#include <openssl/evp.h>
-#include <openssl/x509.h>
-
 #include <stddef.h>
 #include <stdint.h>
+#include <openssl/evp.h>
+#include <openssl/x509.h>
+#include <sni.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /** Maximum alias length in bytes (including NUL). */
-#define LLCRYPTO_EKS_MAX_ALIAS_LEN 256
+#define LLCRYPTO_EKS_MAX_ALIAS_LEN 256U
 
 /** Maximum number of objects (aliases) supported per keystore. */
 #define LLCRYPTO_EKS_MAX_OBJECTS 32
@@ -67,7 +65,7 @@ struct llcrypto_eks_cert {
  */
 struct llcrypto_eks_chain {
 	struct llcrypto_eks_cert **certs;
-	int count;
+	int cert_count;
 };
 
 /**
@@ -82,16 +80,26 @@ void llcrypto_eks_chain_free(struct llcrypto_eks_chain *ch);
 
 /**
  * Convert a jchar* (UTF-16) SNI password array to a NUL-terminated ASCII
- * C string. Caller must LLCRYPTO_free() the returned pointer (and should
- * OPENSSL_cleanse it beforehand for secret data). Returns NULL on
- * allocation failure; returns an empty string if password is NULL.
+ * C string. The character count comes from sni_array_get_length() and is
+ * reported in @p out_len, so no caller has to scan for a terminator.
+ *
+ * Code units outside 0x01-0x7F are rejected rather than truncated to their low
+ * byte: both backends carry the credential as a C string (the PKCS#11 one
+ * embeds it in a pkcs11: URI, where a PIN is inherently a string), so a lossy
+ * conversion would authenticate and compare on a prefix of the real password.
+ * The returned buffer therefore holds no embedded NUL, which is what makes
+ * strlen() on the cached credential exact.
+ *
+ * Caller must LLCRYPTO_free() @p out (and should OPENSSL_cleanse it beforehand
+ * for secret data). An empty string is returned if @p password is NULL.
+ *
+ * @param[in]  password  the SNI password array, or NULL.
+ * @param[out] out       the converted C string.
+ * @param[out] out_len   the converted length in bytes, excluding the NUL.
+ * @return LLCRYPTO_SUCCESS on success, LLCRYPTO_ERROR_OOM on allocation
+ *         failure, or LLCRYPTO_ERROR if the password is not ASCII.
  */
-char *llcrypto_eks_jchar_to_cstring(const jchar *password);
-
-/**
- * Case-insensitive string comparison (portable).
- */
-int llcrypto_eks_strcasecmp(const char *a, const char *b);
+int llcrypto_eks_jchar_to_ascii_cstring(jchar *password, char **out, size_t *out_len);
 
 /**
  * DER-encode an X509 cert and wrap it in a heap-allocated llcrypto_eks_cert.
@@ -137,7 +145,7 @@ struct llcrypto_eks_key_import {
 	/* Mutually exclusive: openKeyEntryWithData decodes the protected PKCS#8
 	 * blob into key_evp; openKeyEntryWithNativeId stores a llcrypto_key handle
 	 * in key_native_id. */
-	jint key_native_id; /* 0 if unused; otherwise (intptr_t)llcrypto_key* */
+	jint key_native_id; /* 0 if unused; otherwise a llcrypto_key* held as an integer */
 	EVP_PKEY *key_evp;  /* set by openKeyEntryWithData, NULL otherwise */
 
 	int chain_len;   /* expected number of chain certs */
@@ -149,30 +157,12 @@ struct llcrypto_eks_key_import {
 };
 
 /**
- * Derive an ECDH shared secret on a PKCS#11 token via the direct C API.
- *
- * The pkcs11-provider encodes the ECDH peer point as a DER-wrapped OCTET STRING
- * (PKCS#11 v3.0 optional form), which the OP-TEE PKCS#11 TA mis-parses, so an
- * EVP_PKEY_derive() against a token-resident key yields a wrong shared secret.
- * This bypasses the provider and calls C_DeriveKey
- * with CKM_ECDH1_DERIVE / CKD_NULL and the raw uncompressed peer point
- * (0x04 || X || Y, the v2.40 mandatory form the TA derives correctly from).
- *
- * Defined only by the PKCS#11 backend; never called when @p alias is NULL.
- *
- * @param alias            CKA_LABEL of the EC private key on the token.
- * @param peer_point       Peer EC public point, raw uncompressed (0x04 || X || Y).
- * @param peer_point_len   Length of @p peer_point in bytes.
- * @param secret_out       Output buffer for the raw shared secret.
- * @param secret_out_len   In: capacity of @p secret_out. Out: bytes written.
- * @return LLCRYPTO_SUCCESS on success, LLCRYPTO_ERROR on failure (an exception is thrown).
- */
-int llcrypto_eks_ecdh_derive(const char *alias, const uint8_t *peer_point, size_t peer_point_len,
-                             uint8_t *secret_out, size_t *secret_out_len);
-
-/**
  * Allocate a new import handle for @p alias with capacity for @p chain_len
- * certs. Returns NULL on allocation failure.
+ * certs. Returns NULL on allocation failure, or if @p alias does not fit in
+ * LLCRYPTO_EKS_MAX_ALIAS_LEN — an over-long alias is rejected rather than
+ * truncated.
+ *
+ * @throws NativeIOException on either failure, so a caller must not throw again on NULL.
  */
 struct llcrypto_eks_key_import *llcrypto_eks_key_import_new(const char *alias, int chain_len);
 

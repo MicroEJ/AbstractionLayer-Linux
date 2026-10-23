@@ -22,6 +22,8 @@
 #include "ecom_network_configuration.h"
 #include "ecom_network_helper.h"
 
+VEEPORT_LOGGER_DEFINE_MODULE(LLECOM_NETWORK_LOG_MODULE_NAME, LLECOM_NETWORK_LOG_LEVEL)
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -89,10 +91,9 @@ void LLECOM_NETWORK_initialize(void) {
 	                                                                       (uint8_t *)"MicroEJ ECOM-NETWORK",
 	                                                                       ecom_network_worker_stack,
 	                                                                       ECOM_NETWORK_WORKER_PRIORITY);
-	if (status == MICROEJ_ASYNC_WORKER_INVALID_ARGS) {
-		SNI_throwNativeException(status, "Invalid argument for ECOM-NETWORK async worker");
-	} else if (status == MICROEJ_ASYNC_WORKER_ERROR) {
-		SNI_throwNativeException(status, "Error while initializing ECOM-NETWORK async worker");
+	if (status != MICROEJ_ASYNC_WORKER_OK) {
+		VEEPORT_LOGGER_LOG_ERR("ECOM-NETWORK async worker initialization failed (%d)", status);
+		VEEPORT_ERRORS_throw_runtime_exception(RUNTIME_EXCEPTION_INVALID_STATE);
 	}
 #endif
 
@@ -319,7 +320,8 @@ static int32_t LLECOM_NETWORK_async_exec_netif_context(int8_t *netifName, int32_
 	                                           sizeof(params->netifBuffer), (int8_t **)&params->netifName,
 	                                           (uint32_t *)&params->netifNameLength, true);
 	if (result != SNI_OK) {
-		SNI_throwNativeIOException(result, "SNI_retrieveArrayElements: Internal error");
+		VEEPORT_ERRORS_throw_caught_exception_message(LLECOM_NETWORK_ERROR_UNDEFINED,
+		                                              "SNI_retrieveArrayElements failed (%d)", result);
 	} else {
 		MICROEJ_ASYNC_WORKER_status_t status = MICROEJ_ASYNC_WORKER_async_exec(&ecom_network_worker, job, action,
 		                                                                       on_done);
@@ -422,7 +424,8 @@ static int32_t LLECOM_NETWORK_async_exec_dns_context(int8_t *netifName, int32_t 
 	                                    sizeof(params->addrBuffer), (int8_t **)&params->address,
 	                                    (uint32_t *)&params->addressLength, do_copy);
 	if (result != SNI_OK) {
-		SNI_throwNativeIOException(result, "SNI_retrieveArrayElements: Internal error");
+		VEEPORT_ERRORS_throw_caught_exception_message(LLECOM_NETWORK_ERROR_UNDEFINED,
+		                                              "SNI_retrieveArrayElements failed (%d)", result);
 	} else {
 		MICROEJ_ASYNC_WORKER_status_t status = MICROEJ_ASYNC_WORKER_async_exec(&ecom_network_worker, job, action,
 		                                                                       on_done);
@@ -471,7 +474,8 @@ static int32_t LLECOM_NETWORK_async_exec_get_dns_context_on_done(int8_t *netifNa
 		                                                (int8_t *)(params->address + params->addressOffset),
 		                                                params->addressLength);
 		if (release_result != SNI_OK) {
-			SNI_throwNativeIOException(release_result, "SNI_flushArrayElements: Internal error");
+			VEEPORT_ERRORS_throw_caught_exception_message(LLECOM_NETWORK_ERROR_UNDEFINED,
+			                                              "SNI_flushArrayElements failed (%d)", release_result);
 		}
 	}
 	MICROEJ_ASYNC_WORKER_free_job(&ecom_network_worker, job);
@@ -566,7 +570,8 @@ static int32_t LLECOM_NETWORK_async_exec_ip_context(int8_t *netifName, int32_t n
 	                                    sizeof(params->addrBuffer), (int8_t **)&params->address,
 	                                    (uint32_t *)&params->addressLength, do_copy);
 	if (result != SNI_OK) {
-		SNI_throwNativeIOException(result, "SNI_retrieveArrayElements: Internal error");
+		VEEPORT_ERRORS_throw_caught_exception_message(LLECOM_NETWORK_ERROR_UNDEFINED,
+		                                              "SNI_retrieveArrayElements failed (%d)", result);
 	} else {
 		MICROEJ_ASYNC_WORKER_status_t status = MICROEJ_ASYNC_WORKER_async_exec(&ecom_network_worker, job, action,
 		                                                                       on_done);
@@ -614,7 +619,8 @@ static int32_t LLECOM_NETWORK_async_exec_get_ip_context_on_done(int8_t *netifNam
 		                                                (int8_t *)(params->address + params->addressOffset),
 		                                                params->addressLength);
 		if (release_result != SNI_OK) {
-			SNI_throwNativeIOException(release_result, "SNI_flushArrayElements: Internal error");
+			VEEPORT_ERRORS_throw_caught_exception_message(LLECOM_NETWORK_ERROR_UNDEFINED,
+			                                              "SNI_flushArrayElements failed (%d)", release_result);
 		}
 	}
 	MICROEJ_ASYNC_WORKER_free_job(&ecom_network_worker, job);
@@ -699,7 +705,8 @@ static int32_t LLECOM_NETWORK_async_exec_ip_config(int8_t *netifName, int32_t ne
 	                                           sizeof(params->netifBuffer), (int8_t **)&params->netifName,
 	                                           (uint32_t *)&params->netifNameLength, true);
 	if (result != SNI_OK) {
-		SNI_throwNativeIOException(result, "SNI_retrieveArrayElements: Internal error");
+		VEEPORT_ERRORS_throw_caught_exception_message(LLECOM_NETWORK_ERROR_UNDEFINED,
+		                                              "SNI_retrieveArrayElements failed (%d)", result);
 	} else {
 		MICROEJ_ASYNC_WORKER_status_t status = MICROEJ_ASYNC_WORKER_async_exec(&ecom_network_worker, job, action,
 		                                                                       on_done);

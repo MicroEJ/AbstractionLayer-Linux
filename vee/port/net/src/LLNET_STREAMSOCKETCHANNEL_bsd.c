@@ -26,6 +26,8 @@
 #include "LLNET_ERRORS.h"
 #include "LLNET_Common.h"
 
+VEEPORT_LOGGER_DEFINE_MODULE(LLNET_LOG_MODULE_NAME, LLNET_LOG_LEVEL)
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -74,7 +76,7 @@ static void LLNET_STREAMSOCKETCHANNEL_write(int32_t fd, int8_t *buffer, int32_t 
 
 	if (ret == 0) {
 		//should not happen: 0 byte written
-		SNI_throwNativeIOException(J_EUNKNOWN, "0 byte written");
+		VEEPORT_ERRORS_throw_caught_exception_message(J_EUNKNOWN, "0 byte written");
 		return;
 	}
 
@@ -100,15 +102,15 @@ static void LLNET_STREAMSOCKETCHANNEL_write(int32_t fd, int8_t *buffer, int32_t 
 
 int32_t LLNET_STREAMSOCKETCHANNEL_IMPL_read(int32_t fd, int8_t *dst, int32_t offset, int32_t length,
                                             int64_t absoluteTimeout) {
-	LLNET_DEBUG_TRACE("%s[thread %d](fd=0x%X)\n", __func__, SNI_getCurrentJavaThreadID(), fd);
+	VEEPORT_LOGGER_LOG_DBG("[thread %d](fd=0x%X)", SNI_getCurrentJavaThreadID(), fd);
 
 	if (llnet_is_ready() == false) {
-		SNI_throwNativeIOException(J_NETWORK_NOT_INITIALIZED, "network not initialized");
+		VEEPORT_ERRORS_throw_caught_exception(J_NETWORK_NOT_INITIALIZED);
 		return SNI_IGNORED_RETURNED_VALUE;
 	}
 
 	int32_t ret = llnet_recv(fd, (void *)(dst + offset), length, 0);
-	LLNET_DEBUG_TRACE("%s: result=%d errno=%d\n", __func__, ret, llnet_errno(fd));
+	VEEPORT_LOGGER_LOG_DBG("result=%d errno=%d", ret, llnet_errno(fd));
 
 	if (ret > 0) {
 		return ret;
@@ -126,9 +128,9 @@ int32_t LLNET_STREAMSOCKETCHANNEL_IMPL_read(int32_t fd, int8_t *dst, int32_t off
 }
 
 void LLNET_STREAMSOCKETCHANNEL_IMPL_write(int32_t fd, int8_t *src, int32_t offset, int32_t length) {
-	LLNET_DEBUG_TRACE("%s[thread %d]\n", __func__, SNI_getCurrentJavaThreadID());
+	VEEPORT_LOGGER_LOG_DBG("[thread %d]", SNI_getCurrentJavaThreadID());
 	if (llnet_is_ready() == false) {
-		SNI_throwNativeIOException(J_NETWORK_NOT_INITIALIZED, "network not initialized");
+		VEEPORT_ERRORS_throw_caught_exception(J_NETWORK_NOT_INITIALIZED);
 		return;
 	}
 
@@ -136,20 +138,20 @@ void LLNET_STREAMSOCKETCHANNEL_IMPL_write(int32_t fd, int8_t *src, int32_t offse
 }
 
 int32_t LLNET_STREAMSOCKETCHANNEL_IMPL_available(int32_t fd) {
-	LLNET_DEBUG_TRACE("%s[thread %d](fd=0x%X)\n", __func__, SNI_getCurrentJavaThreadID(), fd);
+	VEEPORT_LOGGER_LOG_DBG("[thread %d](fd=0x%X)", SNI_getCurrentJavaThreadID(), fd);
 
 	int32_t fd_errno;
 
 	if (llnet_is_ready() == false) {
-		SNI_throwNativeIOException(J_NETWORK_NOT_INITIALIZED, "network not initialized");
+		VEEPORT_ERRORS_throw_caught_exception(J_NETWORK_NOT_INITIALIZED);
 		return SNI_IGNORED_RETURNED_VALUE;
 	}
 
 #if LLNET_AVAILABLE_IMPL_ALT == LLNET_USE_MSG_PEEK_FOR_AVAILABLE
 	int32_t size = llnet_recv(fd, LLNET_MSG_PEEK_AVAILABLE_BUFFER, sizeof(LLNET_MSG_PEEK_AVAILABLE_BUFFER),
 	                          MSG_PEEK | MSG_DONTWAIT);
-	LLNET_DEBUG_TRACE("%s[thread %d](fd=0x%X) size=%d errno=%d\n", __func__, SNI_getCurrentJavaThreadID(), fd, size,
-	                  llnet_errno(fd));
+	VEEPORT_LOGGER_LOG_DBG("[thread %d](fd=0x%X) size=%d errno=%d", SNI_getCurrentJavaThreadID(), fd, size,
+	                       llnet_errno(fd));
 	if (size >= 0) {
 		return size;
 	}
@@ -158,40 +160,40 @@ int32_t LLNET_STREAMSOCKETCHANNEL_IMPL_available(int32_t fd) {
 		return 0;
 	}
 
-	SNI_throwNativeIOException(LLNET_map_to_java_exception(fd_errno), LLNET_get_socket_error_msg(fd_errno));
+	LLNET_throw_socket_error(fd_errno);
 	return SNI_IGNORED_RETURNED_VALUE;
 
 #elif LLNET_AVAILABLE_IMPL_ALT == LLNET_USE_SOCK_OPTION_FOR_AVAILABLE
 	int32_t size;
 	int32_t optlen = sizeof(int32_t);
 	int32_t res = llnet_getsockopt(fd, SOL_SOCKET, SO_RXDATA, &size, (socklen_t *)&optlen);
-	LLNET_DEBUG_TRACE("%s[thread %d](fd=0x%X) size=%d errno=%d res=%d\n", __func__, SNI_getCurrentJavaThreadID(), fd,
-	                  size, llnet_errno(fd), res);
+	VEEPORT_LOGGER_LOG_DBG("[thread %d](fd=0x%X) size=%d errno=%d res=%d", SNI_getCurrentJavaThreadID(), fd, size,
+	                       llnet_errno(fd), res);
 	if (res == 0) {
 		return size;
 	}
 	fd_errno = llnet_errno(fd);
-	SNI_throwNativeIOException(LLNET_map_to_java_exception(fd_errno), LLNET_get_socket_error_msg(fd_errno));
+	LLNET_throw_socket_error(fd_errno);
 	return SNI_IGNORED_RETURNED_VALUE;
 #else /* if LLNET_AVAILABLE_IMPL_ALT == LLNET_USE_MSG_PEEK_FOR_AVAILABLE */
 	int32_t size;
 	int32_t res = llnet_ioctl(fd, FIONREAD, &size);
-	LLNET_DEBUG_TRACE("%s[thread %d](fd=0x%X) size=%d errno=%d res=%d\n", __func__, SNI_getCurrentJavaThreadID(), fd,
-	                  size, llnet_errno(fd), res);
+	VEEPORT_LOGGER_LOG_DBG("[thread %d](fd=0x%X) size=%d errno=%d res=%d", SNI_getCurrentJavaThreadID(), fd, size,
+	                       llnet_errno(fd), res);
 	if (res == 0) {
 		return size;
 	}
 	// error on ioctl
 	fd_errno = llnet_errno(fd);
-	SNI_throwNativeIOException(LLNET_map_to_java_exception(fd_errno), LLNET_get_socket_error_msg(fd_errno));
+	LLNET_throw_socket_error(fd_errno);
 	return SNI_IGNORED_RETURNED_VALUE;
 #endif // LLNET_AVAILABLE_IMPL_ALT == LLNET_USE_MSG_PEEK_FOR_AVAILABLE
 }
 
 int32_t LLNET_STREAMSOCKETCHANNEL_IMPL_accept(int32_t fd, int64_t absoluteTimeout) {
-	LLNET_DEBUG_TRACE("%s[thread %d](fd=0x%X)\n", __func__, SNI_getCurrentJavaThreadID(), fd);
+	VEEPORT_LOGGER_LOG_DBG("[thread %d](fd=0x%X)", SNI_getCurrentJavaThreadID(), fd);
 	if (llnet_is_ready() == false) {
-		SNI_throwNativeIOException(J_NETWORK_NOT_INITIALIZED, "network not initialized");
+		VEEPORT_ERRORS_throw_caught_exception(J_NETWORK_NOT_INITIALIZED);
 		return SNI_IGNORED_RETURNED_VALUE;
 	}
 	int32_t ret;
@@ -213,8 +215,8 @@ int32_t LLNET_STREAMSOCKETCHANNEL_IMPL_accept(int32_t fd, int64_t absoluteTimeou
 	//set the socket in non blocking mode
 	if (0 != ret) {
 		fd_errno = llnet_errno(client_socket_fd);
-		LLNET_DEBUG_TRACE("%s: set_non_blocking errno=%d, err=%d\n", __func__, fd_errno, ret);
-		SNI_throwNativeIOException(LLNET_map_to_java_exception(fd_errno), LLNET_get_socket_error_msg(fd_errno));
+		VEEPORT_LOGGER_LOG_DBG("set_non_blocking errno=%d, err=%d", fd_errno, ret);
+		LLNET_throw_socket_error(fd_errno);
 		close(client_socket_fd);
 		return SNI_IGNORED_RETURNED_VALUE;
 	}

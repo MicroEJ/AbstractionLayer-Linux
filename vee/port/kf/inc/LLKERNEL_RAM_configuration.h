@@ -9,7 +9,7 @@
  * @file
  * @brief LLKERNEL RAM implementation.
  * @author MicroEJ Development Team
- * @version 3.0.0
+ * @version 3.0.1
  */
 
 #ifndef  LLKERNEL_RAM_CONFIGURATION_H
@@ -17,11 +17,17 @@
 
 #include <stdint.h>
 
+#include "veeport_logger.h"
+
 /**
- * @brief LLKERNEL log level.
+ * @brief Verbosity of the KF Abstraction Layer.
  *
+ * Override it in veeport_configuration.h with one of VEEPORT_LOGGER_LEVEL_NONE, _ERR, _WRN, _INF
+ * or _DBG.
  */
-#define LLKERNEL_LOG_LEVEL LLKERNEL_LOG_ERROR
+#ifndef LLKERNEL_LOG_LEVEL
+#define LLKERNEL_LOG_LEVEL (VEEPORT_LOGGER_LEVEL_ERR)
+#endif
 
 /**
  * @brief Kernel RAM allocation mode:

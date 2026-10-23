@@ -23,6 +23,8 @@
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <netinet/in.h>
+#include "veeport_logger.h"
+#include "veeport_errors.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,12 +41,21 @@ extern "C" {
 	#error "Version of the configuration file LLNET_configuration.h is not compatible with this implementation."
 #endif
 
-// Define LLNET_DEBUG in LLNET_configuration.h to enable network debug trace
-#ifdef LLNET_DEBUG
-	#include <stdio.h>
-	#define LLNET_DEBUG_TRACE   printf
-#else
-	#define LLNET_DEBUG_TRACE(...) ((void)0)
+/**
+ * @brief Name of the log module shared by every source file of the Network Abstraction Layer.
+ *
+ * Each source file that logs registers the module with VEEPORT_LOGGER_DEFINE_MODULE().
+ */
+#define LLNET_LOG_MODULE_NAME "net"
+
+/**
+ * @brief Verbosity of the Network Abstraction Layer.
+ *
+ * Override it in veeport_configuration.h with one of VEEPORT_LOGGER_LEVEL_NONE, _ERR, _WRN, _INF
+ * or _DBG.
+ */
+#ifndef LLNET_LOG_LEVEL
+#define LLNET_LOG_LEVEL (VEEPORT_LOGGER_LEVEL_ERR)
 #endif
 
 /**
@@ -106,13 +117,15 @@ int32_t LLNET_set_non_blocking(int32_t fd);
 int32_t LLNET_map_to_java_exception(int32_t err);
 
 /**
- * @brief get the error message describing the given error code.
+ * @brief Throws the NativeIOException that reports a failed socket call.
  *
- * @param[in] error the error code returned by a BSD-like function.
+ * The error code is the one of LLNET_ERRORS.h that LLNET_map_to_java_exception() gives for the
+ * given errno. When no specific code exists, the exception carries the errno and its description in
+ * its message.
  *
- * @return the error message describing the given error code.
+ * @param[in] fd_errno the errno set by a BSD-like function.
  */
-const char * LLNET_get_socket_error_msg(int32_t error);
+void LLNET_throw_socket_error(int32_t fd_errno);
 
 #if LLNET_AF & LLNET_AF_IPV6
 

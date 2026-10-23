@@ -1,0 +1,4 @@
+[submodule "vee/port/essentials"]
+	path = vee/port/essentials
+	url = https://github.com/MicroEJ/AbstractionLayer-Essentials.git
+	branch = master

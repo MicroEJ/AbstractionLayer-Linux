@@ -6,16 +6,37 @@
 #ifndef LLAUDIO_COMMON_SDL2_H
 #define LLAUDIO_COMMON_SDL2_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
+// Included outside of the "C" linkage block below: a header pulled in by veeport_logger.h may
+// declare C++ templates or overloads, which cannot be given C linkage.
 #include <SDL2/SDL.h>
 
 #include <stdint.h>
+#include "veeport_errors.h"
 #include <stdbool.h>
 
 #include "LLAUDIO_defines.h"
+#include "veeport_logger.h"
+
+/**
+ * @brief Name of the log module shared by every source file of the Audio Abstraction Layer.
+ *
+ * Each source file that logs registers the module with VEEPORT_LOGGER_DEFINE_MODULE().
+ */
+#define LLAUDIO_LOG_MODULE_NAME "audio"
+
+/**
+ * @brief Verbosity of the Audio Abstraction Layer.
+ *
+ * Override it in veeport_configuration.h with one of VEEPORT_LOGGER_LEVEL_NONE, _ERR, _WRN, _INF
+ * or _DBG.
+ */
+#ifndef LLAUDIO_LOG_LEVEL
+#define LLAUDIO_LOG_LEVEL (VEEPORT_LOGGER_LEVEL_ERR)
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 _Static_assert(sizeof(uintptr_t) <= sizeof(uint32_t),
                "A uint32_t must be able to hold a uintptr_t.");

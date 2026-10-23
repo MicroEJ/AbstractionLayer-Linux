@@ -13,6 +13,8 @@
 #include <string.h>
 #include <pthread.h>
 
+VEEPORT_LOGGER_DEFINE_MODULE(LLAUDIO_LOG_MODULE_NAME, LLAUDIO_LOG_LEVEL)
+
 // -------------
 // Private types
 // -------------
@@ -46,7 +48,7 @@ static void _audio_device_callback(void *userdata, Uint8 *stream, int len) {
 	}
 
 	if (SDL_AudioStreamPut(audio_track->encoder_stream, stream, len) != 0) {
-		fprintf(stderr, "Could not write into the audio stream: %s\n", SDL_GetError());
+		VEEPORT_LOGGER_LOG_ERR("cannot write into the audio stream: %s", SDL_GetError());
 	}
 
 	while (true) {
@@ -54,13 +56,13 @@ static void _audio_device_callback(void *userdata, Uint8 *stream, int len) {
 		SDL_AudioStreamFlush(audio_track->encoder_stream);
 		int read = SDL_AudioStreamGet(audio_track->encoder_stream, tmp, tmp_buffer_size);
 		if (read < 0) {
-			fprintf(stderr, "Could not read from the audio stream: %s\n", SDL_GetError());
+			VEEPORT_LOGGER_LOG_ERR("cannot read from the audio stream: %s", SDL_GetError());
 		} else if (read == 0) {
 			break;
 		}
 		pthread_mutex_lock(&audio_track->mutex);
 		if (RING_put(&audio_track->output_buffer, tmp, read) == 0) {
-			fprintf(stderr, "Could not write into the output buffer\n");
+			VEEPORT_LOGGER_LOG_ERR("cannot write into the output buffer");
 		} else {
 			pthread_cond_broadcast(&audio_track->condition);
 		}
@@ -82,7 +84,7 @@ static void _init_audio_routine() {
 
 	audio_device_id = SDL_OpenAudioDevice(NULL, true, &desired, &capture_spec, 0);
 	if (audio_device_id == 0) {
-		fprintf(stderr, "Failed initializing the capture device: %s\n", SDL_GetError());
+		VEEPORT_LOGGER_LOG_ERR("cannot initialize the capture device: %s", SDL_GetError());
 		exit(1);
 	}
 }
@@ -108,7 +110,7 @@ uint32_t LLAUDIO_SOURCE_IMPL_open(const char *format_encoding, const int32_t *fo
 	SDL_LockAudioDevice(audio_device_id);
 
 	if (audio_track != NULL) {
-		SNI_throwNativeIOException(LLAUDIO_ERROR_TRACK_ALREADY_OPEN, "An audio track is already open");
+		VEEPORT_ERRORS_throw_caught_exception(LLAUDIO_ERROR_TRACK_ALREADY_OPEN);
 		goto audio_track_already_open;
 	}
 
@@ -117,7 +119,7 @@ uint32_t LLAUDIO_SOURCE_IMPL_open(const char *format_encoding, const int32_t *fo
 	if (strcmp(format_encoding, "PCM") == 0) {
 		SDL_AudioFormat dst_format = AUDIO_get_pcm_format(format_parameters);
 		if (SDL_AUDIO_BITSIZE(dst_format) == 0) {
-			SNI_throwNativeException(LLAUDIO_ERROR_INVALID_FORMAT_PARAMETERS, "Invalid format parameters");
+			VEEPORT_ERRORS_throw_runtime_exception(LLAUDIO_ERROR_INVALID_FORMAT_PARAMETERS);
 			goto invalid_format_parameters;
 		}
 
@@ -128,39 +130,39 @@ uint32_t LLAUDIO_SOURCE_IMPL_open(const char *format_encoding, const int32_t *fo
 		                                    format_parameters->num_channels,
 		                                    format_parameters->sample_rate);
 		if (encoder_stream == NULL) {
-			SNI_throwNativeIOException(LLAUDIO_ERROR_FAILED_CREATING_ENCODER_STREAM, SDL_GetError());
+			VEEPORT_ERRORS_throw_caught_exception_message(LLAUDIO_ERROR_FAILED_CREATING_ENCODER_STREAM, "%s",
+			                                              SDL_GetError());
 			goto failed_creating_encoder_stream;
 		}
 
 		result = AUDIO_malloc(sizeof(struct audio_track));
 		if (result == NULL) {
-			SNI_throwNativeIOException(LLAUDIO_ERROR_HEAP_FULL_ALLOCATING_TRACK, "Audio heap full");
+			VEEPORT_ERRORS_throw_caught_exception(LLAUDIO_ERROR_HEAP_FULL_ALLOCATING_TRACK);
 			goto audio_heap_full_allocating_track;
 		}
 
 		result->encoder_stream = encoder_stream;
 		if (pthread_mutex_init(&result->mutex, NULL) != 0) {
-			SNI_throwNativeException(LLAUDIO_ERROR_FAILED_INITIALIZING_MUTEX, "Failed initializing the mutex");
+			VEEPORT_ERRORS_throw_runtime_exception(LLAUDIO_ERROR_FAILED_INITIALIZING_MUTEX);
 			goto failed_initializing_mutex;
 		}
 		if (pthread_cond_init(&result->condition, NULL) != 0) {
-			SNI_throwNativeException(LLAUDIO_ERROR_FAILED_INITIALIZING_CONDITION,
-			                         "Failed initializing the condition");
+			VEEPORT_ERRORS_throw_runtime_exception(LLAUDIO_ERROR_FAILED_INITIALIZING_CONDITION);
 			goto failed_initializing_condition;
 		}
 
 		char *begin = AUDIO_malloc(buffer_size + 1); // We allocated buffer_size + 1 bytes as the ring buffer can only
 		                                             // store one less byte than the allocated array.
 		if (begin == NULL) {
-			SNI_throwNativeIOException(LLAUDIO_ERROR_HEAP_FULL_ALLOCATING_RING_BUFFER, "Audio heap full");
+			VEEPORT_ERRORS_throw_caught_exception(LLAUDIO_ERROR_HEAP_FULL_ALLOCATING_RING_BUFFER);
 			goto audio_heap_full_allocating_ring_buffer;
 		}
 		char *end = begin + buffer_size + 1;
 		RING_init(&result->output_buffer, begin, end);
 		memset(begin, 0, end - begin);
 	} else {
-		fprintf(stderr, "Attempted to open an audio track of format %.16s\n", format_encoding);
-		SNI_throwNativeIOException(LLAUDIO_ERROR_FORMAT_NOT_SUPPORTED, "Audio format not supported");
+		VEEPORT_LOGGER_LOG_ERR("unsupported audio track format %.16s", format_encoding);
+		VEEPORT_ERRORS_throw_caught_exception(LLAUDIO_ERROR_FORMAT_NOT_SUPPORTED);
 		goto audio_format_not_supported;
 	}
 

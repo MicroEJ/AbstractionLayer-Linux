@@ -16,6 +16,7 @@
 
 #include "LLFS_Unix_impl.h"
 #include "LLFS_impl.h"
+#include <errno.h>
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
@@ -51,7 +52,9 @@ void LLFS_Unix_IMPL_canonicalize(uint8_t *path, uint8_t *canonicalizePath, int32
 		                                      // canonicalizePath
 		char *e_realpath = realpath((char *)path, (char *)canonicalizePath);
 		if (e_realpath == NULL) {
-			SNI_throwNativeIOException(LLFS_NOK, "realpath: Internal error");
+			int32_t realpath_errno = errno;
+			VEEPORT_ERRORS_throw_caught_exception_message(LLFS_NOK, "realpath: errno %d: %s", realpath_errno,
+			                                              strerror(realpath_errno));
 		}
 	} else { // There is NOT enough space to put the result of realpath() into canonicalizePath.
 		     // Call realpath() with a null dest buffer, it will allocate a new buffer.
@@ -63,13 +66,15 @@ void LLFS_Unix_IMPL_canonicalize(uint8_t *path, uint8_t *canonicalizePath, int32
 			if (strlen(e_realpath) < (size_t)canonicalizePathLength) {
 				strcpy((char *)canonicalizePath, e_realpath);
 			} else {
-				SNI_throwNativeIOException(LLFS_NOK, "canonicalPath length too small");
+				VEEPORT_ERRORS_throw_caught_exception_message(LLFS_NOK, "canonical path buffer too small");
 			}
 
 			// e_realpath has been "malloced" by realpath(). Free it.
 			free(e_realpath);
 		} else {
-			SNI_throwNativeIOException(LLFS_NOK, "realpath: Internal error");
+			int32_t realpath_errno = errno;
+			VEEPORT_ERRORS_throw_caught_exception_message(LLFS_NOK, "realpath: errno %d: %s", realpath_errno,
+			                                              strerror(realpath_errno));
 		}
 	}
 }

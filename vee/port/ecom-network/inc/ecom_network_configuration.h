@@ -17,6 +17,7 @@
  */
 
 #include "microej_async_worker.h"
+#include "veeport_logger.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -102,16 +103,21 @@ extern MICROEJ_ASYNC_WORKER_handle_t ecom_network_worker;
 #define IP_ADDR_SIZE (16)
 
 /**
- * @brief Set this define to print debug traces.
+ * @brief Name of the log module shared by every source file of the ECOM-NETWORK Abstraction Layer.
+ *
+ * Each source file that logs registers the module with VEEPORT_LOGGER_DEFINE_MODULE().
  */
-//#define LLECOM_NETWORK_DEBUG
+#define LLECOM_NETWORK_LOG_MODULE_NAME "ecom-network"
 
-#ifdef LLECOM_NETWORK_DEBUG
-#include <stdio.h>
-#define LLECOM_NETWORK_DEBUG_TRACE printf
-#else
-#define LLECOM_NETWORK_DEBUG_TRACE(...) ((void)0)
-#endif // LLECOM_NETWORK_DEBUG
+/**
+ * @brief Verbosity of the ECOM-NETWORK Abstraction Layer.
+ *
+ * Override it in veeport_configuration.h with one of VEEPORT_LOGGER_LEVEL_NONE, _ERR, _WRN, _INF
+ * or _DBG.
+ */
+#ifndef LLECOM_NETWORK_LOG_LEVEL
+#define LLECOM_NETWORK_LOG_LEVEL (VEEPORT_LOGGER_LEVEL_ERR)
+#endif
 
 #ifdef __cplusplus
 }

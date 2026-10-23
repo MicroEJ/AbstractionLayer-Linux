@@ -19,6 +19,9 @@
 #ifndef RIO_ERRORS_H
 #define RIO_ERRORS_H
 
+#include <stdint.h>
+#include "veeport_errors.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -45,6 +48,25 @@ extern "C" {
 #define J_EADDRNOTAVAIL (-22)
 #define J_NETWORK_NOT_INITIALIZED (-25)
 #define J_EUNKNOWN      (-255)
+
+/**
+ * @brief Maps a POSIX errno onto one of the codes above.
+ *
+ * @param[in] posix_errno the errno of a failed POSIX call.
+ *
+ * @return the matching J_* code, J_EUNKNOWN when none matches.
+ */
+int32_t LLRIO_NET_map_errno_to_java(int32_t posix_errno);
+
+/**
+ * @brief Throws the NativeIOException that reports a failed POSIX call.
+ *
+ * The code is the one LLRIO_NET_map_errno_to_java() gives. When it is J_EUNKNOWN, the message carries
+ * the errno and its description.
+ *
+ * @param[in] posix_errno the errno of the failed POSIX call.
+ */
+void LLRIO_throw_errno(int32_t posix_errno);
 
 #ifdef __cplusplus
 }

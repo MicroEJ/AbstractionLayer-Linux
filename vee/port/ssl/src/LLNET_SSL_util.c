@@ -14,6 +14,26 @@
 #include <openssl/pem.h>
 #include <openssl/err.h>
 
+VEEPORT_LOGGER_DEFINE_MODULE(LLNET_SSL_LOG_MODULE_NAME, LLNET_SSL_LOG_LEVEL)
+
+void LLNET_SSL_throw_caught_exception(int32_t error_code, const char *message) {
+	if (J_UNKNOWN_ERROR == error_code) {
+		VEEPORT_ERRORS_throw_caught_exception_message(error_code, "%s", message);
+	} else {
+		VEEPORT_LOGGER_LOG_DBG("%s (%d)", message, error_code);
+		VEEPORT_ERRORS_throw_caught_exception(error_code);
+	}
+}
+
+void LLNET_SSL_throw_runtime_exception(int32_t error_code, const char *message) {
+	if (J_UNKNOWN_ERROR == error_code) {
+		VEEPORT_ERRORS_throw_runtime_exception_message(error_code, "%s", message);
+	} else {
+		VEEPORT_LOGGER_LOG_DBG("%s (%d)", message, error_code);
+		VEEPORT_ERRORS_throw_runtime_exception(error_code);
+	}
+}
+
 /**
  * @file
  * @brief LLNET_SSL implementation over OpenSSL utility functions.
@@ -69,20 +89,31 @@ X509 * LLNET_SSL_X509_CERT_create(const uint8_t *cert, int32_t off, int32_t len,
 	return x509;
 }
 
-#ifdef LLNET_SSL_DEBUG
+/** @brief Size of the buffer holding one formatted OpenSSL error message. */
+#define SSL_ERROR_STRING_SIZE (80U)
 
-void LLNET_SSL_print_errors() {
-	char buf[80];
-	int32_t err;
+void LLNET_SSL_print_errors(void) {
+	char buf[SSL_ERROR_STRING_SIZE] = { 0 };
+	unsigned long err = ERR_get_error();
 
-	// Print out the SSL error queue
-	while (0 != (err = ERR_get_error())) {
+	// Empty the OpenSSL error queue, one log message per entry.
+	while (0UL != err) {
 		ERR_error_string_n(err, buf, sizeof(buf));
-		printf("OpenSSL error reason = %s\n", buf);
+		VEEPORT_LOGGER_LOG_ERR("OpenSSL error reason = %s", buf);
+		err = ERR_get_error();
 	}
 }
 
-#endif /* LLNET_SSL_DEBUG */
+void LLNET_SSL_handle_blocking_operation_error(int32_t fd, int32_t fd_errno, select_operation operation,
+                                               int64_t absolute_timeout_ms, SNI_callback callback,
+                                               void *callback_suspend_arg) {
+	if ((0 != absolute_timeout_ms) && (absolute_timeout_ms < LLNET_current_time_ms())) {
+		(void)SNI_throwNativeIOException(J_SOCKET_TIMEOUT, "timeout");
+	} else {
+		LLNET_handle_blocking_operation_error(fd, fd_errno, operation, absolute_timeout_ms, callback,
+		                                      callback_suspend_arg);
+	}
+}
 
 #ifdef __cplusplus
 }

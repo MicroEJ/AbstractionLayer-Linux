@@ -26,6 +26,7 @@
 
 #include <openssl/ssl.h>
 #include "async_select.h"
+#include "LLNET_SSL_util.h"
 
 /* --- Transport bind ----------------------------------------------------- */
 /* Default: OpenSSL's built-in socket BIO via SSL_set_fd, correct whenever the
@@ -41,16 +42,17 @@
 #endif
 
 /* --- Blocking wait ------------------------------------------------------ */
-/* Default: the async_select request mechanism. */
+/* Default: the async_select request mechanism, through the SSL helper so a reached
+ * timeout is reported with the SSL error code. */
 #ifndef LLNET_SSL_WAIT_READ
-#define LLNET_SSL_WAIT_READ(fd, absolute_timeout_ms, callback)                                                       \
-		LLNET_handle_blocking_operation_error((fd), llnet_errno(fd), SELECT_READ, (absolute_timeout_ms), (callback), \
-											  NULL)
+#define LLNET_SSL_WAIT_READ(fd, absolute_timeout_ms, callback)                                               \
+		LLNET_SSL_handle_blocking_operation_error((fd), llnet_errno(fd), SELECT_READ, (absolute_timeout_ms), \
+												  (callback), NULL)
 #endif
 #ifndef LLNET_SSL_WAIT_WRITE
-#define LLNET_SSL_WAIT_WRITE(fd, absolute_timeout_ms, callback)                                                       \
-		LLNET_handle_blocking_operation_error((fd), llnet_errno(fd), SELECT_WRITE, (absolute_timeout_ms), (callback), \
-											  NULL)
+#define LLNET_SSL_WAIT_WRITE(fd, absolute_timeout_ms, callback)                                               \
+		LLNET_SSL_handle_blocking_operation_error((fd), llnet_errno(fd), SELECT_WRITE, (absolute_timeout_ms), \
+												  (callback), NULL)
 #endif
 
 #endif /* LLNET_SSL_CONFIGURATION_H */

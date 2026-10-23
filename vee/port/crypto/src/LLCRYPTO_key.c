@@ -6,30 +6,29 @@
  * Build: 7E4D1F7C
  */
 
-#include "LLCRYPTO_key.h"
-#include "LLCRYPTO_configuration.h"
-#include <sni.h>
-#include <openssl/evp.h>
-#include <openssl/x509.h>
 #include <stdlib.h>
 #include <string.h>
+#include <openssl/crypto.h>
+#include <openssl/evp.h>
+#include <openssl/x509.h>
+#include <LLCRYPTO_CONSTANTS.h>
+#include <sni.h>
 
-// #define LLCRYPTO_KEY_DEBUG_TRACE
+#include "LLCRYPTO_configuration.h"
+#include "LLCRYPTO_key.h"
 
-#ifdef LLCRYPTO_KEY_DEBUG_TRACE
-#define LLCRYPTO_KEY_DEBUG_PRINTF(...) (void)printf(__VA_ARGS__)
-#else
-#define LLCRYPTO_KEY_DEBUG_PRINTF(...) ((void)0)
-#endif
+VEEPORT_LOGGER_DEFINE_MODULE(LLCRYPTO_LOG_MODULE_NAME, LLCRYPTO_LOG_LEVEL)
 
 static struct llcrypto_key *llcrypto_key_new(enum llcrypto_key_type type) {
 	struct llcrypto_key *key = (struct llcrypto_key *)LLCRYPTO_calloc(1, sizeof(struct llcrypto_key));
 
-	if (key != NULL) {
+	if (NULL != key) {
 		key->type = type;
+#if defined(LLCRYPTO_KEYSTORE_PKCS11)
 		key->alias = NULL;
+#endif
 
-		if (type == LLCRYPTO_KEY_TYPE_EVP_PKEY) {
+		if (LLCRYPTO_KEY_TYPE_EVP_PKEY == type) {
 			key->evp_key = NULL;
 		} else {
 			key->secret_key.buffer = NULL;
@@ -52,6 +51,9 @@ void llcrypto_key_free(struct llcrypto_key *key) {
 		EVP_PKEY_free(key->evp_key);
 		break;
 	case LLCRYPTO_KEY_TYPE_SECRET_KEY:
+		if (NULL != key->secret_key.buffer) {
+			OPENSSL_cleanse(key->secret_key.buffer, key->secret_key.length);
+		}
 		LLCRYPTO_free(key->secret_key.buffer);
 		LLCRYPTO_free(key->secret_key.algorithm);
 		break;
@@ -60,10 +62,13 @@ void llcrypto_key_free(struct llcrypto_key *key) {
 		break;
 	}
 
+#if defined(LLCRYPTO_KEYSTORE_PKCS11)
 	LLCRYPTO_free(key->alias);
+#endif
 
-	if (SNI_unregisterResource(key, (SNI_closeFunction)llcrypto_key_free) != SNI_OK) {
-		(void)SNI_throwNativeException(SNI_ERROR, "Can't unregister SNI native resource\n");
+	if (SNI_OK != SNI_unregisterResource(key, (SNI_closeFunction)llcrypto_key_free)) {
+		VEEPORT_ERRORS_throw_runtime_exception_message(LLCRYPTO_UNSPECIFIED_EXCEPTION,
+		                                               "Can't unregister SNI native resource");
 	}
 	LLCRYPTO_free(key);
 }
@@ -79,7 +84,7 @@ int32_t llcrypto_key_get_encoded_max_size(const struct llcrypto_key *key) {
 		break;
 	}
 
-	LLCRYPTO_KEY_DEBUG_PRINTF("%s max_size = %d\n", __func__, max_size);
+	VEEPORT_LOGGER_LOG_DBG("max_size = %d", max_size);
 	return max_size;
 }
 
@@ -97,57 +102,75 @@ int32_t llcrypto_key_get_encoded(const struct llcrypto_key *key, uint8_t *output
 		break;
 	}
 
-	LLCRYPTO_KEY_DEBUG_PRINTF("%s key_length = %d\n", __func__, key_length);
+	VEEPORT_LOGGER_LOG_DBG("key_length = %d", key_length);
 	return key_length;
 }
 
 struct llcrypto_key *llcrypto_key_from_evp_pkey(EVP_PKEY *evp_key) {
 	struct llcrypto_key *key = llcrypto_key_new(LLCRYPTO_KEY_TYPE_EVP_PKEY);
 
-	if (key != NULL) {
+	if (NULL != key) {
 		key->evp_key = evp_key;
 	}
 
 	return key;
 }
 
-struct llcrypto_key *llcrypto_key_from_x509_public_key(uint8_t *encoded, size_t len) {
-	struct llcrypto_key *key = llcrypto_key_new(LLCRYPTO_KEY_TYPE_EVP_PKEY);
+typedef EVP_PKEY *(*llcrypto_key_decoder)(EVP_PKEY **key, const unsigned char **der, long length);
 
-	if (key != NULL) {
-		key->evp_key = d2i_PUBKEY(NULL, (const unsigned char **)&encoded, (long)len);
-		if (key->evp_key == NULL) {
-			llcrypto_key_free(key);
-			key = NULL;
+/**
+ * @brief Decodes key material into a new key.
+ *
+ * The material is decoded before the key is allocated, so that invalid material never registers a native resource.
+ *
+ * @param[in] decode       the OpenSSL decoder of the format.
+ * @param[in] encoded_key  the DER-encoded key material.
+ * @param[in] key_length   the length of the material in bytes.
+ * @param[out] key_out     the new key on success, NULL on failure.
+ *
+ * @return `LLCRYPTO_SUCCESS`, `LLCRYPTO_ERROR_OOM`, or `LLCRYPTO_ERROR` when OpenSSL cannot decode the material.
+ */
+static int32_t llcrypto_key_from_der(llcrypto_key_decoder decode, const uint8_t *encoded_key, size_t key_length,
+                                     struct llcrypto_key **key_out) {
+	int32_t return_code = LLCRYPTO_ERROR;
+	struct llcrypto_key *key = NULL;
+	const unsigned char *der = (const unsigned char *)encoded_key;
+	EVP_PKEY *evp_key = decode(NULL, &der, (long)key_length);
+
+	if (NULL != evp_key) {
+		key = llcrypto_key_from_evp_pkey(evp_key);
+		if (NULL == key) {
+			EVP_PKEY_free(evp_key);
+			return_code = LLCRYPTO_ERROR_OOM;
+		} else {
+			return_code = LLCRYPTO_SUCCESS;
 		}
 	}
 
-	return key;
+	*key_out = key;
+	return return_code;
 }
 
-struct llcrypto_key *llcrypto_key_from_pkcs8_private_key(uint8_t *encoded, size_t len) {
-	struct llcrypto_key *key = llcrypto_key_new(LLCRYPTO_KEY_TYPE_EVP_PKEY);
-
-	if (key != NULL) {
-		key->evp_key = d2i_AutoPrivateKey(NULL, (const unsigned char **)&encoded, (long)len);
-		if (key->evp_key == NULL) {
-			llcrypto_key_free(key);
-			key = NULL;
-		}
-	}
-
-	return key;
+int32_t llcrypto_key_from_x509_public_key(const uint8_t *encoded_key, size_t key_length,
+                                          struct llcrypto_key **key_out) {
+	return llcrypto_key_from_der(d2i_PUBKEY, encoded_key, key_length, key_out);
 }
 
-struct llcrypto_key *llcrypto_key_from_secret_key(uint8_t *secret_key, size_t key_length, uint8_t *algorithm) {
+int32_t llcrypto_key_from_pkcs8_private_key(const uint8_t *encoded_key, size_t key_length,
+                                            struct llcrypto_key **key_out) {
+	return llcrypto_key_from_der(d2i_AutoPrivateKey, encoded_key, key_length, key_out);
+}
+
+struct llcrypto_key *llcrypto_key_from_secret_key(const uint8_t *secret_key, size_t key_length,
+                                                  const uint8_t *algorithm) {
 	struct llcrypto_key *key = llcrypto_key_new(LLCRYPTO_KEY_TYPE_SECRET_KEY);
 
-	if (key != NULL) {
+	if (NULL != key) {
 		key->secret_key.buffer = (unsigned char *)LLCRYPTO_calloc(1, key_length);
-		if (key->secret_key.buffer != NULL) {
+		if (NULL != key->secret_key.buffer) {
 			(void)memcpy(key->secret_key.buffer, secret_key, key_length);
 			key->secret_key.length = key_length;
-			key->secret_key.algorithm = (algorithm != NULL) ? LLCRYPTO_strdup((const char *)algorithm) : NULL;
+			key->secret_key.algorithm = (NULL != algorithm) ? LLCRYPTO_strdup((const char *)algorithm) : NULL;
 		} else {
 			llcrypto_key_free(key);
 			key = NULL;

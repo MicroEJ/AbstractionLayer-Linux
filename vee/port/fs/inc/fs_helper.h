@@ -3,6 +3,7 @@
  *
  * Copyright 2014-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
+ * Build: 7E4D1F7C
  */
 
 #ifndef FS_HELPER_H
@@ -100,8 +101,7 @@ typedef struct {
 typedef struct {
 	uint8_t path[FS_PATH_LENGTH]; /*!< [IN] Path of the operation. */
 	int32_t result; /*!< [OUT] Result of the operation. */
-	int32_t error_code; /*!< [OUT] Error code returned in case of error. */
-	char *error_message; /*!< [OUT] Error message related to the error code. */
+	int32_t error_code; /*!< [OUT] errno of the failed C library call, or 0 when no errno applies. */
 } FS_create_t;
 
 /**
@@ -189,8 +189,7 @@ typedef struct {
 	uint8_t path[FS_PATH_LENGTH]; /*!< [IN] Path of the operation. */
 	int32_t result; /*!< [OUT] Result of the operation. */
 	uint8_t mode; /*!< [IN] Opening mode. */
-	int32_t error_code; /*!< [OUT] Error code returned in case of error. */
-	char *error_message; /*!< [OUT] Error message related to the error code. */
+	int32_t error_code; /*!< [OUT] errno of the failed C library call, or 0 when no errno applies. */
 } FS_open_t;
 
 /**
@@ -248,8 +247,7 @@ typedef struct {
 	uint8_t *data; /*!< [IN/OUT] Data read (output) or data to write (input). */
 	int32_t length; /*!< [IN] Length of the data. */
 	int32_t result; /*!< [OUT] Result of the operation. */
-	int32_t error_code; /*!< [OUT] Error code returned in case of error. */
-	char *error_message; /*!< [OUT] Error message related to the error code. */
+	int32_t error_code; /*!< [OUT] errno of the failed C library call, or 0 when no errno applies. */
 	uint8_t buffer[FS_IO_BUFFER_SIZE]; /*!< Internal buffer. Content must not be modified. */
 } FS_write_read_t;
 
@@ -264,8 +262,7 @@ typedef struct {
 typedef struct {
 	int32_t file_id; /*!< [IN] ID of the file on which to perform the operation. */
 	int32_t result; /*!< [OUT] Result of the operation. */
-	int32_t error_code; /*!< [OUT] Error code returned in case of error. */
-	char *error_message; /*!< [OUT] Error message related to the error code. */
+	int32_t error_code; /*!< [OUT] errno of the failed C library call, or 0 when no errno applies. */
 } FS_close_t;
 
 /**
@@ -280,8 +277,7 @@ typedef struct {
 	int32_t file_id; /*!< [IN] ID of the file on which to perform the operation. */
 	int64_t n; /*!< [IN] the new position of the file pointer. */
 	int32_t result; /*!< [OUT] Result of the operation. */
-	int32_t error_code; /*!< [OUT] Error code returned in case of error. */
-	char *error_message; /*!< [OUT] Error message related to the error code. */
+	int32_t error_code; /*!< [OUT] errno of the failed C library call, or 0 when no errno applies. */
 } FS_seek_t;
 
 /**
@@ -295,8 +291,7 @@ typedef struct {
 typedef struct {
 	int32_t file_id; /*!< [IN] ID of the file on which to perform the operation. */
 	int64_t result; /*!< [OUT] Result of the operation. */
-	int32_t error_code; /*!< [OUT] Error code returned in case of error. */
-	char *error_message; /*!< [OUT] Error message related to the error code. */
+	int32_t error_code; /*!< [OUT] errno of the failed C library call, or 0 when no errno applies. */
 } FS_getfp_t;
 
 /**
@@ -311,8 +306,7 @@ typedef struct {
 	int32_t file_id; /*!< [IN] ID of the file on which to perform the operation. */
 	int64_t length; /*!< [IN] the new length of the file. */
 	int32_t result; /*!< [OUT] Result of the operation. */
-	int32_t error_code; /*!< [OUT] Error code returned in case of error. */
-	char *error_message; /*!< [OUT] Error message related to the error code. */
+	int32_t error_code; /*!< [OUT] errno of the failed C library call, or 0 when no errno applies. */
 } FS_set_length_t;
 
 /**
@@ -326,8 +320,7 @@ typedef struct {
 typedef struct {
 	int32_t file_id; /*!< [IN] ID of the file on which to perform the operation. */
 	int64_t result; /*!< [OUT] Result of the operation. */
-	int32_t error_code; /*!< [OUT] Error code returned in case of error. */
-	char *error_message; /*!< [OUT] Error message related to the error code. */
+	int32_t error_code; /*!< [OUT] errno of the failed C library call, or 0 when no errno applies. */
 } FS_get_length_with_fd_t;
 
 /**
@@ -341,8 +334,7 @@ typedef struct {
 typedef struct {
 	int32_t file_id; /*!< [IN] ID of the file on which to perform the operation. */
 	int32_t result; /*!< [OUT] Result of the operation. */
-	int32_t error_code; /*!< [OUT] Error code returned in case of error. */
-	char *error_message; /*!< [OUT] Error message related to the error code. */
+	int32_t error_code; /*!< [OUT] errno of the failed C library call, or 0 when no errno applies. */
 } FS_available_t;
 
 /**
@@ -356,8 +348,7 @@ typedef struct {
 typedef struct {
 	int32_t file_id; /*!< [IN] ID of the file on which to perform the operation. */
 	int32_t result; /*!< [OUT] Result of the operation. */
-	int32_t error_code; /*!< [OUT] Error code returned in case of error. */
-	char *error_message; /*!< [OUT] Error message related to the error code. */
+	int32_t error_code; /*!< [OUT] errno of the failed C library call, or 0 when no errno applies. */
 } FS_flush_t;
 /**
  * @union FS_worker_param_t
@@ -580,6 +571,30 @@ void LLFS_File_IMPL_available_action(MICROEJ_ASYNC_WORKER_job_t *job);
  * @param[in] job the context of the job, containing input/output parameters
  */
 void LLFS_File_IMPL_flush_action(MICROEJ_ASYNC_WORKER_job_t *job);
+
+/**
+ * @brief Copies a file path from an input buffer to another buffer that will be sent to
+ * the async_worker job, checking against path size constraints.
+ *
+ * @param[in] path caller buffer where the file path is stored.
+ * @param[in] path_param buffer where the file path will be copied if the path size constraints are solved.
+ *
+ * @return <code>LLFS_OK</code> on success, <code>LLFS_NOK</code> when the path does not fit. No exception is
+ * thrown: the caller throws the one its LLAPI contract documents.
+ */
+int32_t LLFS_copy_path_param(uint8_t *path, uint8_t *path_param);
+
+/**
+ * @brief Throws the NativeIOException that reports a failed async_worker job.
+ *
+ * Called on the VM thread, from the <code>on_done</code> callback of the job. The worker thread records
+ * the failure in the job and never throws itself.
+ *
+ * The exception carries the <code>LLFS_NOK</code> code. When an errno applies, the message carries it.
+ *
+ * @param[in] fd_errno the errno of the failed C library call, or 0 when no errno applies.
+ */
+void LLFS_throw_job_error(int32_t fd_errno);
 
 #ifdef __cplusplus
 }

@@ -50,6 +50,67 @@ extern "C" {
 // ----------------------------------------------------------------------------
 
 // ############################################################################
+//                        VEE Port Logger Configuration
+// ############################################################################
+
+/**
+ * @brief Adds the function name and the line number to every message.
+ *
+ * The abstraction layer logs need to print the function name, especially on entry and exit.
+ * Turning this feature off makes them unreadable.
+ */
+#define VEEPORT_LOGGER_VERBOSE (1)
+
+/**
+ * @brief Log level of each abstraction layer.
+ *
+ * Each layer declares its own default in its configuration header. Uncomment a line below to
+ * override it with one of VEEPORT_LOGGER_LEVEL_NONE, _ERR, _WRN, _INF or _DBG.
+ */
+//#define LLAUDIO_LOG_LEVEL (VEEPORT_LOGGER_LEVEL_DBG)
+//#define LLCRYPTO_LOG_LEVEL (VEEPORT_LOGGER_LEVEL_DBG)
+//#define LLDISPLAY_LOG_LEVEL (VEEPORT_LOGGER_LEVEL_DBG)
+//#define LLDISPLAY_MINIFB_LOG_LEVEL (VEEPORT_LOGGER_LEVEL_DBG)
+//#define LLECOM_NETWORK_LOG_LEVEL (VEEPORT_LOGGER_LEVEL_DBG)
+//#define LLEVENT_LOG_LEVEL (VEEPORT_LOGGER_LEVEL_DBG)
+//#define LLFS_LOG_LEVEL (VEEPORT_LOGGER_LEVEL_DBG)
+//#define LLKERNEL_LOG_LEVEL (VEEPORT_LOGGER_LEVEL_DBG)
+//#define LLMJVM_LOG_LEVEL (VEEPORT_LOGGER_LEVEL_DBG)
+//#define LLNET_LOG_LEVEL (VEEPORT_LOGGER_LEVEL_DBG)
+//#define LLNET_SSL_LOG_LEVEL (VEEPORT_LOGGER_LEVEL_DBG)
+//#define LLRIO_LOG_LEVEL (VEEPORT_LOGGER_LEVEL_DBG)
+//#define LLSERIAL_LOG_LEVEL (VEEPORT_LOGGER_LEVEL_DBG)
+//#define LLTOUCH_LOG_LEVEL (VEEPORT_LOGGER_LEVEL_DBG)
+//#define OSAL_LOG_LEVEL (VEEPORT_LOGGER_LEVEL_DBG)
+
+/**
+ * @brief Prevent truncation of log messages.
+ *
+ */
+#define VEEPORT_LOGGER_MSG_SIZE (1024)
+
+// ############################################################################
+//                   VEE Port Essentials Critical Section
+// ############################################################################
+
+/**
+ * @brief Enters the critical section that protects the shared state of VEE Port Essentials.
+ *
+ * The error helpers format their message in one shared buffer, and the abstraction layers log and
+ * throw from the VM thread and from their worker threads. Both functions map the section onto a
+ * mutex of the C library, see veeport_critical_section.c.
+ */
+void VEEPORT_CRITICAL_SECTION_enter(void);
+
+/**
+ * @brief Leaves the critical section entered by VEEPORT_CRITICAL_SECTION_enter().
+ */
+void VEEPORT_CRITICAL_SECTION_exit(void);
+
+#define VEEPORT_ENTER_CRITICAL() VEEPORT_CRITICAL_SECTION_enter()
+#define VEEPORT_EXIT_CRITICAL()  VEEPORT_CRITICAL_SECTION_exit()
+
+// ############################################################################
 //                        Core Engine Configuration
 // ############################################################################
 

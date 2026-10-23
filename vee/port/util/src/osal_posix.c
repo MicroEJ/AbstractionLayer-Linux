@@ -24,6 +24,24 @@
 #include <string.h>
 #include <stdio.h>
 #include "osal.h"
+#include "veeport_logger.h"
+
+/**
+ * @brief Name of the log module of the POSIX OSAL implementation.
+ */
+#define OSAL_LOG_MODULE_NAME "osal"
+
+/**
+ * @brief Verbosity of the POSIX OSAL implementation.
+ *
+ * Override it in veeport_configuration.h with one of VEEPORT_LOGGER_LEVEL_NONE, _ERR, _WRN, _INF
+ * or _DBG.
+ */
+#ifndef OSAL_LOG_LEVEL
+#define OSAL_LOG_LEVEL (VEEPORT_LOGGER_LEVEL_ERR)
+#endif
+
+VEEPORT_LOGGER_DEFINE_MODULE(OSAL_LOG_MODULE_NAME, OSAL_LOG_LEVEL)
 
 #define NANOSECONDS_IN_SECONDS 1000000000
 #define NANOSECONDS_IN_MILLISECONDS 1000000
@@ -320,7 +338,7 @@ OSAL_status_t OSAL_counter_semaphore_take(OSAL_counter_semaphore_handle_t *handl
 		result = OSAL_add_milliseconds_to_posix_current_time(timeout, &ts);
 		if (OSAL_OK == result) {
 			if (-1 == sem_timedwait(handle, &ts)) {
-				printf("[ERROR] failed to take semaphore (%s) with timeout %ld\n", strerror(errno), ts.tv_nsec);
+				VEEPORT_LOGGER_LOG_ERR("cannot take the semaphore (%s) with timeout %ld", strerror(errno), ts.tv_nsec);
 				if (ETIMEDOUT == errno) {
 					result = OSAL_TIMEOUT;
 				} else {

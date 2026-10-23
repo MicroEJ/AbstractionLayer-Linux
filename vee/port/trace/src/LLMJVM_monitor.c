@@ -174,6 +174,11 @@ void LLMJVM_MONITOR_IMPL_on_shutdown(void) {
 
 #endif
 
+/*
+ * The method traces below are written with printf, not with the VEE Port logger: they are the
+ * output of the method tracer itself, and the "@A:0x...@" markers are parsed by the SDK, which a
+ * module name and a level prefix would break.
+ */
 void LLMJVM_MONITOR_IMPL_on_invoke_method(int32_t method_start_address) {
 #if MICROEJ_VEE_METHOD_TRACE == 1
 	Dl_info info;

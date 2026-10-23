@@ -18,10 +18,19 @@
 
 #include "ecom_network_configuration.h"
 #include "microej_async_worker.h"
+#include "veeport_errors.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/**
+ * @brief Code of the NativeIOException thrown for a failure the ECOM-NETWORK LLAPI has no code for.
+ *
+ * The LLAPI defines no error code, so -1 is the only one, per the VEE Port Essentials convention. The
+ * exception message names the failure.
+ */
+#define LLECOM_NETWORK_ERROR_UNDEFINED (-1)
 
 /*
  * IMPORTANT NOTICES

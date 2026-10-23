@@ -10,6 +10,8 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include "veeport_logger.h"
+#include "veeport_errors.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -30,31 +32,21 @@ extern "C" {
  */
 #define EVENT_NOK (-1)
 
-#define LLEVENT_PUMP_LOGLEVEL_NONE               (0)
-#define LLEVENT_PUMP_LOGLEVEL_ERROR              (LLEVENT_PUMP_LOGLEVEL_NONE + 1)
-#define LLEVENT_PUMP_LOGLEVEL_WARNING            (LLEVENT_PUMP_LOGLEVEL_ERROR + 1)
-#define LLEVENT_PUMP_LOGLEVEL_INFO               (LLEVENT_PUMP_LOGLEVEL_WARNING + 1)
-#define LLEVENT_PUMP_LOGLEVEL_DEBUG              (LLEVENT_PUMP_LOGLEVEL_INFO + 1)
-
-#define LLEVENT_PUMP_LOGLEVEL                    (LLEVENT_PUMP_LOGLEVEL_ERROR) // Set log level
+/**
+ * @brief Name of the log module shared by every source file of the Event Queue Abstraction Layer.
+ *
+ * Each source file that logs registers the module with VEEPORT_LOGGER_DEFINE_MODULE().
+ */
+#define LLEVENT_LOG_MODULE_NAME "event-queue"
 
 /**
- * @brief EVENT log macros
+ * @brief Verbosity of the Event Queue Abstraction Layer.
+ *
+ * Override it in veeport_configuration.h with one of VEEPORT_LOGGER_LEVEL_NONE, _ERR, _WRN, _INF
+ * or _DBG.
  */
-#if LLEVENT_PUMP_LOGLEVEL >= LLEVENT_PUMP_LOGLEVEL_DEBUG
-#define LLEVENT_DEBUG_TRACE(...)      (void)printf("[DEB] (%s:%d) ", __func__, __LINE__); (void)printf(__VA_ARGS__)
-#else
-#define LLEVENT_DEBUG_TRACE(...)      ((void)0)
-#endif
-#if LLEVENT_PUMP_LOGLEVEL >= LLEVENT_PUMP_LOGLEVEL_INFO
-#define LLEVENT_INFO_TRACE(...)       (void)printf("[INF] (%s:%d) ", __func__, __LINE__); (void)printf(__VA_ARGS__)
-#else
-#define LLEVENT_INFO_TRACE(...)       ((void)0)
-#endif
-#if LLEVENT_PUMP_LOGLEVEL >= LLEVENT_PUMP_LOGLEVEL_ERROR
-#define LLEVENT_ERROR_TRACE(...)      (void)printf("[ERR] "); (void)printf(__VA_ARGS__)
-#else
-#define LLEVENT_ERROR_TRACE(...)      ((void)0)
+#ifndef LLEVENT_LOG_LEVEL
+#define LLEVENT_LOG_LEVEL (VEEPORT_LOGGER_LEVEL_ERR)
 #endif
 
 #ifdef __cplusplus

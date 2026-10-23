@@ -20,6 +20,8 @@
 #include "LLDISPLAY_FB.h"
 #include "LLDISPLAY_FB_drm.h"
 
+VEEPORT_LOGGER_DEFINE_MODULE(LLDISPLAY_LOG_MODULE_NAME, LLDISPLAY_LOG_LEVEL)
+
 static uint32_t buf_id = 0;
 static uint32_t connector_id = 0;
 static uint32_t crtc_id = 0;
@@ -35,18 +37,18 @@ int lldisplay_fb_drm_getscreeninfo(int fd, lldisplay_screeninfo_t *display_scree
 
 	ret = drmGetCap(fd, DRM_CAP_DUMB_BUFFER, &has_dumb);
 	if ((ret < 0) || !has_dumb) {
-		LLDISPLAY_LOG_WARNING("Device does not support dumb buffers (%d): %m\n", errno);
+		VEEPORT_LOGGER_LOG_ERR("Device does not support dumb buffers (%d): %m", errno);
 		return -errno;
 	}
 
 	/* retrieve resources */
 	res = drmModeGetResources(fd);
 	if (!res) {
-		LLDISPLAY_LOG_WARNING("cannot retrieve DRM resources (%d): %m\n", errno);
+		VEEPORT_LOGGER_LOG_ERR("cannot retrieve DRM resources (%d): %m", errno);
 		return -errno;
 	}
 	if (res->count_connectors == 0) {
-		LLDISPLAY_LOG_WARNING("No connector found\n");
+		VEEPORT_LOGGER_LOG_ERR("no connector found");
 		drmModeFreeResources(res);
 		return -1;
 	}
@@ -55,13 +57,13 @@ int lldisplay_fb_drm_getscreeninfo(int fd, lldisplay_screeninfo_t *display_scree
 	for (int i = 0; i < res->count_connectors; i++) {
 		connector = drmModeGetConnector(fd, res->connectors[i]);
 		if (!connector) {
-			LLDISPLAY_LOG_WARNING("cannot retrieve DRM connector %d:%u (%d): %m\n", i, res->connectors[i], errno);
+			VEEPORT_LOGGER_LOG_WRN("cannot retrieve DRM connector %d:%u (%d): %m", i, res->connectors[i], errno);
 			continue;
 		}
 		if (connector->connection == DRM_MODE_CONNECTED) {
 #if 0 /* drmModeGetConnectorTypeName supported with libdrm >= 2.4.112 */
-			LLDISPLAY_LOG_DEBUG("Found Connector: %d type %s\n", connector->connector_id,
-			                    drmModeGetConnectorTypeName(connector->connector_type));
+			VEEPORT_LOGGER_LOG_DBG("Found Connector: %d type %s", connector->connector_id,
+			                       drmModeGetConnectorTypeName(connector->connector_type));
 #endif
 			break;
 		}
@@ -71,7 +73,7 @@ int lldisplay_fb_drm_getscreeninfo(int fd, lldisplay_screeninfo_t *display_scree
 
 	/* check if we found a monitor connected */
 	if (!connector) {
-		LLDISPLAY_LOG_WARNING("Monitor not connected\n");
+		VEEPORT_LOGGER_LOG_ERR("monitor not connected");
 		drmModeFreeResources(res);
 		return -1;
 	}
@@ -80,7 +82,7 @@ int lldisplay_fb_drm_getscreeninfo(int fd, lldisplay_screeninfo_t *display_scree
 
 	/* check if there is at least one valid mode */
 	if (connector->count_modes == 0) {
-		LLDISPLAY_LOG_WARNING("no valid mode for connector\n");
+		VEEPORT_LOGGER_LOG_ERR("no valid mode for connector");
 		drmModeFreeConnector(connector);
 		drmModeFreeResources(res);
 		;
@@ -92,7 +94,7 @@ int lldisplay_fb_drm_getscreeninfo(int fd, lldisplay_screeninfo_t *display_scree
 	for (int i = 0; i < connector->count_modes; i++) {
 		mode = &connector->modes[i];
 		if (mode->type & DRM_MODE_TYPE_PREFERRED) {
-			LLDISPLAY_LOG_DEBUG("found prefered\n");
+			VEEPORT_LOGGER_LOG_DBG("found the preferred mode");
 			break;
 		}
 	}
@@ -101,23 +103,23 @@ int lldisplay_fb_drm_getscreeninfo(int fd, lldisplay_screeninfo_t *display_scree
 	#endif
 	memcpy(&mode_info, mode, sizeof(drmModeModeInfo));
 
-	LLDISPLAY_LOG_DEBUG("Selected mode: %dx%d\n", mode->hdisplay, mode->vdisplay);
+	VEEPORT_LOGGER_LOG_DBG("Selected mode: %dx%d", mode->hdisplay, mode->vdisplay);
 
 	/* Get the crtc settings */
 	if (connector->encoder_id != 0) {
 		encoder = drmModeGetEncoder(fd, connector->encoder_id);
 		if (!encoder) {
-			LLDISPLAY_LOG_WARNING("Could retrieve encoder %u (%d): %m\n", connector->encoder_id, errno);
+			VEEPORT_LOGGER_LOG_ERR("cannot retrieve the encoder %u (%d): %m", connector->encoder_id, errno);
 			return -errno;
 		}
-		LLDISPLAY_LOG_DEBUG("Found CRTC %u, encoder %u\n", encoder->crtc_id, encoder->encoder_id);
+		VEEPORT_LOGGER_LOG_DBG("Found CRTC %u, encoder %u", encoder->crtc_id, encoder->encoder_id);
 		crtc_id = encoder->crtc_id;
 		drmModeFreeEncoder(encoder);
 	} else if (connector->count_encoders > 0) {
 		for (int i = 0; i < connector->count_encoders; i++) {
 			encoder = drmModeGetEncoder(fd, connector->encoders[i]);
 			if (!encoder) {
-				LLDISPLAY_LOG_WARNING("Could retrieve encoder %d %u (%d): %m\n", i, connector->encoders[i], errno);
+				VEEPORT_LOGGER_LOG_WRN("cannot retrieve the encoder %d %u (%d): %m", i, connector->encoders[i], errno);
 				continue;
 			}
 			/* iterate all global CRTCs */
@@ -130,22 +132,22 @@ int lldisplay_fb_drm_getscreeninfo(int fd, lldisplay_screeninfo_t *display_scree
 				break;
 			}
 			if (crtc_id != 0) {
-				LLDISPLAY_LOG_DEBUG("Found CRTC %u, encoder %u\n", encoder->crtc_id, encoder->encoder_id);
+				VEEPORT_LOGGER_LOG_DBG("Found CRTC %u, encoder %u", encoder->crtc_id, encoder->encoder_id);
 			}
 			drmModeFreeEncoder(encoder);
 		}
 	} else {
-		LLDISPLAY_LOG_WARNING("No encoder for this connector %u\n", connector->connector_id);
+		VEEPORT_LOGGER_LOG_WRN("no encoder for the connector %u", connector->connector_id);
 		crtc_id = 0;
 	}
 	if (!crtc_id) {
-		LLDISPLAY_LOG_WARNING("Could not get encoder\n");
+		VEEPORT_LOGGER_LOG_ERR("cannot get the encoder");
 		drmModeFreeConnector(connector);
 		drmModeFreeResources(res);
 		return -1;
 	}
 
-	LLDISPLAY_LOG_DEBUG("Screen configuration done\n");
+	VEEPORT_LOGGER_LOG_DBG("Screen configuration done");
 
 	display_screeninfo->width = mode->hdisplay;
 	display_screeninfo->height = mode->vdisplay;
@@ -173,10 +175,10 @@ static int lldisplay_fb_drm_add_fb(int fd, lldisplay_screeninfo_t display_screen
 		if (ret == 0) {
 			*bo_handle = creq.handle;
 		} else {
-			LLDISPLAY_LOG_WARNING("cannot add framebuffer (%d): %m\n", errno);
+			VEEPORT_LOGGER_LOG_ERR("cannot add framebuffer (%d): %m", errno);
 		}
 	} else {
-		LLDISPLAY_LOG_WARNING("cannot create dumb buffer (%d): %m\n", errno);
+		VEEPORT_LOGGER_LOG_ERR("cannot create dumb buffer (%d): %m", errno);
 	}
 	return ret;
 }
@@ -193,13 +195,13 @@ static int lldisplay_fb_drm_map_fb(int fd, int screensize, char **fb_base, uint3
 		*fb_base = mmap(0, screensize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, mreq.offset);
 		//cppcheck-suppress [misra-c2012-11.6] mmap returns (void *) -1
 		if (*fb_base == MAP_FAILED) {
-			LLDISPLAY_LOG_WARNING("mmap failed for size %d: %s\n", screensize, strerror(errno));
+			VEEPORT_LOGGER_LOG_ERR("mmap failed for size %d: %s", screensize, strerror(errno));
 			ret = -errno;
 		} else {
 			ret = 0;
 		}
 	} else {
-		LLDISPLAY_LOG_WARNING("cannot map dumb buffer (%d): %m\n", errno);
+		VEEPORT_LOGGER_LOG_ERR("cannot map dumb buffer (%d): %m", errno);
 	}
 	if (ret != 0) {
 		drmModeRmFB(fd, buf_id);
@@ -231,8 +233,8 @@ int lldisplay_fb_drm_set_crtc(int fd) {
 
 	ret = drmModeSetCrtc(fd, crtc_id, buf_id, 0, 0, &connector_id, 1, &mode_info);
 	if (ret != 0) {
-		LLDISPLAY_LOG_WARNING("drmModeSetCrtc failed for crtc %u buf %u conn %u: %s\n", crtc_id, buf_id, connector_id,
-		                      strerror(errno));
+		VEEPORT_LOGGER_LOG_ERR("drmModeSetCrtc failed for crtc %u buf %u conn %u: %s", crtc_id, buf_id, connector_id,
+		                       strerror(errno));
 	}
 
 	return ret;
@@ -243,7 +245,7 @@ void lldisplay_fb_drm_waitforvsync(int fd) {
 	blank.request.type = (enum drm_vblank_seq_type)DRM_VBLANK_RELATIVE;
 	blank.request.sequence = 1;
 	if (drmWaitVBlank(fd, (drmVBlankPtr) & blank) != 0) {
-		LLDISPLAY_LOG_DEBUG("DRM error during vsync (%s)\n", strerror(errno));
+		VEEPORT_LOGGER_LOG_ERR("DRM error during vsync (%s)", strerror(errno));
 		return;
 	}
 }

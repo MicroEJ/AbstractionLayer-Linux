@@ -23,6 +23,8 @@
 #include "LLNET_ERRORS.h"
 #include "LLNET_Common.h"
 
+VEEPORT_LOGGER_DEFINE_MODULE(LLNET_LOG_MODULE_NAME, LLNET_LOG_LEVEL)
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -30,7 +32,7 @@ extern "C" {
 #define LOCALHOST_NAME ("localhost")
 
 int32_t LLNET_NETWORKADDRESS_IMPL_getLocalHostnameNative(uint8_t *localHostname, int32_t length) {
-	LLNET_DEBUG_TRACE("%s\n", __func__);
+	VEEPORT_LOGGER_LOG_DBG("");
 #ifndef LLNET_USE_DEFAULT_LOCALHOST_NAME
 	jint ret;
 	ret = llnet_gethostname((char *)localHostname, length);
@@ -61,7 +63,7 @@ int32_t LLNET_NETWORKADDRESS_IMPL_getLocalHostnameNative(uint8_t *localHostname,
 }
 
 int32_t LLNET_NETWORKADDRESS_IMPL_lookupInaddrAny(int8_t *anyLocalAddr, int32_t length) {
-	LLNET_DEBUG_TRACE("%s\n", __func__);
+	VEEPORT_LOGGER_LOG_DBG("");
 	// If IPv6 or IPv4+IPv6 configuration, then use IPv6. Otherwise (only IPv4 configuration) use IPv4.
 #if LLNET_AF & LLNET_AF_IPV6
 	if ((uint32_t)length >= sizeof(struct in6_addr)) {
@@ -74,12 +76,13 @@ int32_t LLNET_NETWORKADDRESS_IMPL_lookupInaddrAny(int8_t *anyLocalAddr, int32_t 
 		return sizeof(in_addr_t);
 	}
 #endif
-	SNI_throwNativeIOException(J_EINVAL, "wrong address length");
+	VEEPORT_LOGGER_LOG_DBG("wrong address length");
+	VEEPORT_ERRORS_throw_caught_exception(J_EINVAL);
 	return SNI_IGNORED_RETURNED_VALUE;
 }
 
 int32_t LLNET_NETWORKADDRESS_IMPL_loopbackAddress(int8_t *loopback, int32_t length) {
-	LLNET_DEBUG_TRACE("%s\n", __func__);
+	VEEPORT_LOGGER_LOG_DBG("");
 	// If IPv6 or IPv4+IPv6 configuration, then use IPv6. Otherwise (only IPv4 configuration) use IPv4.
 #if LLNET_AF & LLNET_AF_IPV6
 	if ((uint32_t)length >= sizeof(struct in6_addr)) {
@@ -92,7 +95,8 @@ int32_t LLNET_NETWORKADDRESS_IMPL_loopbackAddress(int8_t *loopback, int32_t leng
 		return sizeof(in_addr_t);
 	}
 #endif
-	SNI_throwNativeIOException(J_EINVAL, "wrong address length");
+	VEEPORT_LOGGER_LOG_DBG("wrong address length");
+	VEEPORT_ERRORS_throw_caught_exception(J_EINVAL);
 	return SNI_IGNORED_RETURNED_VALUE;
 }
 

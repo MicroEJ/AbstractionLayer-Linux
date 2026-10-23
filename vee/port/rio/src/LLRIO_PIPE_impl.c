@@ -23,13 +23,14 @@
 #include <string.h>
 #include <stdint.h>
 #include <sni.h>
+#include "rio_errors.h"
 
 /* ── Pipe creation ─────────────────────────────────────────── */
 
 void LLRIO_PIPE_IMPL_createPipe(jint *fds) {
 	int pipefd[2];
 	if (pipe2(pipefd, O_NONBLOCK | O_CLOEXEC) == -1) {
-		SNI_throwNativeIOException(errno, strerror(errno));
+		LLRIO_throw_errno(errno);
 		return;
 	}
 	fds[0] = pipefd[0];  /* read end */
@@ -52,7 +53,7 @@ jint LLRIO_PIPE_IMPL_read(jint fd, jbyte *buffer, jint offset, jint length) {
 		return 0;  /* No data available, non-blocking. */
 	}
 	/* Real error. */
-	SNI_throwNativeIOException(errno, strerror(errno));
+	LLRIO_throw_errno(errno);
 	return -1;
 }
 
@@ -66,7 +67,7 @@ jint LLRIO_PIPE_IMPL_write(jint fd, jbyte *data, jint offset, jint length) {
 	if (errno == EAGAIN || errno == EWOULDBLOCK) {
 		return 0;  /* Pipe buffer full, non-blocking. */
 	}
-	SNI_throwNativeIOException(errno, strerror(errno));
+	LLRIO_throw_errno(errno);
 	return 0;
 }
 

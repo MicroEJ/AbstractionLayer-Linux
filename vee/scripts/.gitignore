@@ -5,11 +5,10 @@
 # generated at VEE port build time
 /set_project_env.sh
 /project_options.cmake
+/gradle_options.cmake
 /toolchain.cmake
 /test-keystore.p12
 /deploy*.sh
 /deploy*.bat
 /setup*.sh
 
-# generated at deploy/run time (keystore + SoftHSM2 state)
-/runtime/

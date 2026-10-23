@@ -3,13 +3,15 @@
  *
  * Copyright 2018-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
+ *
+ * Build: 7E4D1F7C
  */
 
 /**
  * @file
  * @brief LLKERNEL RAM implementation.
  * @author MicroEJ Development Team
- * @version 3.0.0
+ * @version 3.0.1
  */
 
 #include <stdlib.h>
@@ -18,6 +20,8 @@
 
 #include "LLKERNEL_RAM.h"
 #include "LLKERNEL_impl.h"
+
+VEEPORT_LOGGER_DEFINE_MODULE(LLKERNEL_LOG_MODULE_NAME, LLKERNEL_LOG_LEVEL)
 
 #ifdef __cplusplus
 extern "C" {
@@ -68,27 +72,35 @@ static const char *_error_code_to_str(uint32_t error_code) {
 		str = "RAM_ADDRESS_CHANGED";
 		break;
 	default:
-		LLKERNEL_ASSERT_LOG("No LLKERNEL error code found for %d\n", (int)error_code);
+		VEEPORT_LOGGER_LOG_ERR("no LLKERNEL error code found for %d", (int)error_code);
+		str = "UNKNOWN";
 		break;
 	}
 	return str;
 }
 
-static int8_t _is_valid_feature_handle(installed_feature_t *handle) {
-	installed_feature_t *ptr_feature = first_installed_feature;
-	uint8_t found = 0;
+/**
+ * @brief Get the address of the pointer that refers to a feature in the installed features list.
+ *
+ * The list head is one of these pointers. A caller therefore unlinks the first feature with no
+ * special case.
+ *
+ * @param feature the feature to find. NULL is never in the list.
+ * @return the address of the pointer that refers to the feature. When the feature is not in the
+ *         list, the address of the terminating NULL pointer. That address is the insertion point
+ *         for a new feature.
+ */
+static installed_feature_t ** _get_feature_link(const installed_feature_t *feature) {
+	installed_feature_t **link = &first_installed_feature;
 
-	while (NULL != ptr_feature) {
-		if (ptr_feature == handle) {
-			// Feature handle is the first feature in the list
-			found = 1;
-			break;
-		} else {
-			// Go to the next feature
-			ptr_feature = ptr_feature->next;
-		}
+	while ((NULL != *link) && (feature != *link)) {
+		link = &(*link)->next;
 	}
-	return found;
+	return link;
+}
+
+static bool _is_valid_feature_handle(const installed_feature_t *handle) {
+	return NULL != *_get_feature_link(handle);
 }
 
 #ifdef KERNEL_RAM_IMPL_BESTFIT
@@ -114,41 +126,33 @@ void * BESTFIT_ALLOCATOR_allocate_with_check(int32_t size) {
 #endif // KERNEL_RAM_IMPL_BESTFIT
 
 int32_t LLKERNEL_IMPL_allocateFeature(int32_t size_ROM, int32_t size_RAM) {
-	LLKERNEL_DEBUG_LOG("%s(%d, %d)\n", __func__, size_ROM, size_RAM);
+	VEEPORT_LOGGER_LOG_DBG("(%d, %d)", size_ROM, size_RAM);
 	int32_t ret = 0;
 
-	if (nb_allocated_features == LLKERNEL_MAX_NB_DYNAMIC_FEATURES) {
-		LLKERNEL_WARNING_LOG("Max number of dynamic features installed reached\n");
+	if (LLKERNEL_MAX_NB_DYNAMIC_FEATURES == nb_allocated_features) {
+		VEEPORT_LOGGER_LOG_ERR("the maximum number of installed dynamic features is reached");
 	} else {
-		int total_size = sizeof(struct installed_feature);
+		int32_t total_size = (int32_t)sizeof(installed_feature_t);
 		total_size += KERNEL_AREA_GET_MAX_SIZE(size_ROM, LLKERNEL_ROM_AREA_ALIGNMENT);
 		total_size += KERNEL_AREA_GET_MAX_SIZE(size_RAM, LLKERNEL_RAM_AREA_ALIGNMENT);
 
-		installed_feature_t *total_area = (installed_feature_t *)KERNEL_MALLOC(total_size);
-		if (NULL != total_area) {
-			// Add new allocated feature at the end of the installed features list
-			installed_feature_t *f = (installed_feature_t *)total_area;
-			if (NULL == first_installed_feature) {
-				first_installed_feature = f;
-			} else {
-				installed_feature_t *ptr_feature = first_installed_feature;
-				while (NULL != ptr_feature->next) {
-					ptr_feature = ptr_feature->next;
-				}
-				ptr_feature->next = f;
-			}
+		installed_feature_t *feature = (installed_feature_t *)KERNEL_MALLOC(total_size);
+		if (NULL != feature) {
+			// Initialize the new feature before it becomes reachable from the installed features list
+			feature->ROM_area = KERNEL_AREA_GET_START_ADDRESS((void *)(((int32_t)feature) +
+			                                                           ((int32_t)sizeof(installed_feature_t))),
+			                                                  LLKERNEL_ROM_AREA_ALIGNMENT);
+			feature->ROM_area_size = size_ROM;
+			feature->RAM_area = KERNEL_AREA_GET_START_ADDRESS((void *)(((int32_t)feature->ROM_area) + size_ROM),
+			                                                  LLKERNEL_RAM_AREA_ALIGNMENT);
+			feature->RAM_area_size = size_RAM;
+			feature->next = NULL;
 
+			// Add the new feature at the end of the installed features list
+			*_get_feature_link(NULL) = feature;
 			++nb_allocated_features;
 
-			// Initialize new feature
-			f->ROM_area = KERNEL_AREA_GET_START_ADDRESS((void *)(((int32_t)f) + ((int32_t)sizeof(installed_feature_t))),
-			                                            LLKERNEL_ROM_AREA_ALIGNMENT);
-			f->ROM_area_size = size_ROM;
-			f->RAM_area = KERNEL_AREA_GET_START_ADDRESS((void *)(((int32_t)f->ROM_area) + size_ROM),
-			                                            LLKERNEL_RAM_AREA_ALIGNMENT);
-			f->RAM_area_size = size_RAM;
-			f->next = NULL;
-			ret = (int32_t)f;
+			ret = (int32_t)feature;
 		}
 		// else Out of memory
 	}
@@ -156,59 +160,42 @@ int32_t LLKERNEL_IMPL_allocateFeature(int32_t size_ROM, int32_t size_RAM) {
 }
 
 void LLKERNEL_IMPL_freeFeature(int32_t handle) {
-	LLKERNEL_DEBUG_LOG("%s(0x%.8x)\n", __func__, handle);
+	VEEPORT_LOGGER_LOG_DBG("(0x%.8x)", handle);
 
 	// Remove installed feature from the installed features list
 	installed_feature_t *remove_feature = (installed_feature_t *)handle;
-	installed_feature_t *ptr_feature = first_installed_feature;
-	if (NULL == first_installed_feature) {
-		LLKERNEL_ERROR_LOG("Feature free issue (no feature installed)\n");
+	installed_feature_t **link = _get_feature_link(remove_feature);
+
+	if (NULL == *link) {
+		VEEPORT_LOGGER_LOG_ERR("cannot free the feature: feature not found (handle=0x%.8x)", (unsigned int)handle);
 	} else {
-		if (remove_feature == first_installed_feature) {
-			// Feature to remove is the first one in the installed features list.
-			first_installed_feature = remove_feature->next;
-			--nb_allocated_features;
-		} else {
-			// Search feature in the installed features list and remove it
-			while (NULL != ptr_feature->next) {
-				if (ptr_feature->next == remove_feature) {
-					// Feature to remove found in the installed features list. Now remove it from the list.
-					ptr_feature->next = remove_feature->next;
-					--nb_allocated_features;
-					break;
-				}
-				ptr_feature = ptr_feature->next;
-			}
-			if (ptr_feature->next != remove_feature->next) {
-				LLKERNEL_ERROR_LOG("Feature free issue (feature not found)\n");
-			} else {
-				KERNEL_FREE((void *)handle);
-			}
-		}
+		*link = remove_feature->next;
+		--nb_allocated_features;
+		KERNEL_FREE((void *)handle);
 	}
 }
 
 // cppcheck-suppress [misra-c2012-5.5] Macro name is configured in VEE Port headers.
 int32_t LLKERNEL_IMPL_getAllocatedFeaturesCount(void) {
-	LLKERNEL_DEBUG_LOG("%s()\n", __func__);
-	LLKERNEL_INFO_LOG("%d feature(s) allocated\n", nb_allocated_features);
+	VEEPORT_LOGGER_LOG_DBG("()");
+	VEEPORT_LOGGER_LOG_INF("%d feature(s) allocated", nb_allocated_features);
 	return nb_allocated_features;
 }
 
 int32_t LLKERNEL_IMPL_getFeatureHandle(int32_t allocation_index) {
-	LLKERNEL_DEBUG_LOG("%s(%d)\n", __func__, allocation_index);
+	VEEPORT_LOGGER_LOG_DBG("(%d)", allocation_index);
 	int32_t ret = 0;
 
 	installed_feature_t *ptr_feature = first_installed_feature;
 	int32_t tmp_index = 0;
-	while ((tmp_index != allocation_index) && (NULL != ptr_feature) && (NULL != ptr_feature->next)) {
-		++tmp_index;
+	while ((NULL != ptr_feature) && (tmp_index != allocation_index)) {
 		ptr_feature = ptr_feature->next;
+		++tmp_index;
 	}
 
-	if ((tmp_index != allocation_index) || (NULL == ptr_feature)) {
+	if (NULL == ptr_feature) {
 		// Allocation index not in range of allocated features count
-		LLKERNEL_ERROR_LOG("No feature found at index (allocation_index=%d)\n", allocation_index);
+		VEEPORT_LOGGER_LOG_ERR("no feature found at index (allocation_index=%d)", allocation_index);
 	} else {
 		ret = (int32_t)ptr_feature;
 	}
@@ -216,12 +203,12 @@ int32_t LLKERNEL_IMPL_getFeatureHandle(int32_t allocation_index) {
 }
 
 void * LLKERNEL_IMPL_getFeatureAddressRAM(int32_t handle) {
-	LLKERNEL_DEBUG_LOG("%s(0x%.8x)\n", __func__, handle);
+	VEEPORT_LOGGER_LOG_DBG("(0x%.8x)", handle);
 	void *ret = NULL;
 
 	// Check if feature handle is valid (not freed)
-	if (0 == _is_valid_feature_handle((installed_feature_t *)handle)) {
-		LLKERNEL_ERROR_LOG("Feature handle not valid (handle=0x%.8x\n", (unsigned int)handle);
+	if (false == _is_valid_feature_handle((installed_feature_t *)handle)) {
+		VEEPORT_LOGGER_LOG_ERR("feature handle not valid (handle=0x%.8x)", (unsigned int)handle);
 	} else {
 		ret = ((installed_feature_t *)handle)->RAM_area;
 	}
@@ -229,12 +216,12 @@ void * LLKERNEL_IMPL_getFeatureAddressRAM(int32_t handle) {
 }
 
 void * LLKERNEL_IMPL_getFeatureAddressROM(int32_t handle) {
-	LLKERNEL_DEBUG_LOG("%s(0x%.8x)\n", __func__, handle);
+	VEEPORT_LOGGER_LOG_DBG("(0x%.8x)", handle);
 	void *ret = NULL;
 
 	// Check if feature handle is valid (not freed)
-	if (0 == _is_valid_feature_handle((installed_feature_t *)handle)) {
-		LLKERNEL_ERROR_LOG("Feature handle not valid (handle=0x%.8x\n", (unsigned int)handle);
+	if (false == _is_valid_feature_handle((installed_feature_t *)handle)) {
+		VEEPORT_LOGGER_LOG_ERR("feature handle not valid (handle=0x%.8x)", (unsigned int)handle);
 	} else {
 		ret = ((installed_feature_t *)handle)->ROM_area;
 	}
@@ -242,17 +229,16 @@ void * LLKERNEL_IMPL_getFeatureAddressROM(int32_t handle) {
 }
 
 int32_t LLKERNEL_IMPL_copyToROM(void *dest_address_ROM, void *src_address, int32_t size) {
-	LLKERNEL_DEBUG_LOG("%s(0x%.8x, 0x%.8x, %d)\n", __func__, (unsigned int)dest_address_ROM, (unsigned int)src_address,
-	                   size);
+	VEEPORT_LOGGER_LOG_DBG("(0x%.8x, 0x%.8x, %d)", (unsigned int)dest_address_ROM, (unsigned int)src_address, size);
 	int32_t ret = LLKERNEL_ERROR;
 
 	// Check function parameters consistency
 	if ((NULL == dest_address_ROM) || (NULL == src_address) || (size < 0)) {
-		LLKERNEL_ERROR_LOG("Wrong parameters passed\n");
+		VEEPORT_LOGGER_LOG_ERR("wrong parameters passed");
 	} else {
 		// Check that copy to ROM area match an allocated installed feature ROM area
 		installed_feature_t *ptr_feature = first_installed_feature;
-		do{
+		while (NULL != ptr_feature) {
 			uint32_t ptr_feature_ROM_area_end = ((uint32_t)ptr_feature->ROM_area) +
 			                                    ((uint32_t)ptr_feature->ROM_area_size);
 			if ((size <= ptr_feature->ROM_area_size) &&
@@ -265,10 +251,10 @@ int32_t LLKERNEL_IMPL_copyToROM(void *dest_address_ROM, void *src_address, int32
 				break;
 			}
 			ptr_feature = ptr_feature->next;
-		} while (NULL != ptr_feature);
+		}
 
 		if (NULL == ptr_feature) {
-			LLKERNEL_ERROR_LOG("ROM destination address do not match LLKERNEL installed feature ROM area\n");
+			VEEPORT_LOGGER_LOG_ERR("the ROM destination address does not match the installed feature ROM area");
 		} else {
 			ret = LLKERNEL_OK;
 		}
@@ -278,28 +264,26 @@ int32_t LLKERNEL_IMPL_copyToROM(void *dest_address_ROM, void *src_address, int32
 
 // cppcheck-suppress [misra-c2012-5.5] Macro name is configured in VEE Port headers.
 int32_t LLKERNEL_IMPL_flushCopyToROM(void) {
-	LLKERNEL_DEBUG_LOG("%s()\n", __func__);
+	VEEPORT_LOGGER_LOG_DBG("()");
 	// Nothing to do here, flush already done
 	return LLKERNEL_OK;
 }
 
 int32_t LLKERNEL_IMPL_onFeatureInitializationError(int32_t handle, int32_t error_code) {
-	LLKERNEL_ERROR_LOG("Failed to initialize feature handle 0x%.8x with error %d(%s)\n", (int)handle, (int)error_code,
-	                   _error_code_to_str(error_code));
+	VEEPORT_LOGGER_LOG_ERR("cannot initialize the feature handle 0x%.8x, error %d (%s)", (int)handle, (int)error_code,
+	                       _error_code_to_str(error_code));
 	switch (error_code) {
 	case LLKERNEL_FEATURE_INIT_ERROR_CORRUPTED_CONTENT:
-		LLKERNEL_ERROR_LOG(
-			"Feature detected but content is corrupted: automatically uninstalling the feature to free the memory.\n");
+		VEEPORT_LOGGER_LOG_ERR("feature detected but its content is corrupted, uninstalling it to free the memory");
 		LLKERNEL_IMPL_freeFeature(handle);
 		break;
 	case LLKERNEL_FEATURE_INIT_ERROR_INCOMPATIBLE_KERNEL_WRONG_UID:
-		LLKERNEL_ERROR_LOG(
-			"Feature detected but not compatible with the Kernel, automatically uninstalling the feature to free the memory.\n");
+		VEEPORT_LOGGER_LOG_ERR(
+			"feature detected but not compatible with the Kernel, uninstalling it to free the memory");
 		LLKERNEL_IMPL_freeFeature(handle);
 		break;
 	case LLKERNEL_FEATURE_INIT_ERROR_INCOMPATIBLE_KERNEL_WRONG_ADDRESSES:
-		LLKERNEL_ERROR_LOG(
-			"Feature detected but addresses are wrong, automatically uninstalling the feature to free the memory.\n");
+		VEEPORT_LOGGER_LOG_ERR("feature detected but its addresses are wrong, uninstalling it to free the memory");
 		LLKERNEL_IMPL_freeFeature(handle);
 		break;
 	default:

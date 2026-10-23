@@ -4,7 +4,7 @@
 # Build: 7E4D1F7C
 
 
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.18)
 project(linux-vee)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -29,6 +29,9 @@ target_include_directories(${target} PUBLIC ${CMAKE_CURRENT_LIST_DIR}/inc)
 
 if (BUILD_AUDIO)
 	add_subdirectory(port/audio)
+endif()
+if (BUILD_ESSENTIALS)
+	add_subdirectory(port/essentials/src/main/c)
 endif()
 if (BUILD_CORE)
 	add_subdirectory(port/config)
@@ -127,6 +130,9 @@ if (ADVANCED_TRACE)
 else()
 	target_compile_definitions(${target} PRIVATE MICROEJ_VEE_METHOD_TRACE=0)
 endif()
+if (BUILD_ESSENTIALS AND USE_VEEPORT_LOGGER)
+	target_compile_definitions(${target} PRIVATE USE_VEEPORT_LOGGER)
+endif()
 
 # for DRM mmap() => requires 64bit support
 target_compile_definitions(${target} PRIVATE _FILE_OFFSET_BITS=64)
@@ -140,6 +146,13 @@ endif()
 # #define LLNET_AF_IPV4	(0x1)
 # #define LLNET_AF_IPV6	(0x2)
 # #define LLNET_AF_DUAL	((LLNET_AF_IPV4) | (LLNET_AF_IPV6))
+# A net layer with no address family builds a binary whose network stack reports no address at
+# all, so the configuration is rejected here instead of being compiled.
+if (BUILD_NET AND NOT ENABLE_NET_AF_IPV4_SUPPORT AND NOT ENABLE_NET_AF_IPV6_SUPPORT)
+	message(FATAL_ERROR
+		"BUILD_NET is ON but both ENABLE_NET_AF_IPV4_SUPPORT and ENABLE_NET_AF_IPV6_SUPPORT are OFF. "
+		"Enable at least one address family, or set BUILD_NET to OFF.")
+endif()
 if (ENABLE_NET_AF_IPV4_SUPPORT)
 	set(LLNET_AF "1")
 else()
@@ -183,5 +196,8 @@ if (BUILD_UI AND BUILD_UI_TOUCHSCREEN)
 endif()
 if (BUILD_SSL OR BUILD_CRYPTO)
 	target_link_libraries(${target} PRIVATE -lssl -lcrypto)
+elseif (BUILD_DEVICE)
+	# The device ID derives an identifier from /etc/machine-id with an OpenSSL HMAC.
+	target_link_libraries(${target} PRIVATE -lcrypto)
 endif()
 target_link_options(${target} PRIVATE -fno-stack-protector -no-pie -D_GNU_SOURCE)

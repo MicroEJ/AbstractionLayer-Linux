@@ -9,9 +9,26 @@
 
 /* Includes ------------------------------------------------------------------*/
 
+#include "veeport_logger.h"
+
 /* Defines -------------------------------------------------------------------*/
 
-// #define LLDISPLAY_DEBUG
+/**
+ * @brief Name of the log module shared by every source file of the framebuffer display driver.
+ *
+ * Each source file that logs registers the module with VEEPORT_LOGGER_DEFINE_MODULE().
+ */
+#define LLDISPLAY_LOG_MODULE_NAME "display"
+
+/**
+ * @brief Verbosity of the framebuffer display driver.
+ *
+ * Override it in veeport_configuration.h with one of VEEPORT_LOGGER_LEVEL_NONE, _ERR, _WRN, _INF
+ * or _DBG.
+ */
+#ifndef LLDISPLAY_LOG_LEVEL
+#define LLDISPLAY_LOG_LEVEL (VEEPORT_LOGGER_LEVEL_ERR)
+#endif
 
 // #define LLDISPLAY_USE_FLIP
 
@@ -30,15 +47,5 @@ typedef struct lldisplay_screeninfo_t {
 	int32_t height;
 	int32_t bpp;
 } lldisplay_screeninfo_t;
-
-/*
- * DEBUG logs
- */
-#ifdef LLDISPLAY_DEBUG
-#define LLDISPLAY_LOG_DEBUG printf
-#else // LLDISPLAY_DEBUG
-#define LLDISPLAY_LOG_DEBUG(...) ((void)0)
-#endif
-#define LLDISPLAY_LOG_WARNING printf("[LLDISPLAY][WARNING] "); printf
 
 #endif // LLDISPLAY_FB_H

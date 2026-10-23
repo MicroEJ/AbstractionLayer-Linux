@@ -5,6 +5,7 @@
  * Use of this source code is governed by a BSD-style license that can be found with this software.
  */
 #include <LLNET_SSL_cookie.h>
+#include <LLNET_SSL_util.h>
 #include <openssl/ssl.h>
 #include <openssl/rand.h>
 #include <openssl/bio.h>
@@ -54,8 +55,8 @@ int LLNET_SSL_Generate_Cookie(SSL *ssl, unsigned char *cookie, unsigned int *coo
 	if (!cookie_initialized) {
 		error = RAND_bytes(cookie_secret, COOKIE_SECRET_LENGTH);
 		if (error <= 0) {
-			(void)SNI_throwNativeException(LLNET_SSL_TranslateReturnCode(ssl, error),
-			                               "Error setting random cookie secret");
+			LLNET_SSL_throw_runtime_exception(LLNET_SSL_TranslateReturnCode(ssl, error),
+			                                  "Error setting random cookie secret");
 			ret = 0;
 		} else {
 			cookie_initialized = 1;
@@ -73,7 +74,7 @@ int LLNET_SSL_Generate_Cookie(SSL *ssl, unsigned char *cookie, unsigned int *coo
 			length += sizeof(struct in6_addr);
 			break;
 		default:
-			(void)SNI_throwNativeException(LLNET_SSL_TranslateReturnCode(ssl, error), "Unknown ss family");
+			LLNET_SSL_throw_runtime_exception(LLNET_SSL_TranslateReturnCode(ssl, error), "Unknown ss family");
 			ret = 0;
 			break;
 		}
@@ -83,7 +84,7 @@ int LLNET_SSL_Generate_Cookie(SSL *ssl, unsigned char *cookie, unsigned int *coo
 			buffer = (unsigned char *)OPENSSL_malloc(length);
 
 			if (buffer == NULL) {
-				(void)SNI_throwNativeException(LLNET_SSL_TranslateReturnCode(ssl, error), "Out of memory");
+				LLNET_SSL_throw_runtime_exception(LLNET_SSL_TranslateReturnCode(ssl, error), "Out of memory");
 				ret = 0;
 			} else {
 				switch (peer.ss.ss_family) {
@@ -96,7 +97,7 @@ int LLNET_SSL_Generate_Cookie(SSL *ssl, unsigned char *cookie, unsigned int *coo
 					(void)memcpy(buffer + sizeof(in_port_t), (void *)&peer.s6.sin6_addr, sizeof(struct in6_addr));
 					break;
 				default:
-					(void)SNI_throwNativeException(LLNET_SSL_TranslateReturnCode(ssl, error), "Unknown ss family");
+					LLNET_SSL_throw_runtime_exception(LLNET_SSL_TranslateReturnCode(ssl, error), "Unknown ss family");
 					OPENSSL_free(buffer);
 					ret = 0;
 					break;

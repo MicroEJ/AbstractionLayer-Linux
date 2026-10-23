@@ -32,11 +32,11 @@
 #include <fcntl.h>
 #endif // LLNET_USE_IOCTL_FOR_BLOCKING_OPTION
 
+VEEPORT_LOGGER_DEFINE_MODULE(LLNET_LOG_MODULE_NAME, LLNET_LOG_LEVEL)
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-static const char *LLNET_UNSPECIFIED_ERROR_MSG = "Unspecified error";
 
 /**
  * @brief Convert a network error code into a java error code.
@@ -151,12 +151,14 @@ void LLNET_map_ipv4_into_ipv6(in_addr_t *ipv4_addr, struct in6_addr *ipv6_addr) 
 
 #endif /* if LLNET_AF & LLNET_AF_IPV6 */
 
-const char * LLNET_get_socket_error_msg(int32_t error) {
-	const char *error_msg = strerror(error);
-	if (strcmp(error_msg, "") == 0) {
-		return LLNET_UNSPECIFIED_ERROR_MSG;
+void LLNET_throw_socket_error(int32_t fd_errno) {
+	int32_t error_code = LLNET_map_to_java_exception(fd_errno);
+	if (J_EUNKNOWN == error_code) {
+		VEEPORT_ERRORS_throw_caught_exception_message(error_code, "%s (%d)", strerror(fd_errno), fd_errno);
+	} else {
+		VEEPORT_LOGGER_LOG_DBG("socket error %d: %s", fd_errno, strerror(fd_errno));
+		VEEPORT_ERRORS_throw_caught_exception(error_code);
 	}
-	return error_msg;
 }
 
 /**
@@ -206,7 +208,7 @@ void LLNET_handle_blocking_operation_error(int32_t fd, int32_t fd_errno, select_
 	//check if timeout occurs
 	if (absolute_timeout_ms != 0 && absolute_timeout_ms < LLNET_current_time_ms()) {
 		//timeout occurs
-		SNI_throwNativeIOException(J_ETIMEDOUT, "timeout");
+		VEEPORT_ERRORS_throw_caught_exception(J_ETIMEDOUT);
 		return;
 	}
 
@@ -217,7 +219,7 @@ void LLNET_handle_blocking_operation_error(int32_t fd, int32_t fd_errno, select_
 		return;
 	}
 
-	SNI_throwNativeIOException(LLNET_map_to_java_exception(fd_errno), LLNET_get_socket_error_msg(fd_errno));
+	LLNET_throw_socket_error(fd_errno);
 }
 
 /**

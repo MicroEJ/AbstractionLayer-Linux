@@ -7,6 +7,7 @@
 #include <LLSERIAL_configuration.h>
 #include <fd_monitor.h>
 #include <sni.h>
+#include <veeport_errors.h>
 
 #include <errno.h>
 #include <fcntl.h>
@@ -20,14 +21,26 @@
 #include <termios.h>
 #include <unistd.h>
 
+VEEPORT_LOGGER_DEFINE_MODULE(LLSERIAL_LOG_MODULE_NAME, LLSERIAL_LOG_LEVEL)
+
 /* ── helper macros ──────────────────────────────────────────────────── */
 
 #define LLSERIAL_UNUSED_RETURN(x) (void)(x)
 
-#define LLSERIAL_THROW_NATIVE_IO_EXCEPTION(...) \
-		((void)SNI_throwNativeIOException(__VA_ARGS__))
-#define LLSERIAL_THROW_NATIVE_EXCEPTION(...) \
-		((void)SNI_throwNativeException(__VA_ARGS__))
+/**
+ * @brief Throws the generic serial NativeIOException for a failed C library call, with its errno in the message.
+ *
+ * @param[in] what what failed, one of the LLSERIAL_CONNECTION_* messages, or NULL for the errno text alone.
+ */
+static void throw_errno_io_exception(const char *what) {
+	int32_t err = errno;
+	if (NULL != what) {
+		VEEPORT_ERRORS_throw_caught_exception_message(LLSERIAL_IOEXCEPTION_GENERIC, "%s: %s (%d)", what, strerror(err),
+		                                              err);
+	} else {
+		VEEPORT_ERRORS_throw_caught_exception_message(LLSERIAL_IOEXCEPTION_GENERIC, "%s (%d)", strerror(err), err);
+	}
+}
 
 #define LLSERIAL_RETCODE_ERROR (-1)
 #define LLSERIAL_RETCODE_OK    (0)
@@ -245,32 +258,31 @@ static void conn_release(struct serial_conn *conn) {
 /* ── LLAPI: init ────────────────────────────────────────────────────── */
 
 void LLSERIAL_CONNECTION_IMPL_init(void) {
-	LLSERIAL_DEBUG_TRACE("[%s:%u]\n", __FUNCTION__, __LINE__);
+	VEEPORT_LOGGER_LOG_DBG("");
 	fd_monitor_init(LLSERIAL_FD_MONITOR);
 }
 
 /* ── LLAPI: open ────────────────────────────────────────────────────── */
 
 int32_t LLSERIAL_CONNECTION_IMPL_open(uint8_t *port_name) {
-	LLSERIAL_DEBUG_TRACE("[%s:%u] port_name = %s\n", __FUNCTION__, __LINE__, port_name);
+	VEEPORT_LOGGER_LOG_DBG("port_name = %s", port_name);
 
 	int32_t result = LLSERIAL_RETCODE_ERROR;
 
 	if (NULL == port_name) {
-		LLSERIAL_THROW_NATIVE_IO_EXCEPTION(LLSERIAL_RETCODE_ERROR,
-		                                   LLSERIAL_CONNECTION_INVALID_PORT);
+		VEEPORT_ERRORS_throw_caught_exception_message(LLSERIAL_IOEXCEPTION_GENERIC, LLSERIAL_CONNECTION_INVALID_PORT);
 		goto end;
 	}
 
 	struct serial_conn *conn = calloc(1, sizeof(struct serial_conn));
 	if (conn == NULL) {
-		LLSERIAL_THROW_NATIVE_IO_EXCEPTION(errno, LLSERIAL_CONNECTION_INTERNAL_ERROR);
+		throw_errno_io_exception(LLSERIAL_CONNECTION_INTERNAL_ERROR);
 		goto end;
 	}
 
 	int fd = open((const char *)port_name, O_RDWR | O_NOCTTY | O_NONBLOCK);
 	if (fd < 0) {
-		LLSERIAL_THROW_NATIVE_IO_EXCEPTION(errno, strerror(errno));
+		throw_errno_io_exception(NULL);
 		goto free_conn;
 	}
 
@@ -278,14 +290,14 @@ int32_t LLSERIAL_CONNECTION_IMPL_open(uint8_t *port_name) {
 	/* Exclusive access enforced in userspace (see registry above) */
 	dev_t rdev;
 	if (soft_excl_acquire(fd, &rdev) < 0) {
-		LLSERIAL_THROW_NATIVE_IO_EXCEPTION(errno, strerror(errno));
+		throw_errno_io_exception(NULL);
 		goto close_fd;
 	}
 	conn->rdev = rdev;
 #else
 	/* Exclusive access */
 	if (ioctl(fd, TIOCEXCL) < 0) {
-		LLSERIAL_THROW_NATIVE_IO_EXCEPTION(errno, strerror(errno));
+		throw_errno_io_exception(NULL);
 		goto close_fd;
 	}
 #endif
@@ -304,8 +316,7 @@ int32_t LLSERIAL_CONNECTION_IMPL_open(uint8_t *port_name) {
 							   (void *)(intptr_t)conn,
 							   (SNI_closeFunction)(void (*)(void)) LLSERIAL_CONNECTION_IMPL_close, NULL));
 
-	LLSERIAL_DEBUG_TRACE("[%s:%u] connection_id = %p\n",
-	                     __FUNCTION__, __LINE__, (void *)conn);
+	VEEPORT_LOGGER_LOG_DBG("connection_id = %p", (void *)conn);
 	result = (int32_t)(intptr_t)conn;
 	goto end;
 
@@ -321,19 +332,18 @@ end:
 
 void LLSERIAL_CONNECTION_IMPL_configure(int32_t connection_id, int32_t baudrate,
                                         int32_t databits, int32_t parity, int32_t stopbits) {
-	LLSERIAL_DEBUG_TRACE("[%s:%u] id=%x baud=%d data=%d par=%d stop=%d\n",
-	                     __FUNCTION__, __LINE__, connection_id, baudrate, databits, parity, stopbits);
+	VEEPORT_LOGGER_LOG_DBG("id=%x baud=%d data=%d par=%d stop=%d", connection_id, baudrate, databits, parity, stopbits);
 
 	struct serial_conn *conn = (struct serial_conn *)(intptr_t)connection_id;
 	if (!conn->is_open) {
-		LLSERIAL_THROW_NATIVE_IO_EXCEPTION(LLSERIAL_RETCODE_ERROR,
-		                                   LLSERIAL_CONNECTION_CONNECTION_CLOSED);
+		VEEPORT_ERRORS_throw_caught_exception_message(LLSERIAL_IOEXCEPTION_GENERIC,
+		                                              LLSERIAL_CONNECTION_CONNECTION_CLOSED);
 		goto end;
 	}
 
 	struct termios tty;
 	if (tcgetattr(conn->fd, &tty) < 0) {
-		LLSERIAL_THROW_NATIVE_IO_EXCEPTION(errno, strerror(errno));
+		throw_errno_io_exception(NULL);
 		goto end;
 	}
 
@@ -355,8 +365,8 @@ void LLSERIAL_CONNECTION_IMPL_configure(int32_t connection_id, int32_t baudrate,
 		tty.c_cflag &= ~PARENB;
 		break;
 	default:
-		LLSERIAL_THROW_NATIVE_IO_EXCEPTION(LLSERIAL_IOEXCEPTION_UNSUPPORTED_CONFIG,
-		                                   LLSERIAL_CONNECTION_INVALID_PARITY);
+		VEEPORT_LOGGER_LOG_DBG(LLSERIAL_CONNECTION_INVALID_PARITY);
+		VEEPORT_ERRORS_throw_caught_exception(LLSERIAL_IOEXCEPTION_UNSUPPORTED_CONFIG);
 		goto end;
 	}
 
@@ -370,8 +380,8 @@ void LLSERIAL_CONNECTION_IMPL_configure(int32_t connection_id, int32_t baudrate,
 		break;
 	case LLSERIAL_CONNECTION_STOPBITS_1_5:
 	default:
-		LLSERIAL_THROW_NATIVE_IO_EXCEPTION(LLSERIAL_IOEXCEPTION_UNSUPPORTED_CONFIG,
-		                                   LLSERIAL_CONNECTION_INVALID_STOPBITS);
+		VEEPORT_LOGGER_LOG_DBG(LLSERIAL_CONNECTION_INVALID_STOPBITS);
+		VEEPORT_ERRORS_throw_caught_exception(LLSERIAL_IOEXCEPTION_UNSUPPORTED_CONFIG);
 		goto end;
 	}
 
@@ -391,8 +401,8 @@ void LLSERIAL_CONNECTION_IMPL_configure(int32_t connection_id, int32_t baudrate,
 		break;
 	case LLSERIAL_CONNECTION_DATABITS_9:
 	default:
-		LLSERIAL_THROW_NATIVE_IO_EXCEPTION(LLSERIAL_IOEXCEPTION_UNSUPPORTED_CONFIG,
-		                                   LLSERIAL_CONNECTION_INVALID_DATABITS);
+		VEEPORT_LOGGER_LOG_DBG(LLSERIAL_CONNECTION_INVALID_DATABITS);
+		VEEPORT_ERRORS_throw_caught_exception(LLSERIAL_IOEXCEPTION_UNSUPPORTED_CONFIG);
 		goto end;
 	}
 
@@ -414,15 +424,15 @@ void LLSERIAL_CONNECTION_IMPL_configure(int32_t connection_id, int32_t baudrate,
 	/* Baudrate */
 	speed_t bspeed;
 	if (baudrate_to_bconst(baudrate, &bspeed) < 0) {
-		LLSERIAL_THROW_NATIVE_IO_EXCEPTION(LLSERIAL_IOEXCEPTION_UNSUPPORTED_CONFIG,
-		                                   LLSERIAL_CONNECTION_INVALID_BAUDRATE);
+		VEEPORT_LOGGER_LOG_DBG(LLSERIAL_CONNECTION_INVALID_BAUDRATE);
+		VEEPORT_ERRORS_throw_caught_exception(LLSERIAL_IOEXCEPTION_UNSUPPORTED_CONFIG);
 	} else if (cfsetispeed(&tty, bspeed) < 0 || cfsetospeed(&tty, bspeed) < 0) {
-		LLSERIAL_THROW_NATIVE_IO_EXCEPTION(LLSERIAL_IOEXCEPTION_UNSUPPORTED_CONFIG,
-		                                   strerror(errno));
+		VEEPORT_LOGGER_LOG_DBG("%s", strerror(errno));
+		VEEPORT_ERRORS_throw_caught_exception(LLSERIAL_IOEXCEPTION_UNSUPPORTED_CONFIG);
 	} else if (tcsetattr(conn->fd, TCSANOW, &tty) < 0) {
 		/* Apply */
-		LLSERIAL_THROW_NATIVE_IO_EXCEPTION(LLSERIAL_IOEXCEPTION_UNSUPPORTED_CONFIG,
-		                                   strerror(errno));
+		VEEPORT_LOGGER_LOG_DBG("%s", strerror(errno));
+		VEEPORT_ERRORS_throw_caught_exception(LLSERIAL_IOEXCEPTION_UNSUPPORTED_CONFIG);
 	}
 
 end:
@@ -436,8 +446,8 @@ static int32_t try_read(struct serial_conn *conn, uint8_t *buf, int32_t len) {
 	int32_t result = 0;
 
 	if (!conn->is_open) {
-		LLSERIAL_THROW_NATIVE_IO_EXCEPTION(LLSERIAL_RETCODE_ERROR,
-		                                   LLSERIAL_CONNECTION_CONNECTION_CLOSED);
+		VEEPORT_ERRORS_throw_caught_exception_message(LLSERIAL_IOEXCEPTION_GENERIC,
+		                                              LLSERIAL_CONNECTION_CONNECTION_CLOSED);
 		result = -1;
 		goto end;
 	}
@@ -445,10 +455,10 @@ static int32_t try_read(struct serial_conn *conn, uint8_t *buf, int32_t len) {
 	ssize_t n = read(conn->fd, buf, (size_t)len);
 
 	if (n > 0) {
-		LLSERIAL_DEBUG_TRACE("[%s:%u] read %zd bytes\n", __FUNCTION__, __LINE__, n);
+		VEEPORT_LOGGER_LOG_DBG("read %zd bytes", n);
 		result = (int32_t)n;
 	} else if (n < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
-		LLSERIAL_THROW_NATIVE_IO_EXCEPTION(errno, LLSERIAL_CONNECTION_RX_ERROR);
+		throw_errno_io_exception(LLSERIAL_CONNECTION_RX_ERROR);
 		result = -1;
 	} else {
 		/* no data available */
@@ -463,8 +473,7 @@ end:
 
 int32_t LLSERIAL_CONNECTION_IMPL_read(int32_t connection_id, uint8_t *b,
                                       int32_t off, int32_t len) {
-	LLSERIAL_DEBUG_TRACE("[%s:%u] id=%x off=%d len=%d\n",
-	                     __FUNCTION__, __LINE__, connection_id, off, len);
+	VEEPORT_LOGGER_LOG_DBG("id=%x off=%d len=%d", connection_id, off, len);
 
 	struct serial_conn *conn = (struct serial_conn *)(intptr_t)connection_id;
 	int32_t result = SNI_IGNORED_RETURNED_VALUE;
@@ -489,8 +498,7 @@ int32_t LLSERIAL_CONNECTION_IMPL_read(int32_t connection_id, uint8_t *b,
 	/* n == 0: no data available — watch for readiness and suspend */
 	int op = op_alloc(conn);
 	if (op < 0) {
-		LLSERIAL_THROW_NATIVE_IO_EXCEPTION(LLSERIAL_RETCODE_ERROR,
-		                                   LLSERIAL_CONNECTION_INTERNAL_ERROR);
+		VEEPORT_ERRORS_throw_caught_exception_message(LLSERIAL_IOEXCEPTION_GENERIC, LLSERIAL_CONNECTION_INTERNAL_ERROR);
 		goto end;
 	}
 
@@ -498,8 +506,7 @@ int32_t LLSERIAL_CONNECTION_IMPL_read(int32_t connection_id, uint8_t *b,
 	                           FD_MONITOR_IN, &conn->watch_chain);
 	if (hdl < 0) {
 		op_free(conn, op);
-		LLSERIAL_THROW_NATIVE_IO_EXCEPTION(LLSERIAL_RETCODE_ERROR,
-		                                   LLSERIAL_CONNECTION_INTERNAL_ERROR);
+		VEEPORT_ERRORS_throw_caught_exception_message(LLSERIAL_IOEXCEPTION_GENERIC, LLSERIAL_CONNECTION_INTERNAL_ERROR);
 		goto end;
 	}
 
@@ -509,11 +516,10 @@ int32_t LLSERIAL_CONNECTION_IMPL_read(int32_t connection_id, uint8_t *b,
 	if (SNI_suspendCurrentJavaThreadWithCallback(
 			0, (SNI_callback)read_callback,
 			(void *)(intptr_t)op) != SNI_OK) {
-		LLSERIAL_ERROR_TRACE("[%s:%u] suspend failed\n", __FUNCTION__, __LINE__);
+		VEEPORT_LOGGER_LOG_ERR("cannot suspend the current Java thread");
 		fd_monitor_unwatch(LLSERIAL_FD_MONITOR, hdl, &conn->watch_chain);
 		op_free(conn, op);
-		LLSERIAL_THROW_NATIVE_IO_EXCEPTION(LLSERIAL_RETCODE_ERROR,
-		                                   LLSERIAL_CONNECTION_INTERNAL_ERROR);
+		VEEPORT_ERRORS_throw_caught_exception_message(LLSERIAL_IOEXCEPTION_GENERIC, LLSERIAL_CONNECTION_INTERNAL_ERROR);
 		conn_release(conn);
 		goto end;
 	}
@@ -547,9 +553,8 @@ static int32_t read_callback(int32_t connection_id, uint8_t *b,
 	if (SNI_suspendCurrentJavaThreadWithCallback(
 			0, (SNI_callback)read_callback,
 			(void *)(intptr_t)op) != SNI_OK) {
-		LLSERIAL_ERROR_TRACE("[%s:%u] suspend failed\n", __FUNCTION__, __LINE__);
-		LLSERIAL_THROW_NATIVE_IO_EXCEPTION(LLSERIAL_RETCODE_ERROR,
-		                                   LLSERIAL_CONNECTION_INTERNAL_ERROR);
+		VEEPORT_LOGGER_LOG_ERR("cannot suspend the current Java thread");
+		VEEPORT_ERRORS_throw_caught_exception_message(LLSERIAL_IOEXCEPTION_GENERIC, LLSERIAL_CONNECTION_INTERNAL_ERROR);
 		goto release;
 	}
 	goto end;
@@ -572,8 +577,8 @@ static int32_t try_write(struct serial_conn *conn, uint8_t *buf, int32_t len) {
 	int32_t result = 0;
 
 	if (!conn->is_open) {
-		LLSERIAL_THROW_NATIVE_IO_EXCEPTION(LLSERIAL_RETCODE_ERROR,
-		                                   LLSERIAL_CONNECTION_CONNECTION_CLOSED);
+		VEEPORT_ERRORS_throw_caught_exception_message(LLSERIAL_IOEXCEPTION_GENERIC,
+		                                              LLSERIAL_CONNECTION_CONNECTION_CLOSED);
 		result = -1;
 		goto end;
 	}
@@ -583,7 +588,7 @@ static int32_t try_write(struct serial_conn *conn, uint8_t *buf, int32_t len) {
 	if (n > 0) {
 		result = (int32_t)n;
 	} else if (n < 0 && errno != EAGAIN && errno != EWOULDBLOCK) {
-		LLSERIAL_THROW_NATIVE_IO_EXCEPTION(errno, LLSERIAL_CONNECTION_TX_ERROR);
+		throw_errno_io_exception(LLSERIAL_CONNECTION_TX_ERROR);
 		result = -1;
 	} else {
 		/* EAGAIN */
@@ -598,8 +603,7 @@ end:
 
 void LLSERIAL_CONNECTION_IMPL_write(int32_t connection_id, uint8_t *b,
                                     int32_t off, int32_t len) {
-	LLSERIAL_DEBUG_TRACE("[%s:%u] id=%x off=%d len=%d\n",
-	                     __FUNCTION__, __LINE__, connection_id, off, len);
+	VEEPORT_LOGGER_LOG_DBG("id=%x off=%d len=%d", connection_id, off, len);
 
 	struct serial_conn *conn = (struct serial_conn *)(intptr_t)connection_id;
 
@@ -608,8 +612,8 @@ void LLSERIAL_CONNECTION_IMPL_write(int32_t connection_id, uint8_t *b,
 	}
 
 	if (!conn->is_open) {
-		LLSERIAL_THROW_NATIVE_IO_EXCEPTION(LLSERIAL_RETCODE_ERROR,
-		                                   LLSERIAL_CONNECTION_CONNECTION_CLOSED);
+		VEEPORT_ERRORS_throw_caught_exception_message(LLSERIAL_IOEXCEPTION_GENERIC,
+		                                              LLSERIAL_CONNECTION_CONNECTION_CLOSED);
 		goto end;
 	}
 
@@ -625,8 +629,7 @@ void LLSERIAL_CONNECTION_IMPL_write(int32_t connection_id, uint8_t *b,
 	/* Partial write or EAGAIN — watch for write readiness and suspend */
 	int op = op_alloc(conn);
 	if (op < 0) {
-		LLSERIAL_THROW_NATIVE_IO_EXCEPTION(LLSERIAL_RETCODE_ERROR,
-		                                   LLSERIAL_CONNECTION_INTERNAL_ERROR);
+		VEEPORT_ERRORS_throw_caught_exception_message(LLSERIAL_IOEXCEPTION_GENERIC, LLSERIAL_CONNECTION_INTERNAL_ERROR);
 		goto end;
 	}
 
@@ -634,8 +637,7 @@ void LLSERIAL_CONNECTION_IMPL_write(int32_t connection_id, uint8_t *b,
 	                           FD_MONITOR_OUT, &conn->watch_chain);
 	if (hdl < 0) {
 		op_free(conn, op);
-		LLSERIAL_THROW_NATIVE_IO_EXCEPTION(LLSERIAL_RETCODE_ERROR,
-		                                   LLSERIAL_CONNECTION_INTERNAL_ERROR);
+		VEEPORT_ERRORS_throw_caught_exception_message(LLSERIAL_IOEXCEPTION_GENERIC, LLSERIAL_CONNECTION_INTERNAL_ERROR);
 		goto end;
 	}
 
@@ -646,11 +648,10 @@ void LLSERIAL_CONNECTION_IMPL_write(int32_t connection_id, uint8_t *b,
 	if (SNI_suspendCurrentJavaThreadWithCallback(
 			0, (SNI_callback)write_callback,
 			(void *)(intptr_t)op) != SNI_OK) {
-		LLSERIAL_ERROR_TRACE("[%s:%u] suspend failed\n", __FUNCTION__, __LINE__);
+		VEEPORT_LOGGER_LOG_ERR("cannot suspend the current Java thread");
 		fd_monitor_unwatch(LLSERIAL_FD_MONITOR, hdl, &conn->watch_chain);
 		op_free(conn, op);
-		LLSERIAL_THROW_NATIVE_IO_EXCEPTION(LLSERIAL_RETCODE_ERROR,
-		                                   LLSERIAL_CONNECTION_INTERNAL_ERROR);
+		VEEPORT_ERRORS_throw_caught_exception_message(LLSERIAL_IOEXCEPTION_GENERIC, LLSERIAL_CONNECTION_INTERNAL_ERROR);
 		conn_release(conn);
 		goto end;
 	}
@@ -686,9 +687,8 @@ static void write_callback(int32_t connection_id, uint8_t *b,
 	if (SNI_suspendCurrentJavaThreadWithCallback(
 			0, (SNI_callback)write_callback,
 			(void *)(intptr_t)op) != SNI_OK) {
-		LLSERIAL_ERROR_TRACE("[%s:%u] suspend failed\n", __FUNCTION__, __LINE__);
-		LLSERIAL_THROW_NATIVE_IO_EXCEPTION(LLSERIAL_RETCODE_ERROR,
-		                                   LLSERIAL_CONNECTION_INTERNAL_ERROR);
+		VEEPORT_LOGGER_LOG_ERR("cannot suspend the current Java thread");
+		VEEPORT_ERRORS_throw_caught_exception_message(LLSERIAL_IOEXCEPTION_GENERIC, LLSERIAL_CONNECTION_INTERNAL_ERROR);
 		goto release;
 	}
 	goto end;
@@ -705,24 +705,24 @@ end:
 /* ── LLAPI: available ───────────────────────────────────────────────── */
 
 int32_t LLSERIAL_CONNECTION_IMPL_available(int32_t connection_id) {
-	LLSERIAL_DEBUG_TRACE("[%s:%u] id=%x\n", __FUNCTION__, __LINE__, connection_id);
+	VEEPORT_LOGGER_LOG_DBG("id=%x", connection_id);
 
 	struct serial_conn *conn = (struct serial_conn *)(intptr_t)connection_id;
 	int32_t result = LLSERIAL_RETCODE_ERROR;
 
 	if (!conn->is_open) {
-		LLSERIAL_THROW_NATIVE_IO_EXCEPTION(LLSERIAL_RETCODE_ERROR,
-		                                   LLSERIAL_CONNECTION_CONNECTION_CLOSED);
+		VEEPORT_ERRORS_throw_caught_exception_message(LLSERIAL_IOEXCEPTION_GENERIC,
+		                                              LLSERIAL_CONNECTION_CONNECTION_CLOSED);
 		goto end;
 	}
 
 	int bytes_avail = 0;
 	if (ioctl(conn->fd, FIONREAD, &bytes_avail) < 0) {
-		LLSERIAL_THROW_NATIVE_IO_EXCEPTION(errno, strerror(errno));
+		throw_errno_io_exception(NULL);
 		goto end;
 	}
 
-	LLSERIAL_DEBUG_TRACE("[%s:%u] available=%d\n", __FUNCTION__, __LINE__, bytes_avail);
+	VEEPORT_LOGGER_LOG_DBG("available=%d", bytes_avail);
 	result = (int32_t)bytes_avail;
 
 end:
@@ -733,7 +733,7 @@ end:
 
 void LLSERIAL_CONNECTION_IMPL_flush(int32_t connection_id) {
 	(void)connection_id;
-	LLSERIAL_DEBUG_TRACE("[%s:%u] id=%x\n", __FUNCTION__, __LINE__, connection_id);
+	VEEPORT_LOGGER_LOG_DBG("id=%x", connection_id);
 	/* The current implementation of serial on Linux doesn't use buffer in
 	 * userspace. OutputStream.flush() doesn't need to wait for the transfer
 	 * to complete at the physical level. Therefore, there is nothing to
@@ -744,13 +744,13 @@ void LLSERIAL_CONNECTION_IMPL_flush(int32_t connection_id) {
 /* ── LLAPI: close ───────────────────────────────────────────────────── */
 
 void LLSERIAL_CONNECTION_IMPL_close(int32_t connection_id) {
-	LLSERIAL_DEBUG_TRACE("[%s:%u] id=%x\n", __FUNCTION__, __LINE__, connection_id);
+	VEEPORT_LOGGER_LOG_DBG("id=%x", connection_id);
 
 	struct serial_conn *conn = (struct serial_conn *)(intptr_t)connection_id;
 
 	if (!conn->is_open) {
-		LLSERIAL_THROW_NATIVE_IO_EXCEPTION(LLSERIAL_RETCODE_ERROR,
-		                                   LLSERIAL_CONNECTION_CONNECTION_CLOSED);
+		VEEPORT_ERRORS_throw_caught_exception_message(LLSERIAL_IOEXCEPTION_GENERIC,
+		                                              LLSERIAL_CONNECTION_CONNECTION_CLOSED);
 		goto end;
 	}
 

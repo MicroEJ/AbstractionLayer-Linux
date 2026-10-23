@@ -3,6 +3,7 @@
  *
  * Copyright 2015-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
+ * Build: 7E4D1F7C
  */
 
 /**
@@ -22,6 +23,8 @@
 #include "LLFS_impl.h"
 #include "fs_configuration.h"
 #include "fs_helper.h"
+
+VEEPORT_LOGGER_DEFINE_MODULE(LLFS_LOG_MODULE_NAME, LLFS_LOG_LEVEL)
 
 #ifdef __cplusplus
 extern "C" {
@@ -64,18 +67,32 @@ static int32_t LLFS_IMPL_is_accessible_on_done(uint8_t *path, int32_t access);
 static int32_t LLFS_IMPL_set_permission_on_done(uint8_t *path, int32_t access, int32_t enable, int32_t owner);
 static int32_t LLFS_async_exec_path_result(void);
 
+/**
+ * @brief Copies a file path like <code>LLFS_copy_path_param</code>, and throws a NativeException with the
+ * <code>RUNTIME_EXCEPTION_INVALID_ARGUMENT</code> code when the path does not fit.
+ *
+ * @param[in] path caller buffer where the file path is stored.
+ * @param[in] path_param buffer where the file path will be copied if the path size constraints are solved.
+ *
+ * @return <code>LLFS_OK</code> on success, else <code>LLFS_NOK</code> with an exception pending.
+ */
+static int32_t LLFS_set_path_param(uint8_t *path, uint8_t *path_param) {
+	int32_t result = LLFS_copy_path_param(path, path_param);
+	if (LLFS_OK != result) {
+		VEEPORT_ERRORS_throw_runtime_exception(RUNTIME_EXCEPTION_INVALID_ARGUMENT);
+	}
+	return result;
+}
+
 void LLFS_IMPL_initialize(void) {
 #ifndef FS_CUSTOM_WORKER
 	// cppcheck-suppress misra-c2012-11.8 // String casts conform to MICROEJ_ASYNC_WORKER_initialize function
 	// definitions.
 	MICROEJ_ASYNC_WORKER_status_t status = MICROEJ_ASYNC_WORKER_initialize(&fs_worker, (uint8_t *)"MicroEJ FS",
 	                                                                       fs_worker_stack, FS_WORKER_PRIORITY);
-	if (status == MICROEJ_ASYNC_WORKER_INVALID_ARGS) {
-		SNI_throwNativeException(status, "Invalid argument for FS async worker");
-	} else if (status == MICROEJ_ASYNC_WORKER_ERROR) {
-		SNI_throwNativeException(status, "Error while initializing FS async worker");
-	} else {
-		// Default case: MICROEJ_ASYNC_WORKER_OK
+	if (status != MICROEJ_ASYNC_WORKER_OK) {
+		VEEPORT_LOGGER_LOG_ERR("FS async worker initialization failed (%d)", status);
+		VEEPORT_ERRORS_throw_runtime_exception(RUNTIME_EXCEPTION_INVALID_STATE);
 	}
 #endif
 
@@ -108,8 +125,8 @@ int32_t LLFS_IMPL_create(uint8_t *path) {
 	}
 
 	FS_path_operation_t *params = (FS_path_operation_t *)job->params;
-	if (LLFS_set_path_param(path, (uint8_t *)&params->path) != LLFS_OK) {
-		SNI_throwNativeIOException(LLFS_NOK, "Path name too long");
+	if (LLFS_copy_path_param(path, (uint8_t *)&params->path) != LLFS_OK) {
+		VEEPORT_ERRORS_throw_caught_exception_message(LLFS_NOK, "path name too long");
 	} else {
 		MICROEJ_ASYNC_WORKER_status_t status = MICROEJ_ASYNC_WORKER_async_exec(&fs_worker, job, LLFS_IMPL_create_action,
 		                                                                       (SNI_callback)LLFS_IMPL_create_on_done);
@@ -324,18 +341,6 @@ int32_t LLFS_IMPL_set_permission(uint8_t *path, int32_t access, int32_t enable, 
 	return LLFS_NOK;
 }
 
-int32_t LLFS_set_path_param(uint8_t *path, uint8_t *path_param) {
-	int32_t path_length = SNI_getArrayLength(path);
-	if (path_length > FS_PATH_LENGTH) {
-		// Path too long for the buffer
-		SNI_throwNativeException(LLFS_NOK, "Path length is too long");
-		return LLFS_NOK;
-	}
-	// cppcheck-suppress misra-c2012-17.7 // Return value does not require checking.
-	memcpy(path_param, path, path_length);
-	return LLFS_OK;
-}
-
 /**
  * @brief Allocates an async_worker job containing a generic file path buffer.
  *
@@ -517,7 +522,7 @@ static int32_t LLFS_IMPL_create_on_done(uint8_t *path) {
 	int32_t result = params->result;
 	if (result == LLFS_NOK) {
 		// Exception
-		SNI_throwNativeIOException(params->error_code, params->error_message);
+		LLFS_throw_job_error(params->error_code);
 	}
 	MICROEJ_ASYNC_WORKER_free_job(&fs_worker, job);
 

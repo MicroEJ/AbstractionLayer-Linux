@@ -3,6 +3,7 @@
  *
  * Copyright 2018-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
+ * Build: 7E4D1F7C
  */
 
 /**
@@ -16,6 +17,8 @@
 #ifndef  LLNET_LINUX_CONFIGURATION_H
 #define  LLNET_LINUX_CONFIGURATION_H
 
+#include <assert.h>
+
 /**
  * @brief Compatibility sanity check value.
  * This define value is checked in the implementation to validate that the version of this configuration
@@ -27,10 +30,11 @@
  */
 #define LLNET_LINUX_CONFIGURATION_VERSION (1)
 
-/**
- * Maximum length plus one for the interface name string.
- * Used in LLNET_NETWORKINTERFACE_IMPL_getVMInterfaceAddressesCount()
- */
-#define IFADDRNAMEMAX (10)
+/* Consumes x under NDEBUG so an asserted return value is never reported as unused. */
+#ifdef NDEBUG
+#define LLNET_ASSERT(x)                     ((void)(x))
+#else
+#define LLNET_ASSERT(x)                     assert(x)
+#endif
 
 #endif // LLNET_LINUX_CONFIGURATION_H

@@ -12,6 +12,8 @@
 #include <sys/epoll.h>
 #include <unistd.h>
 
+VEEPORT_LOGGER_DEFINE_MODULE(FD_MONITOR_LOG_MODULE_NAME, FD_MONITOR_LOG_LEVEL)
+
 /* ── internal helpers ────────────────────────────────────────────────── */
 
 #define FD_MONITOR_UNUSED_RETURN(x)  (void)(x)
@@ -76,8 +78,7 @@ static int fd_monitor_send_cmd(struct fd_monitor *mon,
 	int ret = FD_MONITOR_OK;
 	ssize_t n = write(mon->cmd_pipe[1], cmd, sizeof(*cmd));
 	if (n != (ssize_t)sizeof(*cmd)) {
-		FD_MONITOR_ERROR_TRACE("[%s:%u] cmd pipe write failed: %s\n",
-		                       __FUNCTION__, __LINE__, strerror(errno));
+		VEEPORT_LOGGER_LOG_ERR("cannot write to the command pipe: %s", strerror(errno));
 		ret = FD_MONITOR_ERROR;
 	}
 	return ret;
@@ -98,8 +99,7 @@ static void fd_monitor_process_commands(struct fd_monitor *mon) {
 			ev.events = fd_monitor_to_epoll(cmd.interests);
 			ev.data.u32 = cmd.watch_index;
 			if (epoll_ctl(mon->epoll_fd, EPOLL_CTL_ADD, w->dup_fd, &ev) < 0) {
-				FD_MONITOR_ERROR_TRACE("[%s:%u] epoll add failed for dup_fd=%d: %s\n",
-				                       __FUNCTION__, __LINE__, w->dup_fd, strerror(errno));
+				VEEPORT_LOGGER_LOG_ERR("cannot add dup_fd=%d to the epoll set: %s", w->dup_fd, strerror(errno));
 			}
 			break;
 		}
@@ -145,8 +145,7 @@ static void *fd_monitor_thread_entry(void *arg) {
 			if (errno == EINTR) {
 				continue;
 			}
-			FD_MONITOR_ERROR_TRACE("[%s:%u] epoll_wait error: %s\n",
-			                       __FUNCTION__, __LINE__, strerror(errno));
+			VEEPORT_LOGGER_LOG_ERR("epoll_wait failed: %s", strerror(errno));
 			break;
 		}
 
@@ -217,7 +216,7 @@ int fd_monitor_init(struct fd_monitor *mon) {
 
 	(void)pthread_attr_destroy(&attr);
 	mon->quit = false;
-	FD_MONITOR_DEBUG_TRACE("[%s:%u] monitor started\n", __FUNCTION__, __LINE__);
+	VEEPORT_LOGGER_LOG_DBG("monitor started");
 	ret = FD_MONITOR_OK;
 	goto done;
 
@@ -263,7 +262,7 @@ int fd_monitor_destroy(struct fd_monitor *mon) {
 	mon->epoll_fd = 0;
 	mon->quit = false;
 
-	FD_MONITOR_DEBUG_TRACE("[%s:%u] monitor destroyed\n", __FUNCTION__, __LINE__);
+	VEEPORT_LOGGER_LOG_DBG("monitor destroyed");
 	ret = FD_MONITOR_OK;
 done:
 	return ret;
@@ -277,8 +276,7 @@ int fd_monitor_watch(struct fd_monitor *mon, int fd, uint32_t interests, int *ch
 
 	int dup_fd = dup(fd);
 	if (dup_fd < 0) {
-		FD_MONITOR_ERROR_TRACE("[%s:%u] dup(%d) failed: %s\n",
-		                       __FUNCTION__, __LINE__, fd, strerror(errno));
+		VEEPORT_LOGGER_LOG_ERR("dup(%d) failed: %s", fd, strerror(errno));
 		fd_monitor_free_slot(mon, hdl);
 		hdl = -1;
 		goto done;

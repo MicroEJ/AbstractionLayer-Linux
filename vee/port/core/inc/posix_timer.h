@@ -3,6 +3,7 @@
  *
  * Copyright 2014-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
+ * Build: 7E4D1F7C
  */
 
 #ifndef POSIX_TIMER_H
@@ -22,7 +23,12 @@
 extern "C" {
 #endif
 
-void posix_timer_initialize(void);
+/**
+ * @brief Initializes the mutex and the condition of the timer.
+ *
+ * @return 0 on success, else the error number of the pthread function that failed.
+ */
+int32_t posix_timer_initialize(void);
 void * posix_timer_run(void *args);
 void posix_timer_schedule_timer(int64_t schedule_time_ms);
 void posix_timer_stop(void);

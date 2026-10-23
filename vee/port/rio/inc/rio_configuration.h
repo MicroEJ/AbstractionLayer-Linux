@@ -17,6 +17,8 @@
 #ifndef RIO_CONFIGURATION_H
 #define RIO_CONFIGURATION_H
 
+#include "veeport_logger.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -77,6 +79,16 @@ extern "C" {
  * Same value as ASYNC_SELECT_TASK_PRIORITY from the java.net CCO.
  */
 #define RIO_WORKER_PRIORITY (12)
+
+/** @brief Name of the log module of the rio abstraction layer. */
+#define LLRIO_LOG_MODULE_NAME "rio"
+
+/**
+ * @brief Log level of the rio abstraction layer. Override it in veeport_configuration.h.
+ */
+#ifndef LLRIO_LOG_LEVEL
+#define LLRIO_LOG_LEVEL (VEEPORT_LOGGER_LEVEL_ERR)
+#endif
 
 #ifdef __cplusplus
 }

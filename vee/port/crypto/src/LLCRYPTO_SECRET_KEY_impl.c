@@ -8,20 +8,15 @@
 
 #include <stdint.h>
 #include <string.h>
-
-#include "LLCRYPTO_configuration.h"
-#include "LLCRYPTO_key.h"
-#include "LLCRYPTO_SECRET_KEY_impl.h"
+#include <LLCRYPTO_SECRET_KEY_impl.h>
 #include <LLCRYPTO_CONSTANTS.h>
 #include <sni.h>
 
-// #define LLCRYPTO_SECRET_KEY_DEBUG_TRACE
+#include "LLCRYPTO_configuration.h"
+#include "sni_extras.h"
+#include "LLCRYPTO_key.h"
 
-#ifdef LLCRYPTO_SECRET_KEY_DEBUG_TRACE
-#define LLCRYPTO_SECRET_KEY_DEBUG_PRINTF(...) (void)printf(__VA_ARGS__)
-#else
-#define LLCRYPTO_SECRET_KEY_DEBUG_PRINTF(...) ((void)0)
-#endif
+VEEPORT_LOGGER_DEFINE_MODULE(LLCRYPTO_LOG_MODULE_NAME, LLCRYPTO_LOG_LEVEL)
 
 /**
  * @brief return the max size of the encoded key.
@@ -33,13 +28,12 @@
  * @note Throws NativeException on error.
  */
 int32_t LLCRYPTO_SECRET_KEY_IMPL_get_encoded_max_size(int32_t native_id) {
-	LLCRYPTO_SECRET_KEY_DEBUG_PRINTF("%s (native_id = %d)\n", __func__, (int)native_id);
+	VEEPORT_LOGGER_LOG_DBG("(native_id = %d)", (int)native_id);
 
-	// cppcheck-suppress misra-c2012-11.4 // Abstract data type for SNI usage
 	const struct llcrypto_key *key = (const struct llcrypto_key *)native_id;
 	int32_t max_size = llcrypto_key_get_encoded_max_size(key);
 
-	LLCRYPTO_SECRET_KEY_DEBUG_PRINTF("%s Return size = %d\n", __func__, (int)max_size);
+	VEEPORT_LOGGER_LOG_DBG("Return size = %d", (int)max_size);
 	return max_size;
 }
 
@@ -55,13 +49,21 @@ int32_t LLCRYPTO_SECRET_KEY_IMPL_get_encoded_max_size(int32_t native_id) {
  * @note Throws NativeException on error.
  */
 int32_t LLCRYPTO_SECRET_KEY_IMPL_get_encoded(int32_t native_id, uint8_t *output, int32_t output_length) {
-	LLCRYPTO_SECRET_KEY_DEBUG_PRINTF("%s (native_id = %d)\n", __func__, (int)native_id);
+	VEEPORT_LOGGER_LOG_DBG("(native_id = %d)", (int)native_id);
 
-	// cppcheck-suppress misra-c2012-11.4 // Abstract data type for SNI usage
 	const struct llcrypto_key *key = (const struct llcrypto_key *)native_id;
-	int32_t key_length = llcrypto_key_get_encoded(key, output, output_length);
+	int32_t key_length = SNI_ERROR;
 
-	LLCRYPTO_SECRET_KEY_DEBUG_PRINTF("%s Return size = %d\n", __func__, (int)key_length);
+	/* llcrypto_key_get_encoded compares the key size against output_length as a size_t, so a
+	 * negative length would read as an enormous capacity and let the copy through. */
+	if (!sni_array_contains_range(output, 0, output_length)) {
+		VEEPORT_ERRORS_throw_runtime_exception_message(LLCRYPTO_UNSPECIFIED_EXCEPTION,
+		                                               "Invalid buffer offset or length");
+	} else {
+		key_length = llcrypto_key_get_encoded(key, output, output_length);
+	}
+
+	VEEPORT_LOGGER_LOG_DBG("Return size = %d", (int)key_length);
 	return key_length;
 }
 
@@ -77,15 +79,22 @@ int32_t LLCRYPTO_SECRET_KEY_IMPL_get_encoded(int32_t native_id, uint8_t *output,
  * @note Throws NativeException on error.
  */
 int32_t LLCRYPTO_SECRET_KEY_IMPL_create(uint8_t *raw_key, int32_t raw_key_length, uint8_t *algorithm) {
-	LLCRYPTO_SECRET_KEY_DEBUG_PRINTF("%s\n", __func__);
+	VEEPORT_LOGGER_LOG_DBG("");
 
 	int32_t return_code = SNI_ERROR;
-	struct llcrypto_key *key = llcrypto_key_from_secret_key(raw_key, (size_t)raw_key_length, algorithm);
-	if (key == NULL) {
-		(void)SNI_throwNativeException(SNI_ERROR, "Can't create secret key");
+
+	/* An empty key is meaningless, and the length reaches llcrypto_key_from_secret_key as the
+	 * size_t it allocates and copies with. */
+	if ((raw_key_length <= 0) || !sni_array_contains_range(raw_key, 0, raw_key_length)) {
+		VEEPORT_ERRORS_throw_runtime_exception_message(LLCRYPTO_UNSPECIFIED_EXCEPTION,
+		                                               "Invalid buffer offset or length");
 	} else {
-		// cppcheck-suppress misra-c2012-11.4 // Abstract data type for SNI usage
-		return_code = (int32_t)key;
+		struct llcrypto_key *key = llcrypto_key_from_secret_key(raw_key, (size_t)raw_key_length, algorithm);
+		if (NULL == key) {
+			VEEPORT_ERRORS_throw_runtime_exception_message(LLCRYPTO_UNSPECIFIED_EXCEPTION, "Can't create secret key");
+		} else {
+			return_code = (int32_t)key;
+		}
 	}
 
 	return return_code;
@@ -97,6 +106,5 @@ int32_t LLCRYPTO_SECRET_KEY_IMPL_create(uint8_t *raw_key, int32_t raw_key_length
  * @return function pointer to llcrypto_key_free cast to int32_t
  */
 int32_t LLCRYPTO_SECRET_KEY_IMPL_nativeGetCloseId(void) {
-	// cppcheck-suppress misra-c2012-11.1 // Abstract data type for SNI usage
 	return (int32_t)llcrypto_key_free;
 }

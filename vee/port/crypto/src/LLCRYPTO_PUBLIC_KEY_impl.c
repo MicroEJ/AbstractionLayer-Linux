@@ -6,67 +6,82 @@
  * Build: 7E4D1F7C
  */
 
-#include "LLCRYPTO_configuration.h"
+#include <openssl/err.h>
+#include <openssl/x509.h>
 #include <LLCRYPTO_PUBLIC_KEY_impl.h>
 #include <LLCRYPTO_CONSTANTS.h>
-#include "LLCRYPTO_key.h"
 #include <sni.h>
-#include <openssl/x509.h>
-#include <openssl/err.h>
 
-// #define LLCRYPTO_PUBLIC_KEY_DEBUG_TRACE
+#include "LLCRYPTO_configuration.h"
+#include "sni_extras.h"
+#include "LLCRYPTO_key.h"
 
-#ifdef LLCRYPTO_PUBLIC_KEY_DEBUG_TRACE
-#define LLCRYPTO_PUBLIC_KEY_PRINTF(...) (void)printf(__VA_ARGS__)
-#else
-#define LLCRYPTO_PUBLIC_KEY_PRINTF(...) ((void)0)
-#endif
+VEEPORT_LOGGER_DEFINE_MODULE(LLCRYPTO_LOG_MODULE_NAME, LLCRYPTO_LOG_LEVEL)
 
 int32_t LLCRYPTO_PUBLIC_KEY_IMPL_get_encoded_max_size(int32_t native_id) {
-	LLCRYPTO_PUBLIC_KEY_PRINTF("%s \n", __func__);
+	VEEPORT_LOGGER_LOG_DBG("");
 
-	// cppcheck-suppress misra-c2012-11.4 // Abstract data type for SNI usage
 	const struct llcrypto_key *key = (const struct llcrypto_key *)native_id;
 	int length = i2d_PUBKEY(key->evp_key, NULL);
 	if (length < 0) {
 		int err = ERR_get_error();
-		(void)SNI_throwNativeException(err, ERR_error_string(err, NULL));
+		VEEPORT_ERRORS_throw_runtime_exception_message(LLCRYPTO_UNSPECIFIED_EXCEPTION, "%s",
+		                                               ERR_error_string(err, NULL));
 	}
 
 	return length;
 }
 
 int32_t LLCRYPTO_PUBLIC_KEY_IMPL_get_encode(int32_t native_id, uint8_t *output, int32_t outputLength) {
-	LLCRYPTO_PUBLIC_KEY_PRINTF("%s \n", __func__);
-	LLCRYPTO_UNUSED_PARAM(outputLength);
+	VEEPORT_LOGGER_LOG_DBG("");
 
-	// cppcheck-suppress misra-c2012-11.4 // Abstract data type for SNI usage
 	const struct llcrypto_key *key = (const struct llcrypto_key *)native_id;
-	/*
-	 * Please don't use i2d_PublicKey() method here,
-	 * we need the key encoded in ASN.1 format which is returned by i2d_PUBKEY().
-	 * see openssl documentation for more details
-	 */
-	int length = i2d_PUBKEY(key->evp_key, &output);
-	if (length < 0) {
-		int err = ERR_get_error();
-		(void)SNI_throwNativeException(err, ERR_error_string(err, NULL));
+	int32_t return_code = SNI_ERROR;
+
+	if (!sni_array_contains_range(output, 0, outputLength)) {
+		VEEPORT_ERRORS_throw_runtime_exception_message(LLCRYPTO_UNSPECIFIED_EXCEPTION,
+		                                               "Invalid buffer offset or length");
+	} else {
+		/*
+		 * Please don't use i2d_PublicKey() method here,
+		 * we need the key encoded in ASN.1 format which is returned by i2d_PUBKEY().
+		 * see openssl documentation for more details
+		 */
+		/* i2d_PUBKEY writes the whole encoding and takes no capacity, so ask how long it
+		 * will be and refuse before writing when the array cannot hold it. */
+		int required = i2d_PUBKEY(key->evp_key, NULL);
+		if (required < 0) {
+			int err = ERR_get_error();
+			VEEPORT_ERRORS_throw_runtime_exception_message(LLCRYPTO_UNSPECIFIED_EXCEPTION, "%s",
+			                                               ERR_error_string(err, NULL));
+		} else if (required > outputLength) {
+			VEEPORT_ERRORS_throw_runtime_exception_message(LLCRYPTO_UNSPECIFIED_EXCEPTION, "Output buffer too small");
+		} else {
+			int length = i2d_PUBKEY(key->evp_key, &output);
+			if (length < 0) {
+				int err = ERR_get_error();
+				VEEPORT_ERRORS_throw_runtime_exception_message(LLCRYPTO_UNSPECIFIED_EXCEPTION, "%s",
+				                                               ERR_error_string(err, NULL));
+			} else {
+				return_code = length;
+			}
+		}
 	}
 
-	return length;
+	return return_code;
 }
 
 int32_t LLCRYPTO_PUBLIC_KEY_IMPL_get_output_size(int32_t native_id) {
-	LLCRYPTO_PUBLIC_KEY_PRINTF("%s \n", __func__);
+	VEEPORT_LOGGER_LOG_DBG("");
 	int32_t ret = 0;
 
-	// cppcheck-suppress misra-c2012-11.4 // Abstract data type for SNI usage
 	const struct llcrypto_key *key = (const struct llcrypto_key *)native_id;
 
 	ret = EVP_PKEY_size(key->evp_key);
 	if (0 == ret) {
 		int err = ERR_get_error();
-		(void)SNI_throwNativeException(err, ERR_error_string(err, NULL));
+		VEEPORT_ERRORS_throw_runtime_exception_message(LLCRYPTO_UNSPECIFIED_EXCEPTION, "%s",
+		                                               ERR_error_string(err, NULL));
 	}
 	return ret;
 }

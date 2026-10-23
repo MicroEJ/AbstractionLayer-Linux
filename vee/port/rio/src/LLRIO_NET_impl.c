@@ -36,6 +36,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+VEEPORT_LOGGER_DEFINE_MODULE(LLRIO_LOG_MODULE_NAME, LLRIO_LOG_LEVEL)
+
 /* IPv6 16-byte address access.  POSIX `struct in6_addr` exposes the
  * bytes as `.s6_addr`; a backend whose in6_addr names them differently
  * (e.g. via a byte-array member) overrides this macro in its
@@ -52,7 +54,7 @@
 /* Map POSIX errno to a MicroEJ Java error code.  Exposed (non-static) so the
  * net layer that composes rio shares this single mapping instead of carrying
  * its own duplicate switch. */
-int LLRIO_NET_map_errno_to_java(int posix_errno) {
+int32_t LLRIO_NET_map_errno_to_java(int32_t posix_errno) {
 	switch (posix_errno) {
 	case EACCES:
 		return J_EACCES;
@@ -115,10 +117,14 @@ int LLRIO_NET_map_errno_to_java(int posix_errno) {
 	}
 }
 
-/* Convenience: throw NativeIOException with a mapped error code. */
-static void throw_mapped_io_exception(int posix_errno) {
-	SNI_throwNativeIOException(LLRIO_NET_map_errno_to_java(posix_errno),
-	                           strerror(posix_errno));
+void LLRIO_throw_errno(int32_t posix_errno) {
+	int32_t error_code = LLRIO_NET_map_errno_to_java(posix_errno);
+	if (J_EUNKNOWN == error_code) {
+		VEEPORT_ERRORS_throw_caught_exception_message(error_code, "%s (%d)", strerror(posix_errno), posix_errno);
+	} else {
+		VEEPORT_LOGGER_LOG_DBG("errno %d: %s", posix_errno, strerror(posix_errno));
+		VEEPORT_ERRORS_throw_caught_exception(error_code);
+	}
 }
 
 /*
@@ -144,13 +150,13 @@ static bool rio_net_ready(void) {
 	static bool initialized = false;
 	if (!initialized) {
 		if (llrio_net_init() != 0) {
-			SNI_throwNativeIOException(J_NETWORK_NOT_INITIALIZED, "network not initialized");
+			VEEPORT_ERRORS_throw_caught_exception(J_NETWORK_NOT_INITIALIZED);
 			return false;
 		}
 		initialized = true;
 	}
 	if (!llrio_net_is_ready()) {
-		SNI_throwNativeIOException(J_NETWORK_NOT_INITIALIZED, "network not initialized");
+		VEEPORT_ERRORS_throw_caught_exception(J_NETWORK_NOT_INITIALIZED);
 		return false;
 	}
 #endif
@@ -357,7 +363,8 @@ jint LLRIO_NET_IMPL_getWildcardAddress(jbyte *dst, jint dstLength) {
 	/* Honor the caller's buffer length rather than trusting it: refuse to
 	 * write past a short buffer. */
 	if (dstLength < needed) {
-		SNI_throwNativeIOException(J_EINVAL, "wildcard buffer too small");
+		VEEPORT_LOGGER_LOG_DBG("wildcard buffer too small");
+		VEEPORT_ERRORS_throw_caught_exception(J_EINVAL);
 		return SNI_IGNORED_RETURNED_VALUE;
 	}
 	/* The wildcard is all-zero bytes (0.0.0.0 / ::).  memset writes them
@@ -384,14 +391,14 @@ jint LLRIO_NET_IMPL_createSocket(jint type) {
 
 	int fd = create_socket(sock_type);
 	if (fd < 0) {
-		throw_mapped_io_exception(llrio_net_errno(fd));
+		LLRIO_throw_errno(llrio_net_errno(fd));
 		return SNI_IGNORED_RETURNED_VALUE;
 	}
 
 	if (set_nonblocking(fd) < 0) {
 		int saved_errno = llrio_net_errno(fd);
 		llrio_net_close(fd);
-		throw_mapped_io_exception(saved_errno);
+		LLRIO_throw_errno(saved_errno);
 		return SNI_IGNORED_RETURNED_VALUE;
 	}
 
@@ -401,7 +408,8 @@ jint LLRIO_NET_IMPL_createSocket(jint type) {
 	 * NativeResource.closeOnGC.  A full registry fails creation loudly. */
 	if (SNI_registerResource((void *)(intptr_t)fd, net_close_resource, NULL) != SNI_OK) {
 		llrio_net_close(fd);
-		SNI_throwNativeIOException(J_ENOMEM, "rio: native resource registry full");
+		VEEPORT_LOGGER_LOG_ERR("rio: native resource registry full");
+		VEEPORT_ERRORS_throw_caught_exception(J_ENOMEM);
 		return SNI_IGNORED_RETURNED_VALUE;
 	}
 
@@ -419,13 +427,14 @@ void LLRIO_NET_IMPL_connect(jint fd, jbyte *ip_address,
 	union llrio_net_sockaddr addr;
 	socklen_t addr_len = build_sockaddr(&addr, ip_address, ip_address_length, port);
 	if (addr_len == 0) {
-		SNI_throwNativeIOException(J_EINVAL, "invalid address length for configured LLRIO_NET_AF");
+		VEEPORT_LOGGER_LOG_DBG("invalid address length for configured LLRIO_NET_AF");
+		VEEPORT_ERRORS_throw_caught_exception(J_EINVAL);
 		return;
 	}
 
 	int ret = llrio_net_connect((int)fd, &addr.addr, addr_len);
 	if (ret < 0 && llrio_net_errno(fd) != EINPROGRESS && llrio_net_errno(fd) != EISCONN) {
-		throw_mapped_io_exception(llrio_net_errno(fd));
+		LLRIO_throw_errno(llrio_net_errno(fd));
 	}
 }
 
@@ -445,7 +454,7 @@ void LLRIO_NET_IMPL_disconnect(jint fd) {
 
 	int ret = llrio_net_connect((int)fd, &addr.addr, sizeof(addr.addr));
 	if (ret < 0) {
-		throw_mapped_io_exception(llrio_net_errno(fd));
+		LLRIO_throw_errno(llrio_net_errno(fd));
 	}
 }
 
@@ -460,13 +469,14 @@ void LLRIO_NET_IMPL_bind(jint fd, jbyte *ip_address,
 	union llrio_net_sockaddr addr;
 	socklen_t addr_len = build_sockaddr(&addr, ip_address, ip_address_length, port);
 	if (addr_len == 0) {
-		SNI_throwNativeIOException(J_EINVAL, "invalid address length for configured LLRIO_NET_AF");
+		VEEPORT_LOGGER_LOG_DBG("invalid address length for configured LLRIO_NET_AF");
+		VEEPORT_ERRORS_throw_caught_exception(J_EINVAL);
 		return;
 	}
 
 	int ret = llrio_net_bind((int)fd, &addr.addr, addr_len);
 	if (ret < 0) {
-		throw_mapped_io_exception(llrio_net_errno(fd));
+		LLRIO_throw_errno(llrio_net_errno(fd));
 	}
 }
 
@@ -478,7 +488,7 @@ void LLRIO_NET_IMPL_listen(jint fd, jint backlog) {
 	}
 
 	if (llrio_net_listen((int)fd, (int)backlog) < 0) {
-		throw_mapped_io_exception(llrio_net_errno(fd));
+		LLRIO_throw_errno(llrio_net_errno(fd));
 	}
 }
 
@@ -499,20 +509,21 @@ jint LLRIO_NET_IMPL_accept(jint server_fd) {
 		if (llrio_net_errno(server_fd) == EAGAIN || llrio_net_errno(server_fd) == EWOULDBLOCK) {
 			return -1;
 		}
-		throw_mapped_io_exception(llrio_net_errno(server_fd));
+		LLRIO_throw_errno(llrio_net_errno(server_fd));
 		return SNI_IGNORED_RETURNED_VALUE;
 	}
 	if (set_nonblocking(client_fd) < 0) {
 		int saved_errno = llrio_net_errno(client_fd);
 		llrio_net_close(client_fd);
-		throw_mapped_io_exception(saved_errno);
+		LLRIO_throw_errno(saved_errno);
 		return SNI_IGNORED_RETURNED_VALUE;
 	}
 	/* Register the accepted fd for close-on-GC at creation (same as createSocket):
 	 * the fd is its own resource id. */
 	if (SNI_registerResource((void *)(intptr_t)client_fd, net_close_resource, NULL) != SNI_OK) {
 		llrio_net_close(client_fd);
-		SNI_throwNativeIOException(J_ENOMEM, "rio: native resource registry full");
+		VEEPORT_LOGGER_LOG_ERR("rio: native resource registry full");
+		VEEPORT_ERRORS_throw_caught_exception(J_ENOMEM);
 		return SNI_IGNORED_RETURNED_VALUE;
 	}
 	return (jint)client_fd;
@@ -569,7 +580,7 @@ jint LLRIO_NET_IMPL_getLocalPort(jint fd) {
 	socklen_t len = sizeof(addr);
 
 	if (llrio_net_getsockname((int)fd, &addr.addr, &len) < 0) {
-		throw_mapped_io_exception(llrio_net_errno(fd));
+		LLRIO_throw_errno(llrio_net_errno(fd));
 		return SNI_IGNORED_RETURNED_VALUE;
 	}
 
@@ -587,7 +598,7 @@ void LLRIO_NET_IMPL_getLocalAddress(jint fd, jbyte *local_addr) {
 	socklen_t len = sizeof(addr);
 
 	if (llrio_net_getsockname((int)fd, &addr.addr, &len) < 0) {
-		throw_mapped_io_exception(llrio_net_errno(fd));
+		LLRIO_throw_errno(llrio_net_errno(fd));
 		return;
 	}
 
@@ -605,7 +616,7 @@ void LLRIO_NET_IMPL_getRemoteAddress(jint fd, jbyte *remote_addr) {
 	socklen_t len = sizeof(addr);
 
 	if (llrio_net_getpeername((int)fd, &addr.addr, &len) < 0) {
-		throw_mapped_io_exception(llrio_net_errno(fd));
+		LLRIO_throw_errno(llrio_net_errno(fd));
 		return;
 	}
 
@@ -648,7 +659,7 @@ void LLRIO_NET_IMPL_setOption(jint fd, jint option, jint value) {
 		lg.l_linger = (val >= 0) ? val : 0;
 		if (llrio_net_setsockopt((int)fd, SOL_SOCKET, SO_LINGER,
 		                         &lg, sizeof(lg)) < 0) {
-			throw_mapped_io_exception(llrio_net_errno(fd));
+			LLRIO_throw_errno(llrio_net_errno(fd));
 		}
 		return;
 	}
@@ -662,8 +673,8 @@ void LLRIO_NET_IMPL_setOption(jint fd, jint option, jint value) {
 		/* BSP did not supply TCP_NODELAY / IPPROTO_TCP — the option is
 		 * unsupported on this platform.  Throw cleanly rather than
 		 * forwarding arbitrary constants to setsockopt. */
-		SNI_throwNativeIOException(J_ENOPROTOOPT,
-		                           "TCP_NODELAY not supported");
+		VEEPORT_LOGGER_LOG_DBG("TCP_NODELAY not supported");
+		VEEPORT_ERRORS_throw_caught_exception(J_ENOPROTOOPT);
 		return;
 #endif
 	case LLRIO_NET_OPTION_SO_SNDBUF:
@@ -694,25 +705,26 @@ void LLRIO_NET_IMPL_setOption(jint fd, jint option, jint value) {
 #if LLRIO_NET_AF & LLRIO_NET_AF_IPV4
 		if (llrio_net_setsockopt((int)fd, IPPROTO_IP, IP_MULTICAST_LOOP,
 		                         &loop_val, sizeof(loop_val)) < 0) {
-			throw_mapped_io_exception(llrio_net_errno(fd));
+			LLRIO_throw_errno(llrio_net_errno(fd));
 			return;
 		}
 #endif
 #if LLRIO_NET_AF & LLRIO_NET_AF_IPV6
 		if (llrio_net_setsockopt((int)fd, IPPROTO_IPV6, IPV6_MULTICAST_LOOP,
 		                         &loop_val, sizeof(loop_val)) < 0) {
-			throw_mapped_io_exception(llrio_net_errno(fd));
+			LLRIO_throw_errno(llrio_net_errno(fd));
 		}
 #endif
 	}
 		return;
 	default:
-		SNI_throwNativeIOException(-1, "Unknown socket option");
+		VEEPORT_LOGGER_LOG_DBG("unknown socket option");
+		VEEPORT_ERRORS_throw_caught_exception(J_ENOPROTOOPT);
 		return;
 	}
 
 	if (llrio_net_setsockopt((int)fd, level, optname, &val, sizeof(val)) < 0) {
-		throw_mapped_io_exception(llrio_net_errno(fd));
+		LLRIO_throw_errno(llrio_net_errno(fd));
 	}
 }
 
@@ -755,8 +767,8 @@ jint LLRIO_NET_IMPL_getOption(jint fd, jint option) {
 		optname = TCP_NODELAY;
 		break;
 #else
-		SNI_throwNativeIOException(J_ENOPROTOOPT,
-		                           "TCP_NODELAY not supported");
+		VEEPORT_LOGGER_LOG_DBG("TCP_NODELAY not supported");
+		VEEPORT_ERRORS_throw_caught_exception(J_ENOPROTOOPT);
 		return SNI_IGNORED_RETURNED_VALUE;
 #endif
 	case LLRIO_NET_OPTION_IP_MULTICAST_LOOP:
@@ -778,18 +790,19 @@ jint LLRIO_NET_IMPL_getOption(jint fd, jint option) {
 		struct linger lg = { 0 };
 		socklen_t lg_len = sizeof(lg);
 		if (llrio_net_getsockopt((int)fd, SOL_SOCKET, SO_LINGER, &lg, &lg_len) < 0) {
-			throw_mapped_io_exception(llrio_net_errno(fd));
+			LLRIO_throw_errno(llrio_net_errno(fd));
 			return SNI_IGNORED_RETURNED_VALUE;
 		}
 		return lg.l_onoff == 0 ? -1 : (jint)lg.l_linger;
 	}
 	default:
-		SNI_throwNativeIOException(-1, "Unknown socket option");
+		VEEPORT_LOGGER_LOG_DBG("unknown socket option");
+		VEEPORT_ERRORS_throw_caught_exception(J_ENOPROTOOPT);
 		return SNI_IGNORED_RETURNED_VALUE;
 	}
 
 	if (llrio_net_getsockopt((int)fd, level, optname, &val, &optlen) < 0) {
-		throw_mapped_io_exception(llrio_net_errno(fd));
+		LLRIO_throw_errno(llrio_net_errno(fd));
 		return SNI_IGNORED_RETURNED_VALUE;
 	}
 	return (jint)val;
@@ -812,18 +825,20 @@ jint LLRIO_NET_IMPL_getOptionAsByteArray(jint fd, jint option,
 		 * the code portable to BSPs whose IPv4 address type is a bare
 		 * integer without a `.s_addr` sub-field. */
 		if ((uint32_t)dstLength < 4) {
-			SNI_throwNativeIOException(J_EINVAL, "buffer too small");
+			VEEPORT_LOGGER_LOG_DBG("buffer too small");
+			VEEPORT_ERRORS_throw_caught_exception(J_EINVAL);
 			return SNI_IGNORED_RETURNED_VALUE;
 		}
 		socklen_t opt_len = 4;
 		if (llrio_net_getsockopt((int)fd, IPPROTO_IP, IP_MULTICAST_IF, dst, &opt_len) < 0) {
-			throw_mapped_io_exception(llrio_net_errno(fd));
+			LLRIO_throw_errno(llrio_net_errno(fd));
 			return SNI_IGNORED_RETURNED_VALUE;
 		}
 		return (jint)opt_len;
 	}
 	default:
-		SNI_throwNativeIOException(-1, "Unknown socket option");
+		VEEPORT_LOGGER_LOG_DBG("unknown socket option");
+		VEEPORT_ERRORS_throw_caught_exception(J_ENOPROTOOPT);
 		return SNI_IGNORED_RETURNED_VALUE;
 	}
 }
@@ -845,7 +860,7 @@ void LLRIO_NET_IMPL_setOptionAsByteArray(jint fd, jint option,
 			 * above — avoid the POSIX-only `struct in_addr`. */
 			if (llrio_net_setsockopt((int)fd, IPPROTO_IP, IP_MULTICAST_IF,
 			                         value, 4) < 0) {
-				throw_mapped_io_exception(llrio_net_errno(fd));
+				LLRIO_throw_errno(llrio_net_errno(fd));
 			}
 			return;
 		}
@@ -856,15 +871,17 @@ void LLRIO_NET_IMPL_setOptionAsByteArray(jint fd, jint option,
 			unsigned int idx = resolve_ipv6_scope_id(value);
 			if (llrio_net_setsockopt((int)fd, IPPROTO_IPV6, IPV6_MULTICAST_IF,
 			                         &idx, sizeof(idx)) < 0) {
-				throw_mapped_io_exception(llrio_net_errno(fd));
+				LLRIO_throw_errno(llrio_net_errno(fd));
 			}
 			return;
 		}
 #endif
-		SNI_throwNativeIOException(J_EINVAL, "wrong option length");
+		VEEPORT_LOGGER_LOG_DBG("wrong option length");
+		VEEPORT_ERRORS_throw_caught_exception(J_EINVAL);
 		return;
 	default:
-		SNI_throwNativeIOException(-1, "Unknown socket option");
+		VEEPORT_LOGGER_LOG_DBG("unknown socket option");
+		VEEPORT_ERRORS_throw_caught_exception(J_ENOPROTOOPT);
 	}
 }
 
@@ -878,7 +895,7 @@ jint LLRIO_NET_IMPL_getMulticastTtl(jint fd) {
 	int ttl = 0;
 	socklen_t optlen = sizeof(ttl);
 	if (llrio_net_getsockopt((int)fd, IPPROTO_IP, IP_MULTICAST_TTL, &ttl, &optlen) < 0) {
-		throw_mapped_io_exception(llrio_net_errno(fd));
+		LLRIO_throw_errno(llrio_net_errno(fd));
 		return SNI_IGNORED_RETURNED_VALUE;
 	}
 	return (jint)ttl;
@@ -897,7 +914,7 @@ void LLRIO_NET_IMPL_setMulticastInterfaceV4(jint fd, jbyte *if_address) {
 	 * stacks that don't declare `struct in_addr`. */
 	if (llrio_net_setsockopt((int)fd, IPPROTO_IP, IP_MULTICAST_IF,
 	                         if_address, 4) < 0) {
-		throw_mapped_io_exception(llrio_net_errno(fd));
+		LLRIO_throw_errno(llrio_net_errno(fd));
 	}
 }
 
@@ -911,7 +928,7 @@ void LLRIO_NET_IMPL_setMulticastInterfaceV6(jint fd, jint interface_index) {
 	unsigned int idx = (unsigned int)interface_index;
 	if (llrio_net_setsockopt((int)fd, IPPROTO_IPV6, IPV6_MULTICAST_IF,
 	                         &idx, sizeof(idx)) < 0) {
-		throw_mapped_io_exception(llrio_net_errno(fd));
+		LLRIO_throw_errno(llrio_net_errno(fd));
 	}
 }
 
@@ -926,14 +943,14 @@ void LLRIO_NET_IMPL_setMulticastTtl(jint fd, jint ttl) {
 #if LLRIO_NET_AF & LLRIO_NET_AF_IPV4
 	if (llrio_net_setsockopt((int)fd, IPPROTO_IP, IP_MULTICAST_TTL,
 	                         &val, sizeof(val)) < 0) {
-		throw_mapped_io_exception(llrio_net_errno(fd));
+		LLRIO_throw_errno(llrio_net_errno(fd));
 		return;
 	}
 #endif
 #if LLRIO_NET_AF & LLRIO_NET_AF_IPV6
 	if (llrio_net_setsockopt((int)fd, IPPROTO_IPV6, IPV6_MULTICAST_HOPS,
 	                         &val, sizeof(val)) < 0) {
-		throw_mapped_io_exception(llrio_net_errno(fd));
+		LLRIO_throw_errno(llrio_net_errno(fd));
 	}
 #endif
 }
@@ -964,7 +981,7 @@ void LLRIO_NET_IMPL_joinOrLeave(jint fd, jboolean join,
 		int optname = join ? IP_ADD_MEMBERSHIP : IP_DROP_MEMBERSHIP;
 		if (llrio_net_setsockopt((int)fd, IPPROTO_IP, optname,
 		                         &mreq, sizeof(mreq)) < 0) {
-			throw_mapped_io_exception(llrio_net_errno(fd));
+			LLRIO_throw_errno(llrio_net_errno(fd));
 		}
 	} else if (mcast_addr_len == 16) {
 		/* IPv6: IPV6_JOIN_GROUP / IPV6_LEAVE_GROUP */
@@ -983,10 +1000,11 @@ void LLRIO_NET_IMPL_joinOrLeave(jint fd, jboolean join,
 		int optname = join ? IPV6_JOIN_GROUP : IPV6_LEAVE_GROUP;
 		if (llrio_net_setsockopt((int)fd, IPPROTO_IPV6, optname,
 		                         &mreq6, sizeof(mreq6)) < 0) {
-			throw_mapped_io_exception(llrio_net_errno(fd));
+			LLRIO_throw_errno(llrio_net_errno(fd));
 		}
 	} else {
-		SNI_throwNativeIOException(J_EINVAL, "Invalid multicast address length");
+		VEEPORT_LOGGER_LOG_DBG("Invalid multicast address length");
+		VEEPORT_ERRORS_throw_caught_exception(J_EINVAL);
 	}
 }
 
@@ -1003,7 +1021,7 @@ jint LLRIO_NET_IMPL_socketAvailable(jint fd) {
 	 * macro in LLRIO_NET_configuration.h. */
 	int count = 0;
 	if (llrio_net_socket_available((int)fd, &count) < 0) {
-		throw_mapped_io_exception(llrio_net_errno(fd));
+		LLRIO_throw_errno(llrio_net_errno(fd));
 		return SNI_IGNORED_RETURNED_VALUE;
 	}
 	return (jint)count;
@@ -1030,7 +1048,7 @@ jint LLRIO_NET_IMPL_socketWrite(jint fd, jbyte *data, jint offset, jint length) 
 		if (err == ENOTCONN) {
 			err = EBADF;
 		}
-		throw_mapped_io_exception(err);
+		LLRIO_throw_errno(err);
 		return SNI_IGNORED_RETURNED_VALUE;
 	}
 	return (jint)n;
@@ -1058,7 +1076,7 @@ jint LLRIO_NET_IMPL_socketRead(jint fd, jbyte *buffer, jint offset, jint length)
 		if (err == ENOTCONN) {
 			err = EBADF;
 		}
-		throw_mapped_io_exception(err);
+		LLRIO_throw_errno(err);
 		return SNI_IGNORED_RETURNED_VALUE;
 	}
 	if (n == 0) {
@@ -1079,7 +1097,8 @@ jint LLRIO_NET_IMPL_sendTo(jint fd, jbyte *data, jint offset, jint length,
 	union llrio_net_sockaddr addr;
 	socklen_t addr_len = build_sockaddr(&addr, ip_address, ip_address_length, port);
 	if (addr_len == 0) {
-		SNI_throwNativeIOException(J_EINVAL, "invalid address length for configured LLRIO_NET_AF");
+		VEEPORT_LOGGER_LOG_DBG("invalid address length for configured LLRIO_NET_AF");
+		VEEPORT_ERRORS_throw_caught_exception(J_EINVAL);
 		return SNI_IGNORED_RETURNED_VALUE;
 	}
 
@@ -1089,7 +1108,7 @@ jint LLRIO_NET_IMPL_sendTo(jint fd, jbyte *data, jint offset, jint length,
 		if (llrio_net_errno(fd) == EAGAIN || llrio_net_errno(fd) == EWOULDBLOCK) {
 			return 0;
 		}
-		throw_mapped_io_exception(llrio_net_errno(fd));
+		LLRIO_throw_errno(llrio_net_errno(fd));
 		return SNI_IGNORED_RETURNED_VALUE;
 	}
 	return (jint)n;
@@ -1112,7 +1131,7 @@ jint LLRIO_NET_IMPL_recvFrom(jint fd, jbyte *buffer, jint offset, jint length,
 		if (llrio_net_errno(fd) == EAGAIN || llrio_net_errno(fd) == EWOULDBLOCK) {
 			return 0;
 		}
-		throw_mapped_io_exception(llrio_net_errno(fd));
+		LLRIO_throw_errno(llrio_net_errno(fd));
 		return SNI_IGNORED_RETURNED_VALUE;
 	}
 

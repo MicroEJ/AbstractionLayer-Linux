@@ -21,6 +21,8 @@
 #include "LLNET_ERRORS.h"
 #include "LLNET_Common.h"
 #include "LLNET_CHANNEL_impl.h"
+
+VEEPORT_LOGGER_DEFINE_MODULE(LLNET_LOG_MODULE_NAME, LLNET_LOG_LEVEL)
 #if LLNET_AF & LLNET_AF_IPV6
 #include <ifaddrs.h>
 #include <arpa/inet.h>
@@ -33,18 +35,18 @@ extern "C" {
 #endif
 
 int32_t LLNET_MULTICASTSOCKETCHANNEL_IMPL_getTimeToLive(int32_t fd) {
-	LLNET_DEBUG_TRACE("%s(fd=0x%X)\n", __func__, fd);
+	VEEPORT_LOGGER_LOG_DBG("(fd=0x%X)", fd);
 	return LLNET_CHANNEL_IMPL_getOption(fd, LLNET_SOCKETOPTION_IP_TTL);
 }
 
 void LLNET_MULTICASTSOCKETCHANNEL_IMPL_setTimeToLive(int32_t fd, int32_t ttl) {
-	LLNET_DEBUG_TRACE("%s(fd=0x%X)\n", __func__, fd);
+	VEEPORT_LOGGER_LOG_DBG("(fd=0x%X)", fd);
 	LLNET_CHANNEL_IMPL_setOption(fd, LLNET_SOCKETOPTION_IP_TTL, ttl);
 }
 
 void LLNET_MULTICASTSOCKETCHANNEL_IMPL_joinOrLeave(int32_t fd, uint8_t join, int8_t *mcastAddr, int32_t mcastAddrLength,
                                                    int8_t *netIfAddr, int32_t netIfAddrLength) {
-	LLNET_DEBUG_TRACE("%s(fd=0x%X)\n", __func__, fd);
+	VEEPORT_LOGGER_LOG_DBG("(fd=0x%X)", fd);
 	int32_t fd_errno;
 #if LLNET_AF & LLNET_AF_IPV4
 
@@ -60,8 +62,8 @@ void LLNET_MULTICASTSOCKETCHANNEL_IMPL_joinOrLeave(int32_t fd, uint8_t join, int
 		if (llnet_setsockopt(fd, IPPROTO_IP, join ? IP_ADD_MEMBERSHIP : IP_DROP_MEMBERSHIP, &optval,
 		                     sizeof(optval)) == -1) {
 			fd_errno = llnet_errno(fd);
-			LLNET_DEBUG_TRACE("%s(%d): errno=%d\n", __func__, __LINE__, fd_errno);
-			SNI_throwNativeIOException(LLNET_map_to_java_exception(fd_errno), LLNET_get_socket_error_msg(fd_errno));
+			VEEPORT_LOGGER_LOG_DBG("errno=%d", fd_errno);
+			LLNET_throw_socket_error(fd_errno);
 		}
 		return;
 	}
@@ -77,7 +79,7 @@ void LLNET_MULTICASTSOCKETCHANNEL_IMPL_joinOrLeave(int32_t fd, uint8_t join, int
 			struct ifaddrs *i;
 			if (getifaddrs(&ifaddrs) != 0) {
 				fd_errno = llnet_errno(fd);
-				SNI_throwNativeIOException(LLNET_map_to_java_exception(fd_errno), LLNET_get_socket_error_msg(fd_errno));
+				LLNET_throw_socket_error(fd_errno);
 				return;
 			}
 			// Walk the interface address structure until we match the interface address
@@ -97,13 +99,14 @@ void LLNET_MULTICASTSOCKETCHANNEL_IMPL_joinOrLeave(int32_t fd, uint8_t join, int
 		if (llnet_setsockopt(fd, IPPROTO_IPV6, join ? IPV6_JOIN_GROUP : IPV6_LEAVE_GROUP, &optval,
 		                     sizeof(optval)) == -1) {
 			fd_errno = llnet_errno(fd);
-			LLNET_DEBUG_TRACE("%s(%d): errno=%d\n", __func__, __LINE__, fd_errno);
-			SNI_throwNativeIOException(LLNET_map_to_java_exception(fd_errno), LLNET_get_socket_error_msg(fd_errno));
+			VEEPORT_LOGGER_LOG_DBG("errno=%d", fd_errno);
+			LLNET_throw_socket_error(fd_errno);
 		}
 		return;
 	}
 #endif /* if LLNET_AF & LLNET_AF_IPV6 */
-	SNI_throwNativeIOException(J_EINVAL, "wrong address length");
+	VEEPORT_LOGGER_LOG_DBG("wrong address length");
+	VEEPORT_ERRORS_throw_caught_exception(J_EINVAL);
 }
 
 #ifdef __cplusplus

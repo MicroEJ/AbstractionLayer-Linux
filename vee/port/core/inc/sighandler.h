@@ -3,6 +3,7 @@
  *
  * Copyright 2014-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
+ * Build: 7E4D1F7C
  */
 
 #ifndef SIGHANDLER_H
@@ -22,14 +23,18 @@ extern "C" {
 
 /**
  * @brief Initializes the handler called when a segmentation fault occurs.
+ *
+ * @return 0 on success, else -1.
  */
-void microej_segfault_handler_init(void);
+int microej_segfault_handler_init(void);
 
 /**
  * @brief Initializes the handler that executes a MicroEJ Core Engine dump when SIGUSR1 signal is received by the
  * current process.
+ *
+ * @return 0 on success, else -1.
  */
-void microej_usr1_signal_handler_init(void);
+int microej_usr1_signal_handler_init(void);
 
 #ifdef __cplusplus
 }

@@ -2,6 +2,7 @@
  * C
  * Copyright 2015-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
+ * Build: 7E4D1F7C
  */
 
 /**
@@ -35,6 +36,8 @@
 #include "fs_configuration.h"
 #include "fs_helper_posix_configuration.h"
 
+VEEPORT_LOGGER_DEFINE_MODULE(LLFS_LOG_MODULE_NAME, LLFS_LOG_LEVEL)
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -62,6 +65,16 @@ static void LLFS_File_IMPL_regular_read(int file_desc, uint8_t *data, int32_t le
 static void LLFS_File_IMPL_regular_write(int file_desc, uint8_t *data, int32_t length, FS_write_read_t *params);
 static void LLFS_File_IMPL_get_available_data_IFCHR(int file_desc, FS_available_t *params);
 static void LLFS_File_IMPL_gett_available_data(FILE *file, uint64_t file_size, FS_available_t *params);
+
+/**
+ * @brief Records the errno of a failed C library call in the job. The exception is thrown on the VM thread,
+ * by <code>LLFS_throw_job_error</code>.
+ */
+#define FS_SET_ERRNO_ERROR(params)        \
+		do {                              \
+			(params)->result = LLFS_NOK;  \
+			(params)->error_code = errno; \
+		} while (0)
 
 /*
  * This method check if a file exist on the file system.
@@ -120,10 +133,8 @@ void LLFS_IMPL_set_read_only_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 		}
 	}
 
-#ifdef LLFS_DEBUG
-	printf("LLFS_DEBUG [%s:%u] readonly set on %s (status %d err %d errno \"%s\")\n", __FILE__, __LINE__, path,
-	       params->result, fs_err, strerror(errno));
-#endif
+	VEEPORT_LOGGER_LOG_DBG("readonly set on %s (status %d err %d errno \"%s\")", path, params->result, fs_err,
+	                       strerror(errno));
 }
 
 void LLFS_IMPL_create_action(MICROEJ_ASYNC_WORKER_job_t *job) {
@@ -144,17 +155,13 @@ void LLFS_IMPL_create_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 		if (fclose(file) == 0) {
 			params->result = LLFS_OK;  // success
 		} else {
-			params->error_code = errno;
-			params->error_message = strerror(errno);
+			FS_SET_ERRNO_ERROR(params);
 		}
 	} else {
-		params->error_code = errno;
-		params->error_message = strerror(errno);
+		FS_SET_ERRNO_ERROR(params);
 	}
 
-#ifdef LLFS_DEBUG
-	printf("LLFS_DEBUG [%s:%u] : create file %s (status %d)\n", __FILE__, __LINE__, path, params->result);
-#endif
+	VEEPORT_LOGGER_LOG_DBG("create file %s (status %d)", path, params->result);
 }
 
 void LLFS_IMPL_open_directory_action(MICROEJ_ASYNC_WORKER_job_t *job) {
@@ -170,10 +177,8 @@ void LLFS_IMPL_open_directory_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 		params->result = (int32_t)dir;
 	}
 
-#ifdef LLFS_DEBUG
-	printf("LLFS_DEBUG [%s:%u] open dir %s (status %d %x errno \"%s\")\n", __FILE__, __LINE__, path, params->result,
-	       params->result, strerror(errno));
-#endif
+	VEEPORT_LOGGER_LOG_DBG("open dir %s (status %d %x errno \"%s\")", path, params->result, params->result,
+	                       strerror(errno));
 }
 
 void LLFS_IMPL_read_directory_action(MICROEJ_ASYNC_WORKER_job_t *job) {
@@ -192,9 +197,7 @@ void LLFS_IMPL_read_directory_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 		}
 	}
 
-#ifdef LLFS_DEBUG
-	printf("LLFS_DEBUG [%s:%u] read dir result %s (status %d)\n", __FILE__, __LINE__, path, params->result);
-#endif
+	VEEPORT_LOGGER_LOG_DBG("read dir result %s (status %d)", path, params->result);
 }
 
 void LLFS_IMPL_close_directory_action(MICROEJ_ASYNC_WORKER_job_t *job) {
@@ -209,10 +212,7 @@ void LLFS_IMPL_close_directory_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 		params->result = LLFS_NOK;
 	}
 
-#ifdef LLFS_DEBUG
-	printf("LLFS_DEBUG [%s:%u] close dir (status %d err %d errno \"%s\")\n", __FILE__, __LINE__, params->result, fs_err,
-	       strerror(errno));
-#endif
+	VEEPORT_LOGGER_LOG_DBG("close dir (status %d err %d errno \"%s\")", params->result, fs_err, strerror(errno));
 }
 
 void LLFS_IMPL_rename_to_action(MICROEJ_ASYNC_WORKER_job_t *job) {
@@ -228,10 +228,8 @@ void LLFS_IMPL_rename_to_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 		params->result = LLFS_NOK;
 	}
 
-#ifdef LLFS_DEBUG
-	printf("LLFS_DEBUG [%s:%u] rename : old name %s, new name %s (status %d err %d errno %)\n", __FILE__, __LINE__,
-	       path, new_path, params->result, fs_err, errno);
-#endif
+	VEEPORT_LOGGER_LOG_DBG("rename: old name %s, new name %s (status %d err %d errno %d)", path, new_path,
+	                       params->result, fs_err, errno);
 }
 
 void LLFS_IMPL_get_length_action(MICROEJ_ASYNC_WORKER_job_t *job) {
@@ -246,10 +244,7 @@ void LLFS_IMPL_get_length_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 		params->result = buffer.st_size;
 	}
 
-#ifdef LLFS_DEBUG
-	printf("LLFS_DEBUG [%s:%u] length of %s : %lld (err %d errno \"%s\")\n", __FILE__, __LINE__, path, params->result,
-	       fs_err, strerror(errno));
-#endif
+	VEEPORT_LOGGER_LOG_DBG("length of %s : %lld (err %d errno \"%s\")", path, params->result, fs_err, strerror(errno));
 }
 
 void LLFS_IMPL_exist_action(MICROEJ_ASYNC_WORKER_job_t *job) {
@@ -265,10 +260,7 @@ void LLFS_IMPL_exist_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 		params->result = LLFS_NOK;
 	}
 
-#ifdef LLFS_DEBUG
-	printf("LLFS_DEBUG [%s:%u] exist file %s : %d (err %d errno \"%s\")\n", __FILE__, __LINE__, path, params->result,
-	       fs_err, strerror(errno));
-#endif
+	VEEPORT_LOGGER_LOG_DBG("exist file %s : %d (err %d errno \"%s\")", path, params->result, fs_err, strerror(errno));
 }
 
 void LLFS_IMPL_get_space_size_action(MICROEJ_ASYNC_WORKER_job_t *job) {
@@ -296,10 +288,7 @@ void LLFS_IMPL_get_space_size_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 		}
 	}
 
-#ifdef LLFS_DEBUG
-	printf("LLFS_DEBUG [%s:%u] : get space %d size on %s : %ld \n", __FILE__, __LINE__, space_type, path,
-	       params->result);
-#endif
+	VEEPORT_LOGGER_LOG_DBG("get space %d size on %s: %lld", space_type, path, (long long)params->result);
 }
 
 void LLFS_IMPL_make_directory_action(MICROEJ_ASYNC_WORKER_job_t *job) {
@@ -313,10 +302,7 @@ void LLFS_IMPL_make_directory_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 		params->result = LLFS_NOK;
 	}
 
-#ifdef LLFS_DEBUG
-	printf("LLFS_DEBUG [%s:%u] : mkdir %s (status %d err %d errno \"%s\")\n", __FILE__, __LINE__, path, params->result,
-	       fs_err, strerror(errno));
-#endif
+	VEEPORT_LOGGER_LOG_DBG("mkdir %s (status %d err %d errno \"%s\")", path, params->result, fs_err, strerror(errno));
 }
 
 void LLFS_IMPL_is_hidden_action(MICROEJ_ASYNC_WORKER_job_t *job) {
@@ -329,9 +315,7 @@ void LLFS_IMPL_is_hidden_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 		params->result = LLFS_NOK;
 	}
 
-#ifdef LLFS_DEBUG
-	printf("LLFS_DEBUG [%s:%u] : is hidden %s (status %d)\n", __FILE__, __LINE__, path, params->result);
-#endif
+	VEEPORT_LOGGER_LOG_DBG("is hidden %s (status %d)", path, params->result);
 }
 
 void LLFS_IMPL_is_directory_action(MICROEJ_ASYNC_WORKER_job_t *job) {
@@ -346,10 +330,8 @@ void LLFS_IMPL_is_directory_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 		params->result = LLFS_NOK;
 	}
 
-#ifdef LLFS_DEBUG
-	printf("LLFS_DEBUG [%s:%u] : is directory %s (status %d err %d errno \"%s\")\n", __FILE__, __LINE__, path,
-	       params->result, fs_err, strerror(errno));
-#endif
+	VEEPORT_LOGGER_LOG_DBG("is directory %s (status %d err %d errno \"%s\")", path, params->result, fs_err,
+	                       strerror(errno));
 }
 
 void LLFS_IMPL_is_file_action(MICROEJ_ASYNC_WORKER_job_t *job) {
@@ -364,10 +346,7 @@ void LLFS_IMPL_is_file_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 		params->result = LLFS_NOK;
 	}
 
-#ifdef LLFS_DEBUG
-	printf("LLFS_DEBUG [%s:%u] : is file %s (status %d err %d errno \"%s\")\n", __FILE__, __LINE__, path,
-	       params->result, fs_err, strerror(errno));
-#endif
+	VEEPORT_LOGGER_LOG_DBG("is file %s (status %d err %d errno \"%s\")", path, params->result, fs_err, strerror(errno));
 }
 
 void LLFS_IMPL_set_last_modified_action(MICROEJ_ASYNC_WORKER_job_t *job) {
@@ -407,9 +386,7 @@ void LLFS_IMPL_set_last_modified_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 		}
 	}
 
-#ifdef LLFS_DEBUG
-	printf("LLFS_DEBUG [%s:%u] : set last modified date on %s (status %d)\n", __FILE__, __LINE__, path, params->result);
-#endif
+	VEEPORT_LOGGER_LOG_DBG("set last modified date on %s (status %d)", path, params->result);
 }
 
 void LLFS_IMPL_delete_action(MICROEJ_ASYNC_WORKER_job_t *job) {
@@ -422,10 +399,7 @@ void LLFS_IMPL_delete_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 		params->result = LLFS_NOK;
 	}
 
-#ifdef LLFS_DEBUG
-	printf("LLFS_DEBUG [%s:%u] : delete %s (status %d, errno: \"%s\")\n", __FILE__, __LINE__, path, params->result,
-	       strerror(errno));
-#endif
+	VEEPORT_LOGGER_LOG_DBG("delete %s (status %d, errno: \"%s\")", path, params->result, strerror(errno));
 }
 
 void LLFS_IMPL_is_accessible_action(MICROEJ_ASYNC_WORKER_job_t *job) {
@@ -459,10 +433,7 @@ void LLFS_IMPL_is_accessible_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 		params->result = LLFS_OK;
 	}
 
-#ifdef LLFS_DEBUG
-	printf("LLFS_DEBUG [%s:%u] : is accessible %s access %d (status %d)\n", __FILE__, __LINE__, path, checked_access,
-	       params->result);
-#endif
+	VEEPORT_LOGGER_LOG_DBG("is accessible %s access %d (status %d)", path, checked_access, params->result);
 }
 
 void LLFS_IMPL_set_permission_action(MICROEJ_ASYNC_WORKER_job_t *job) {
@@ -521,10 +492,8 @@ void LLFS_IMPL_set_permission_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 		// else error chmod
 	}
 
-#ifdef LLFS_DEBUG
-	printf("LLFS_DEBUG [%s:%u] : set permission %s access %d enable %d owner %d (status %d)\n", __FILE__, __LINE__,
-	       path, modified_access, enable, owner, params->result);
-#endif
+	VEEPORT_LOGGER_LOG_DBG("set permission %s access %d enable %d owner %d (status %d)", path, modified_access, enable,
+	                       owner, params->result);
 }
 
 void LLFS_File_IMPL_open_action(MICROEJ_ASYNC_WORKER_job_t *job) {
@@ -533,8 +502,7 @@ void LLFS_File_IMPL_open_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 	uint8_t mode = params->mode;
 
 	params->result = LLFS_NOK; // error by default
-	params->error_code = LLFS_NOK;
-	params->error_message = "";
+	params->error_code = 0;
 
 	char *open_mode;
 	int fd_mode;
@@ -566,23 +534,20 @@ void LLFS_File_IMPL_open_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 		}
 		break;
 	default:
-		params->error_code = mode;
-		params->error_message = "Invalid opening mode";
+		params->error_code = EINVAL;
 		return;
 	}
 
 	int fd = open(path, fd_mode, LLFS_NORMAL_PERMISSIONS);
 	if (fd == -1) {
-		params->error_code = errno;
-		params->error_message = strerror(errno);
+		FS_SET_ERRNO_ERROR(params);
 	} else {
 		// check if file is a file not a directory
 		struct stat s;
 		int fstat_err = fstat(fd, &s);
 		if (fstat_err != -1) {
 			if (S_ISDIR(s.st_mode)) {
-				params->error_code = -1;
-				params->error_message = "file is a directory";
+				params->error_code = EISDIR;
 				close(fd);
 			} else {
 #if FS_BUFFERING_ENABLED == 0
@@ -598,23 +563,19 @@ void LLFS_File_IMPL_open_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 
 				FILE *file = fdopen(fd, open_mode);
 				if (file == NULL || setvbuf(file, NULL, buffering_mode, buffer_size) != 0) {
-					params->error_code = errno;
-					params->error_message = strerror(errno);
+					FS_SET_ERRNO_ERROR(params);
 				} else {
 					params->result = (int)file; // no error
 				}
 			}
 		} else {
-			params->error_code = errno;
-			params->error_message = strerror(errno);
+			FS_SET_ERRNO_ERROR(params);
 			close(fd);
 		}
 	}
 
-#ifdef LLFS_DEBUG
-	printf("LLFS_DEBUG [%s:%u] : open %s mode %d (status %d errno \"%s\")\n", __FILE__, __LINE__, path, mode,
-	       params->result, params->error_message);
-#endif
+	VEEPORT_LOGGER_LOG_DBG("open %s mode %d (status %d errno \"%s\")", path, mode, params->result,
+	                       strerror(errno));
 }
 
 void LLFS_File_IMPL_write_action(MICROEJ_ASYNC_WORKER_job_t *job) {
@@ -627,9 +588,7 @@ void LLFS_File_IMPL_write_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 	int fd = fileno(file);
 	int fstat_err = fstat(fd, &stat_buffer);
 	if (fstat_err != 0) {
-		params->result = LLFS_NOK; // error
-		params->error_code = errno;
-		params->error_message = strerror(errno);
+		FS_SET_ERRNO_ERROR(params);
 	} else {
 		switch (stat_buffer.st_mode & S_IFMT) {
 		case S_IFREG: // regular files
@@ -642,10 +601,8 @@ void LLFS_File_IMPL_write_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 		}
 	}
 
-#ifdef LLFS_DEBUG
-	printf("LLFS_DEBUG [%s:%u] write file content %d - %d bytes to write (status %d errno \"%s\")\n", __FILE__,
-	       __LINE__, file, length, params->result, strerror(errno));
-#endif
+	VEEPORT_LOGGER_LOG_DBG("write file content %p - %d bytes to write (status %d errno \"%s\")", (void *)file, length,
+	                       params->result, strerror(errno));
 }
 
 /**
@@ -655,9 +612,7 @@ void LLFS_File_IMPL_write_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 static void LLFS_File_IMPL_buffered_write(FILE *file, uint8_t *data, int32_t length, FS_write_read_t *params) {
 	size_t written_count = fwrite(data, 1, length, file);
 	if (written_count == 0 && length > 0) {
-		params->result = LLFS_NOK; // error
-		params->error_code = errno;
-		params->error_message = strerror(errno);
+		FS_SET_ERRNO_ERROR(params);
 	} else {
 		params->result = written_count;
 	}
@@ -669,9 +624,7 @@ static void LLFS_File_IMPL_buffered_write(FILE *file, uint8_t *data, int32_t len
 static void LLFS_File_IMPL_regular_write(int file_desc, uint8_t *data, int32_t length, FS_write_read_t *params) {
 	ssize_t written_count = write(file_desc, data, length);
 	if (written_count < 0 || (written_count == 0 && length > 0)) {
-		params->result = LLFS_NOK; // error
-		params->error_code = errno;
-		params->error_message = strerror(errno);
+		FS_SET_ERRNO_ERROR(params);
 	} else {
 		params->result = written_count;
 	}
@@ -687,9 +640,7 @@ void LLFS_File_IMPL_read_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 	int fd = fileno(file);
 	int fstat_err = fstat(fd, &stat_buffer);
 	if (fstat_err != 0) {
-		params->result = LLFS_NOK; // error
-		params->error_code = errno;
-		params->error_message = strerror(errno);
+		FS_SET_ERRNO_ERROR(params);
 	} else {
 		switch (stat_buffer.st_mode & S_IFMT) {
 		case S_IFREG: // regular files
@@ -702,10 +653,8 @@ void LLFS_File_IMPL_read_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 		}
 	}
 
-#ifdef LLFS_DEBUG
-	printf("LLFS_DEBUG [%s:%u] read file content %d - %d bytes to read (status %d errno \"%s\")\n", __FILE__, __LINE__,
-	       file, length, params->result, strerror(errno));
-#endif
+	VEEPORT_LOGGER_LOG_DBG("read file content %p - %d bytes to read (status %d errno \"%s\")", (void *)file, length,
+	                       params->result, strerror(errno));
 }
 
 /**
@@ -719,9 +668,7 @@ static void LLFS_File_IMPL_buffered_read(FILE *file, uint8_t *data, int32_t leng
 			clearerr(file);
 			params->result = LLFS_EOF; // EOF
 		} else {
-			params->result = LLFS_NOK; // error
-			params->error_code = errno;
-			params->error_message = strerror(errno);
+			FS_SET_ERRNO_ERROR(params);
 		}
 	} else {
 		params->result = read_count;
@@ -740,9 +687,7 @@ static void LLFS_File_IMPL_regular_read(int file_desc, uint8_t *data, int32_t le
 			params->result = read_count;
 		}
 	} else {
-		params->result = LLFS_NOK; // error
-		params->error_code = errno;
-		params->error_message = strerror(errno);
+		FS_SET_ERRNO_ERROR(params);
 	}
 }
 
@@ -752,17 +697,13 @@ void LLFS_File_IMPL_close_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 
 	int fs_err = fclose(file);
 	if (fs_err != 0) {
-		params->result = LLFS_NOK;
-		params->error_code = errno;
-		params->error_message = strerror(errno);
+		FS_SET_ERRNO_ERROR(params);
 	} else {
 		params->result = LLFS_OK;
 	}
 
-#ifdef LLFS_DEBUG
-	printf("LLFS_DEBUG [%s:%u] close file %d (status %d errno \"%s\")\n", __FILE__, __LINE__, file, params->result,
-	       strerror(errno));
-#endif
+	VEEPORT_LOGGER_LOG_DBG("close file %p (status %d errno \"%s\")", (void *)params->file_id, params->result,
+	                       strerror(errno));
 }
 
 void LLFS_File_IMPL_seek_action(MICROEJ_ASYNC_WORKER_job_t *job) {
@@ -775,10 +716,8 @@ void LLFS_File_IMPL_seek_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 	off_t pos = (off_t)n;
 	// Depending on the libc implementation, fseeko will only accept values <= FS_LARGE_FILE_MAX_OFFSET
 	if (pos > (off_t)(FS_LARGE_FILE_MAX_OFFSET)) {
-#ifdef LLFS_DEBUG
-		printf("LLFS_DEBUG [%s:%u] Saturate offset %lld to %lld (FS_LARGE_FILE_MAX_OFFSET)\n",
-		       __FILE__, __LINE__, pos, FS_LARGE_FILE_MAX_OFFSET);
-#endif
+		VEEPORT_LOGGER_LOG_DBG("Saturate offset %lld to %lld (FS_LARGE_FILE_MAX_OFFSET)", pos,
+		                       FS_LARGE_FILE_MAX_OFFSET);
 		pos = (off_t)(FS_LARGE_FILE_MAX_OFFSET);
 	}
 	seek_err = fseeko(file, pos, SEEK_SET);
@@ -799,37 +738,31 @@ void LLFS_File_IMPL_seek_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 		// Seek done
 		params->result = LLFS_OK;
 
-#ifdef LLFS_DEBUG
 #if (_FILE_OFFSET_BITS == 64)
-		printf("LLFS_DEBUG [%s:%u] file %d seek to n %lld\n", __FILE__, __LINE__, file, pos);
+		VEEPORT_LOGGER_LOG_DBG("file %p seek to n %lld", (void *)file, (long long)pos);
 #else
-		printf("LLFS_DEBUG [%s:%u] file %d seek to n %ld\n", __FILE__, __LINE__, file, pos);
-#endif
+		VEEPORT_LOGGER_LOG_DBG("file %p seek to n %ld", (void *)file, (long)pos);
 #endif
 
 		return;
 	}
 
 	// Error occurred
-	params->result = LLFS_NOK;
-	params->error_code = errno;
-	params->error_message = strerror(errno);
+	FS_SET_ERRNO_ERROR(params);
 
-#ifdef LLFS_DEBUG
 #if (_FILE_OFFSET_BITS == 64)
-	printf("LLFS_DEBUG [%s:%u] error seek to %lld on %d (status %d errno \"%s\")\n", __FILE__, __LINE__, pos, file,
-	       params->result, params->error_message);
+	VEEPORT_LOGGER_LOG_DBG("error seek to %lld on %p (status %d errno \"%s\")", (long long)pos, (void *)file,
+	                       params->result, strerror(errno));
 #else
-	printf("LLFS_DEBUG [%s:%u] error seek to %ld on %d (status %d errno \"%s\")\n", __FILE__, __LINE__, pos, file,
-	       params->result, params->error_message);
-#endif
+	VEEPORT_LOGGER_LOG_DBG("error seek to %ld on %p (status %d errno \"%s\")", (long)pos, (void *)file,
+	                       params->result, strerror(errno));
 #endif
 }
 
 void LLFS_File_IMPL_get_file_pointer_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 	FS_getfp_t *params = (FS_getfp_t *)job->params;
 	FILE *file = (FILE *)params->file_id;
-	params->error_message = "";
+	params->error_code = 0;
 
 	//Get current file position
 #if (_FILE_OFFSET_BITS == 64)
@@ -840,27 +773,22 @@ void LLFS_File_IMPL_get_file_pointer_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 
 	if (params->result < 0) {
 		// Error occurred
-		params->result = LLFS_NOK;
-		params->error_code = errno;
-		params->error_message = strerror(errno);
+		FS_SET_ERRNO_ERROR(params);
 	}
 
-#ifdef LLFS_DEBUG
-	printf("LLFS_DEBUG [%s:%u] get file pointer on %d (status %lld errno \"%s\")\n", __FILE__, __LINE__, file,
-	       params->result, params->error_message);
-#endif
+	VEEPORT_LOGGER_LOG_DBG("get file pointer on %p (status %lld errno \"%s\")", (void *)file,
+	                       (long long)params->result, strerror(errno));
 }
 
 void LLFS_File_IMPL_set_length_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 	FS_set_length_t *params = (FS_set_length_t *)job->params;
 	FILE *file = (FILE *)params->file_id;
 	params->result = LLFS_NOK; // error by default
-	params->error_message = "";
+	params->error_code = 0;
 
 	int fs_err = ftruncate(fileno(file), params->length);
 	if (fs_err != 0) {
-		params->error_code = errno;
-		params->error_message = strerror(errno);
+		FS_SET_ERRNO_ERROR(params);
 	} else {
 #if (_FILE_OFFSET_BITS == 64)
 		if (params->length < ftello(file)) {
@@ -874,17 +802,15 @@ void LLFS_File_IMPL_set_length_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 		params->result = LLFS_OK;
 	}
 
-#ifdef LLFS_DEBUG
-	printf("LLFS_DEBUG [%s:%u] set length of %d to %lld (err %d errno \"%s\")\n", __FILE__, __LINE__, file,
-	       params->length, fs_err, params->error_message);
-#endif
+	VEEPORT_LOGGER_LOG_DBG("set length of %p to %lld (err %d errno \"%s\")", (void *)file, (long long)params->length,
+	                       fs_err, strerror(errno));
 }
 
 void LLFS_File_IMPL_get_length_with_fd_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 	FS_get_length_with_fd_t *params = (FS_get_length_with_fd_t *)job->params;
 	FILE *file = (FILE *)params->file_id;
 	params->result = LLFS_NOK; // error by default
-	params->error_message = "";
+	params->error_code = 0;
 
 	int fs_err;
 
@@ -901,14 +827,11 @@ void LLFS_File_IMPL_get_length_with_fd_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 #endif
 
 	if (fs_err != 0) {
-		params->error_code = errno;
-		params->error_message = strerror(errno);
+		FS_SET_ERRNO_ERROR(params);
 	}
 
-#ifdef LLFS_DEBUG
-	printf("LLFS_DEBUG [%s:%u] length of %d : %lld (err %d errno \"%s\")\n", __FILE__, __LINE__, file, params->result,
-	       fs_err, params->error_message);
-#endif
+	VEEPORT_LOGGER_LOG_DBG("length of %p: %lld (err %d errno \"%s\")", (void *)file, (long long)params->result, fs_err,
+	                       strerror(errno));
 }
 
 void LLFS_File_IMPL_available_action(MICROEJ_ASYNC_WORKER_job_t *job) {
@@ -921,8 +844,7 @@ void LLFS_File_IMPL_available_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 	struct stat stat_buffer;
 	int stat_err = fstat(fd, &stat_buffer);
 	if (stat_err != 0) {
-		params->error_code = errno;
-		params->error_message = strerror(errno);
+		FS_SET_ERRNO_ERROR(params);
 	} else {
 		switch (stat_buffer.st_mode & S_IFMT) {
 		case S_IFCHR:
@@ -934,18 +856,14 @@ void LLFS_File_IMPL_available_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 		}
 	}
 
-#ifdef LLFS_DEBUG
-	printf("LLFS_DEBUG [%s:%u] available %d bytes on %d (errno \"%s\")\n", __FILE__, __LINE__, params->result, file,
-	       strerror(errno));
-#endif
+	VEEPORT_LOGGER_LOG_DBG("available %d bytes on %p (errno \"%s\")", params->result, (void *)file, strerror(errno));
 }
 
 static void LLFS_File_IMPL_get_available_data_IFCHR(int file_desc, FS_available_t *params) {
 	int nread = 0;
 	int rc = ioctl(file_desc, FIONREAD, &nread);
 	if (rc < 0) {
-		params->error_code = errno;
-		params->error_message = strerror(errno);
+		FS_SET_ERRNO_ERROR(params);
 	} else {
 		params->result = nread;
 	}
@@ -974,8 +892,7 @@ static void LLFS_File_IMPL_gett_available_data(FILE *file, uint64_t file_size, F
 			}
 		} else {
 			// error during ftell
-			params->error_code = errno;
-			params->error_message = strerror(errno);
+			FS_SET_ERRNO_ERROR(params);
 		}
 	}
 }
@@ -986,17 +903,31 @@ void LLFS_File_IMPL_flush_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 
 	int flush_res = fflush(file);
 	if (flush_res != 0) {
-		params->result = LLFS_NOK; // error
-		params->error_code = errno;
-		params->error_message = strerror(errno);
+		FS_SET_ERRNO_ERROR(params);
 	} else {
 		params->result = LLFS_OK;
 	}
 
-#ifdef LLFS_DEBUG
-	printf("LLFS_DEBUG [%s:%u] flush file %d (status %d errno \"%s\")\n", __FILE__, __LINE__, file, params->result,
-	       strerror(errno));
-#endif
+	VEEPORT_LOGGER_LOG_DBG("flush file %p (status %d errno \"%s\")", (void *)file, params->result, strerror(errno));
+}
+
+int32_t LLFS_copy_path_param(uint8_t *path, uint8_t *path_param) {
+	int32_t path_length = SNI_getArrayLength(path);
+	if (path_length > FS_PATH_LENGTH) {
+		// Path too long for the buffer
+		return LLFS_NOK;
+	}
+	// cppcheck-suppress misra-c2012-17.7 // Return value does not require checking.
+	memcpy(path_param, path, path_length);
+	return LLFS_OK;
+}
+
+void LLFS_throw_job_error(int32_t fd_errno) {
+	if (0 != fd_errno) {
+		VEEPORT_ERRORS_throw_caught_exception_message(LLFS_NOK, "errno %d: %s", fd_errno, strerror(fd_errno));
+	} else {
+		VEEPORT_ERRORS_throw_caught_exception(LLFS_NOK);
+	}
 }
 
 #ifdef __cplusplus

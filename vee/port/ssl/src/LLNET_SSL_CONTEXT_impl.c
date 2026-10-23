@@ -15,6 +15,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+VEEPORT_LOGGER_DEFINE_MODULE(LLNET_SSL_LOG_MODULE_NAME, LLNET_SSL_LOG_LEVEL)
+
 /**
  * @file
  * @brief LLNET_SSL_CONTEXT implementation over OpenSSL.
@@ -55,13 +57,13 @@ static int32_t LLNET_SSL_CONTEXT_setContextVersion(SSL_CTX *ctx, int32_t protoco
 	// Restrict the range of protocols based on the protocol argument
 	if (0 == SSL_CTX_set_min_proto_version(ctx, version)) {
 		// Could not set minimum protocol, free the context structure.
-		LLNET_SSL_DEBUG_TRACE("%s could not set minimum protocol to %d\n", protocol);
+		VEEPORT_LOGGER_LOG_DBG("cannot set the minimum protocol to %d", protocol);
 		result = 0;
 	} else {
 		// Restrict the range of protocols based on the protocol argument
 		if (0 == SSL_CTX_set_max_proto_version(ctx, version)) {
 			// Could not set maximum protocol, free the context structure.
-			LLNET_SSL_DEBUG_TRACE("%s could not set maximum protocol to %d\n", protocol);
+			VEEPORT_LOGGER_LOG_DBG("cannot set the maximum protocol to %d", protocol);
 			result = 0;
 		}
 	}
@@ -69,7 +71,7 @@ static int32_t LLNET_SSL_CONTEXT_setContextVersion(SSL_CTX *ctx, int32_t protoco
 }
 
 static int32_t LLNET_SSL_CONTEXT_IMPL_createClientContext(int32_t protocol) {
-	LLNET_SSL_DEBUG_TRACE("(method=%d)\n", protocol);
+	VEEPORT_LOGGER_LOG_DBG("(method=%d)", protocol);
 	int32_t ret = 0;
 	SSL_CTX *ctx = NULL;
 
@@ -98,11 +100,11 @@ static int32_t LLNET_SSL_CONTEXT_IMPL_createClientContext(int32_t protocol) {
 		}
 	}
 
-	LLNET_SSL_DEBUG_TRACE("(method=%d) return ctx=%p\n", protocol, ctx);
+	VEEPORT_LOGGER_LOG_DBG("(method=%d) return ctx=%p", protocol, ctx);
 	if (ctx != NULL) {
 		ret = (int32_t)ctx;
 	} else {
-		(void)SNI_throwNativeIOException(J_UNKNOWN_ERROR, "Unknown error");
+		LLNET_SSL_throw_caught_exception(J_UNKNOWN_ERROR, "Unknown error");
 		ret = SNI_IGNORED_RETURNED_VALUE;
 	}
 
@@ -110,7 +112,7 @@ static int32_t LLNET_SSL_CONTEXT_IMPL_createClientContext(int32_t protocol) {
 }
 
 static int32_t LLNET_SSL_CONTEXT_IMPL_createServerContext(int32_t protocol) {
-	LLNET_SSL_DEBUG_TRACE("(method=%d)\n", protocol);
+	VEEPORT_LOGGER_LOG_DBG("(method=%d)", protocol);
 	int32_t ret = 0;
 	SSL_CTX *ctx = NULL;
 
@@ -141,11 +143,11 @@ static int32_t LLNET_SSL_CONTEXT_IMPL_createServerContext(int32_t protocol) {
 		}
 	}
 
-	LLNET_SSL_DEBUG_TRACE("(method=%d) return ctx=%p\n", protocol, ctx);
+	VEEPORT_LOGGER_LOG_DBG("(method=%d) return ctx=%p", protocol, ctx);
 	if (ctx != NULL) {
 		ret = (int32_t)ctx;
 	} else {
-		(void)SNI_throwNativeIOException(J_UNKNOWN_ERROR, "Unknown error");
+		LLNET_SSL_throw_caught_exception(J_UNKNOWN_ERROR, "Unknown error");
 		ret = SNI_IGNORED_RETURNED_VALUE;
 	}
 
@@ -153,7 +155,7 @@ static int32_t LLNET_SSL_CONTEXT_IMPL_createServerContext(int32_t protocol) {
 }
 
 void LLNET_SSL_CONTEXT_IMPL_addTrustedCertificate(int32_t context, uint8_t *cert, int32_t cert_size, int32_t format) {
-	LLNET_SSL_DEBUG_TRACE_INFO("context=%d, cert=0x%x, cert_size=%d, format=%d\n", context, cert, cert_size, format);
+	VEEPORT_LOGGER_LOG_DBG("context=%d, cert=%p, cert_size=%d, format=%d", context, (void *)cert, cert_size, format);
 	int32_t ret = J_SSL_NO_ERROR;
 	SSL_CTX *ssl_context = (SSL_CTX *)context;
 	X509 *x509 = LLNET_SSL_X509_CERT_create(cert, 0, cert_size, &format);
@@ -186,12 +188,12 @@ void LLNET_SSL_CONTEXT_IMPL_addTrustedCertificate(int32_t context, uint8_t *cert
 	}
 
 	if (ret != J_SSL_NO_ERROR) {
-		(void)SNI_throwNativeIOException(ret, "Error adding trusted certificate");
+		LLNET_SSL_throw_caught_exception(ret, "Error adding trusted certificate");
 	}
 }
 
 void LLNET_SSL_CONTEXT_IMPL_setCertificate(int32_t contextID, uint8_t *cert, int32_t len, int32_t format) {
-	LLNET_SSL_DEBUG_TRACE("%s\n", __func__);
+	VEEPORT_LOGGER_LOG_DBG("");
 	int sslRetVal;
 	//sslErrorCode;	// If there is an error during an OpenSSL call.
 	SSL_CTX *ssl_context = (SSL_CTX *)contextID;
@@ -199,20 +201,20 @@ void LLNET_SSL_CONTEXT_IMPL_setCertificate(int32_t contextID, uint8_t *cert, int
 	// decode the certificate
 	X509 *newCert = LLNET_SSL_X509_CERT_create(cert, 0, len, &format);
 	if (NULL == newCert) {
-		LLNET_SSL_DEBUG_PRINT_ERR();
-		(void)SNI_throwNativeIOException(J_CERT_PARSE_ERROR, "Could not create certificate");
+		LLNET_SSL_print_errors();
+		LLNET_SSL_throw_caught_exception(J_CERT_PARSE_ERROR, "Could not create certificate");
 	} else {
 		//load the certificate into the context
 		sslRetVal = SSL_CTX_use_certificate(ssl_context, newCert);
 		if (1 != sslRetVal) {
-			LLNET_SSL_DEBUG_PRINT_ERR();
-			(void)SNI_throwNativeIOException(J_CERT_PARSE_ERROR, "Could not use certificate");
+			LLNET_SSL_print_errors();
+			LLNET_SSL_throw_caught_exception(J_CERT_PARSE_ERROR, "Could not use certificate");
 		}
 	}
 }
 
 static int pem_passwd_cb(char *buf, int size, int rwflag, void *password) {
-	LLNET_SSL_DEBUG_TRACE("%s\n", __func__);
+	VEEPORT_LOGGER_LOG_DBG("");
 	(void)rwflag;
 	(void)strncpy(buf, (char *)(password), size);
 	buf[size - 1] = '\0';
@@ -221,7 +223,7 @@ static int pem_passwd_cb(char *buf, int size, int rwflag, void *password) {
 
 void LLNET_SSL_CONTEXT_IMPL_setPrivateKey(int32_t contextID, uint8_t *private_key, int32_t private_key_len,
                                           uint8_t *key_password, int32_t key_password_len) {
-	LLNET_SSL_DEBUG_TRACE("%s private_key_len=%d key_password_len=%d\n", private_key_len, key_password_len);
+	VEEPORT_LOGGER_LOG_DBG("private_key_len=%d key_password_len=%d", private_key_len, key_password_len);
 	SSL_CTX *ssl_context = (SSL_CTX *)contextID;
 	void *password = NULL;
 	EVP_PKEY *key = NULL;
@@ -230,7 +232,7 @@ void LLNET_SSL_CONTEXT_IMPL_setPrivateKey(int32_t contextID, uint8_t *private_ke
 	//The format of the private key must be a DER (ASN1) encrypted PKCS#8
 	if (key_password_len <= 0) {
 		//no password to decrypt the key
-		(void)SNI_throwNativeIOException(J_UNKNOWN_ERROR, "No password provided");
+		LLNET_SSL_throw_caught_exception(J_UNKNOWN_ERROR, "No password provided");
 	} else {
 		password = key_password;
 		SSL_CTX_set_default_passwd_cb(ssl_context, pem_passwd_cb);
@@ -238,20 +240,20 @@ void LLNET_SSL_CONTEXT_IMPL_setPrivateKey(int32_t contextID, uint8_t *private_ke
 		bp = BIO_new_mem_buf(private_key, private_key_len);
 		(void)d2i_PKCS8PrivateKey_bio(bp, &key, pem_passwd_cb, password);
 		if (NULL == key) {
-			LLNET_SSL_DEBUG_PRINT_ERR();
-			(void)SNI_throwNativeIOException(J_UNKNOWN_ERROR, "Could not create key");
+			LLNET_SSL_print_errors();
+			LLNET_SSL_throw_caught_exception(J_UNKNOWN_ERROR, "Could not create key");
 		} else if (SSL_CTX_use_PrivateKey(ssl_context, key) <= 0) {
-			LLNET_SSL_DEBUG_PRINT_ERR();
-			(void)SNI_throwNativeIOException(J_UNKNOWN_ERROR, "Could not use key");
+			LLNET_SSL_print_errors();
+			LLNET_SSL_throw_caught_exception(J_UNKNOWN_ERROR, "Could not use key");
 		} else {
-			LLNET_SSL_DEBUG_TRACE("Success\n");
+			VEEPORT_LOGGER_LOG_DBG("success");
 		}
 	}
 }
 
 int32_t LLNET_SSL_CONTEXT_IMPL_initChainBuffer(int32_t contextID, int32_t nb_chain_certs,
                                                int32_t chain_certs_total_size) {
-	LLNET_SSL_DEBUG_TRACE("%s\n", __func__);
+	VEEPORT_LOGGER_LOG_DBG("");
 	(void)nb_chain_certs;
 	(void)chain_certs_total_size;
 	int retVal;
@@ -260,7 +262,7 @@ int32_t LLNET_SSL_CONTEXT_IMPL_initChainBuffer(int32_t contextID, int32_t nb_cha
 	SSL_CTX *ssl_context = (SSL_CTX *)contextID;
 	retVal = SSL_CTX_clear_chain_certs(ssl_context);
 	if (1 != retVal) {
-		(void)SNI_throwNativeIOException(J_UNKNOWN_ERROR, "Init chain buffer failed");
+		LLNET_SSL_throw_caught_exception(J_UNKNOWN_ERROR, "Init chain buffer failed");
 		ret = J_UNKNOWN_ERROR;
 	}
 
@@ -269,31 +271,31 @@ int32_t LLNET_SSL_CONTEXT_IMPL_initChainBuffer(int32_t contextID, int32_t nb_cha
 
 void LLNET_SSL_CONTEXT_IMPL_addChainCertificate(int32_t contextID, uint8_t *cert, int32_t len, int32_t format,
                                                 int32_t chain_buffer_size) {
-	LLNET_SSL_DEBUG_TRACE("%s\n", __func__);
+	VEEPORT_LOGGER_LOG_DBG("");
 	(void)chain_buffer_size;
 	int retVal = 0;
 
 	SSL_CTX *ssl_context = (SSL_CTX *)contextID;
 	X509 *x509 = LLNET_SSL_X509_CERT_create(cert, 0, len, &format);
 	if (x509 == NULL) {
-		LLNET_SSL_DEBUG_PRINT_ERR();
-		(void)SNI_throwNativeIOException(J_UNKNOWN_ERROR, "Error creating certificate chain");
+		LLNET_SSL_print_errors();
+		LLNET_SSL_throw_caught_exception(J_UNKNOWN_ERROR, "Error creating certificate chain");
 	} else {
 		retVal = SSL_CTX_add0_chain_cert(ssl_context, x509);
 		if (1 != retVal) {
-			LLNET_SSL_DEBUG_PRINT_ERR();
-			(void)SNI_throwNativeIOException(J_UNKNOWN_ERROR, "Error creating certificate chain");
+			LLNET_SSL_print_errors();
+			LLNET_SSL_throw_caught_exception(J_UNKNOWN_ERROR, "Error creating certificate chain");
 		}
 	}
 }
 
 void LLNET_SSL_CONTEXT_IMPL_clearKeyStore(int32_t contextID) {
-	LLNET_SSL_DEBUG_TRACE("%s\n", __func__);
+	VEEPORT_LOGGER_LOG_DBG("");
 	(void)contextID;
 }
 
 int32_t LLNET_SSL_CONTEXT_IMPL_createContext(int32_t protocol, uint8_t is_client_context) {
-	LLNET_SSL_DEBUG_TRACE("(protocol=%d, useClientMode=%d)\n", protocol, is_client_context);
+	VEEPORT_LOGGER_LOG_DBG("(protocol=%d, useClientMode=%d)", protocol, is_client_context);
 	int32_t ret = 0;
 	if (is_client_context == (uint8_t)1) {
 		ret = LLNET_SSL_CONTEXT_IMPL_createClientContext(protocol);
@@ -304,7 +306,7 @@ int32_t LLNET_SSL_CONTEXT_IMPL_createContext(int32_t protocol, uint8_t is_client
 }
 
 void LLNET_SSL_CONTEXT_IMPL_clearTrustStore(int32_t context) {
-	LLNET_SSL_DEBUG_TRACE("%s\n", __func__);
+	VEEPORT_LOGGER_LOG_DBG("");
 	SSL_CTX *ssl_context = (SSL_CTX *)context;
 	// Set an empty store to the context.
 	// The function SSL_CTX_set_cert_store() frees previously allocated
@@ -314,7 +316,7 @@ void LLNET_SSL_CONTEXT_IMPL_clearTrustStore(int32_t context) {
 }
 
 void LLNET_SSL_CONTEXT_IMPL_freeContext(int32_t context) {
-	LLNET_SSL_DEBUG_TRACE("(context=%p)\n", (SSL_CTX *)context);
+	VEEPORT_LOGGER_LOG_DBG("(context=%p)", (SSL_CTX *)context);
 	(void)SSL_CTX_free((SSL_CTX *)context);
 }
 

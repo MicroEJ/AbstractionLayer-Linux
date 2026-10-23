@@ -3,9 +3,13 @@
  *
  * Copyright 2014-2026 MicroEJ Corp. All rights reserved.
  * Use of this source code is governed by a BSD-style license that can be found with this software.
+ * Build: 7E4D1F7C
  */
 
 #include "posix_time.h"
+#include <errno.h>
+/* cppcheck-suppress misra-c2012-21.10 ; included only for the POSIX clock API (clock_gettime, CLOCK_MONOTONIC, struct
+ * timespec); no ISO C time and date function is used. */
 #include <time.h>
 
 /**
@@ -64,8 +68,9 @@ int64_t posix_time_gettimenanos(void) {
 	return nanoseconds;
 }
 
-void posix_time_setapplicationtime(int64_t time_millis) {
+int32_t posix_time_setapplicationtime(int64_t time_millis) {
 	struct timespec ts;
+	int32_t error_code = 0;
 
 	// TimeSpec represents a time as an amount of seconds + an amount of nano seconds
 	int64_t tv_sec = time_millis / MILLIS_TO_SECONDS;
@@ -77,8 +82,10 @@ void posix_time_setapplicationtime(int64_t time_millis) {
 
 	// can only be called by ej.bon.Util.setCurrentTimeMillis, so Java system/application time (i.e. REALTIME)
 	if (clock_settime(CLOCK_REALTIME, &ts) != 0) {
-		// TODO error handling
+		error_code = errno;
 	}
+
+	return error_code;
 }
 
 /**	Compute absolute realtime from absolute monotonic time */

@@ -1,5 +1,6 @@
 # Copyright 2023-2026 MicroEJ Corp. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be found with this software.
+# Build: 7E4D1F7C
 
 # This catalog will be used instead of the VEE Port gradle/libs.versions.toml
 # This is done to ensure compatiblity with the Abstraction Layer
@@ -7,12 +8,12 @@
 [libraries]
 # SDK6 Foundations
 api-audio =             { group = "ej.api", name = "audio", version = "2.1.0" }
-api-crypto =            { group = "ej.api", name = "crypto", version = "2.0.1" }
-api-device =            { group = "ej.api", name = "device", version = "1.4.0" }
-api-event =             { group = "ej.api", name = "event", version = "3.0.3" }
+api-crypto =            { group = "ej.api", name = "crypto", version = "2.3.0" }
+api-device =            { group = "ej.api", name = "device", version = "1.4.1" }
+api-event =             { group = "ej.api", name = "event", version = "3.0.7" }
 lib-rio =               { group = "ej.library.runtime", name = "rio", version = "0.1.0" }
 # SDK5 Packs
 pack-ecom-network =     { group = "com.microej.pack.ecom-network", name = "ecom-network-pack", version = "1.0.0" }
-pack-fs =               { group = "com.microej.pack", name = "fs", version = "6.0.4" }
+pack-fs =               { group = "com.microej.pack", name = "fs", version = "6.0.5" }
 pack-net =              { group = "com.microej.pack.net", name = "net-pack", version = "15.0.1" }
-pack-serial =           { group = "com.microej.pack.serial", name = "serial-pack", version = "3.0.0" }
+pack-serial =           { group = "com.microej.pack.serial", name = "serial-pack", version = "3.0.1" }

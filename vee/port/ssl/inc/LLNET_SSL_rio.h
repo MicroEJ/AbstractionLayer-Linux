@@ -22,7 +22,8 @@
  */
 
 #include <stdint.h>
-#include <sni.h>                /* SNI_throwNativeIOException */
+#include <sni.h>
+#include "veeport_errors.h"
 
 #include "rio.h"
 #include "rio_util.h"          /* rio_remaining_to_deadline */
@@ -37,23 +38,23 @@
  * J_SOCKET_TIMEOUT (this seam supplies its own callback, so rio_wait_ready
  * leaves the timeout decision to it rather than throwing itself), matching the
  * async_select default's SocketTimeoutException. */
-#define LLNET_SSL_WAIT_READ(fd, absolute_timeout_ms, callback)                          \
-		do {                                                                            \
-			int32_t _rel = rio_remaining_to_deadline(absolute_timeout_ms);              \
-			if (((absolute_timeout_ms) != 0) && (_rel <= 0)) {                          \
-				(void)SNI_throwNativeIOException(J_SOCKET_TIMEOUT, "SSL read timeout"); \
-			} else {                                                                    \
-				rio_wait_ready((fd), RIO_EVENT_READABLE, _rel, (callback), NULL);       \
-			}                                                                           \
+#define LLNET_SSL_WAIT_READ(fd, absolute_timeout_ms, callback)                    \
+		do {                                                                      \
+			int32_t _rel = rio_remaining_to_deadline(absolute_timeout_ms);        \
+			if (((absolute_timeout_ms) != 0) && (_rel <= 0)) {                    \
+				VEEPORT_ERRORS_throw_caught_exception(J_SOCKET_TIMEOUT);          \
+			} else {                                                              \
+				rio_wait_ready((fd), RIO_EVENT_READABLE, _rel, (callback), NULL); \
+			}                                                                     \
 		} while (0)
-#define LLNET_SSL_WAIT_WRITE(fd, absolute_timeout_ms, callback)                          \
-		do {                                                                             \
-			int32_t _rel = rio_remaining_to_deadline(absolute_timeout_ms);               \
-			if (((absolute_timeout_ms) != 0) && (_rel <= 0)) {                           \
-				(void)SNI_throwNativeIOException(J_SOCKET_TIMEOUT, "SSL write timeout"); \
-			} else {                                                                     \
-				rio_wait_ready((fd), RIO_EVENT_WRITABLE, _rel, (callback), NULL);        \
-			}                                                                            \
+#define LLNET_SSL_WAIT_WRITE(fd, absolute_timeout_ms, callback)                   \
+		do {                                                                      \
+			int32_t _rel = rio_remaining_to_deadline(absolute_timeout_ms);        \
+			if (((absolute_timeout_ms) != 0) && (_rel <= 0)) {                    \
+				VEEPORT_ERRORS_throw_caught_exception(J_SOCKET_TIMEOUT);          \
+			} else {                                                              \
+				rio_wait_ready((fd), RIO_EVENT_WRITABLE, _rel, (callback), NULL); \
+			}                                                                     \
 		} while (0)
 
 #endif /* LLNET_SSL_RIO_H */

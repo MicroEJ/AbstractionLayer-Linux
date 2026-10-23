@@ -21,6 +21,8 @@
 #include "LLNET_ERRORS.h"
 #include "LLNET_Common.h"
 
+VEEPORT_LOGGER_DEFINE_MODULE(LLNET_LOG_MODULE_NAME, LLNET_LOG_LEVEL)
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -28,7 +30,7 @@ extern "C" {
 int32_t LLNET_DNS_IMPL_getHostByAddr(int8_t *address, int32_t address_length, uint8_t *hostname,
                                      int32_t hostname_length) {
 	int32_t result = J_EHOSTUNKNOWN;
-	const struct hostent *host;
+	const struct hostent *host = NULL;
 	if (address_length == 4) {
 		/* Resolve the address */
 		host = gethostbyaddr(address, address_length, AF_INET);
@@ -37,15 +39,15 @@ int32_t LLNET_DNS_IMPL_getHostByAddr(int8_t *address, int32_t address_length, ui
 			result = hostname_length;
 		}
 	}
-	LLNET_DEBUG_TRACE("%s(address=%s, address_length=%d), host=%s, result=%d\n", __func__, address, address_length,
-	                  host, result);
+	VEEPORT_LOGGER_LOG_DBG("(address_length=%d), host=%s, result=%d", address_length,
+	                       (NULL != host) ? host->h_name : "<unresolved>", result);
 	return result;
 }
 
 int32_t LLNET_DNS_IMPL_getHostByNameAt(int32_t index, uint8_t *hostname, int32_t hostname_length, int8_t *address,
                                        int32_t address_length) {
 	(void)hostname_length;
-	LLNET_DEBUG_TRACE("%s host ->%s<- index = %d\n", __func__, (unsigned char *)hostname, index);
+	VEEPORT_LOGGER_LOG_DBG("host ->%s<- index = %d", (unsigned char *)hostname, index);
 
 	int r;
 	struct addrinfo hints = { 0 };
@@ -75,8 +77,8 @@ int32_t LLNET_DNS_IMPL_getHostByNameAt(int32_t index, uint8_t *hostname, int32_t
 
 	r = getaddrinfo((char *)hostname, NULL, &hints, &addrinfos);
 	if (r != 0) {
-		LLNET_DEBUG_TRACE("%s getaddrinfo() returned %d\n", __func__, r);
-		(void)SNI_throwNativeIOException(J_EHOSTUNKNOWN, gai_strerror(r));
+		VEEPORT_LOGGER_LOG_DBG("getaddrinfo() returned %d: %s", r, gai_strerror(r));
+		VEEPORT_ERRORS_throw_caught_exception(J_EHOSTUNKNOWN);
 		res = SNI_IGNORED_RETURNED_VALUE;
 	}
 
@@ -114,7 +116,8 @@ int32_t LLNET_DNS_IMPL_getHostByNameAt(int32_t index, uint8_t *hostname, int32_t
 	}
 	freeaddrinfo(addrinfos);
 	if (0 >= res) {
-		(void)SNI_throwNativeIOException(J_EHOSTUNKNOWN, gai_strerror(r));
+		VEEPORT_LOGGER_LOG_DBG("getaddrinfo(): no usable address");
+		VEEPORT_ERRORS_throw_caught_exception(J_EHOSTUNKNOWN);
 		res = SNI_IGNORED_RETURNED_VALUE;
 	}
 	return res;
@@ -122,7 +125,7 @@ int32_t LLNET_DNS_IMPL_getHostByNameAt(int32_t index, uint8_t *hostname, int32_t
 
 int32_t LLNET_DNS_IMPL_getHostByNameCount(uint8_t *hostname, int32_t hostname_length) {
 	(void)hostname_length;
-	LLNET_DEBUG_TRACE("%s host ->%s<- \n", __func__, (unsigned char *)hostname);
+	VEEPORT_LOGGER_LOG_DBG("host ->%s<-", (unsigned char *)hostname);
 
 	int r;
 	struct addrinfo hints = { 0 };
@@ -149,8 +152,8 @@ int32_t LLNET_DNS_IMPL_getHostByNameCount(uint8_t *hostname, int32_t hostname_le
 
 	r = getaddrinfo((char *)hostname, NULL, &hints, &addrinfos);
 	if (r != 0) {
-		LLNET_DEBUG_TRACE("%s getaddrinfo(hostname) returned %d: %s\n", __func__, r, gai_strerror(r));
-		(void)SNI_throwNativeIOException(J_EHOSTUNKNOWN, gai_strerror(r));
+		VEEPORT_LOGGER_LOG_DBG("getaddrinfo(hostname) returned %d: %s", r, gai_strerror(r));
+		VEEPORT_ERRORS_throw_caught_exception(J_EHOSTUNKNOWN);
 		counter = SNI_IGNORED_RETURNED_VALUE;
 		addrinfos = NULL;
 	}
@@ -162,7 +165,7 @@ int32_t LLNET_DNS_IMPL_getHostByNameCount(uint8_t *hostname, int32_t hostname_le
 		current_addrinfo = current_addrinfo->ai_next;
 	}
 
-	LLNET_DEBUG_TRACE("%s host count = %d\n", __func__, counter);
+	VEEPORT_LOGGER_LOG_DBG("host count = %d", counter);
 
 	freeaddrinfo(addrinfos);
 

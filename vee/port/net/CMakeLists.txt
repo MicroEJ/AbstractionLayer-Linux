@@ -5,6 +5,10 @@
 #
 # Build: 7E4D1F7C
 
+if(NOT BUILD_UTIL)
+    message(FATAL_ERROR "BUILD_NET requires BUILD_UTIL (port/util provides sni_extras.h).")
+endif()
+
 target_include_directories(${target} PUBLIC ${CMAKE_CURRENT_LIST_DIR}/inc)
 
 target_sources(${target}

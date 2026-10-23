@@ -11,11 +11,13 @@ option(BUILD_AUDIO               "Build Audio Abstraction Layer"                
 option(BUILD_CORE                "Build Core Abstraction Layer"                   ON)
 option(BUILD_DEVICE              "Build Device Abstraction Layer"                 ON)
 option(BUILD_ECOM_NETWORK        "Build Embedded COMmunication Abstraction Layer" ON)
+option(BUILD_ESSENTIALS          "Build VEE Essentials C module"                  ON)
 option(BUILD_EVENT_QUEUE         "Build Event Queue Abstraction Layer"            ON)
 option(BUILD_FS                  "Build File System Abstraction Layer"            ON)
 option(BUILD_KF                  "Build Kernel Feature Abstraction Layer"         ON)
 option(BUILD_NET                 "Build Network Abstraction Layer"                ON)
-option(BUILD_RIO                 "Build rio Event-Driven I/O Abstraction Layer"   ON)
+# RIO is experimental. A VEE Port can enable it in its project_options.cmake.
+option(BUILD_RIO                 "Build rio Event-Driven I/O Abstraction Layer"   OFF)
 # Readiness-wait backend for the net (and SSL) layer.  When rio is built it is
 # the default wait backend: the LLNET_*_OPERATION seams route to rio_wait_ready
 # (LLNET_rio.h / LLNET_SSL_rio.h).  Set this ON to keep rio built for direct
@@ -32,6 +34,10 @@ option(BUILD_VALIDATION_KERNEL   "Build validation kernel"                      
 option(BUILD_VALIDATION_VEE_MOCK "Build validation with vee mock"                 OFF)
 
 # Set specific features
+if (BUILD_ESSENTIALS)
+	option(USE_VEEPORT_LOGGER "Use the VEE Port logger" ON)
+endif()
+
 if (BUILD_UI)
 	option(BUILD_UI_TOUCHSCREEN "Build UI Touchscreen feature" ON)
 	option(BUILD_UI_FRAMERATE "Build UI Framerate debug feature" OFF)
@@ -74,12 +80,9 @@ if (BUILD_NET)
 	option(ENABLE_NET_AF_IPV6_SUPPORT "IPv6 support" OFF)
 endif()
 
-if (BUILD_RIO)
-	# I/O selector backend (only one active at a time).
-	# The selected backend .c file is compiled; others are skipped.
-	set(RIO_SELECTOR "poll" CACHE STRING "rio I/O selector backend (poll, select)")
-	set_property(CACHE RIO_SELECTOR PROPERTY STRINGS poll select)
-endif()
+# I/O selector backend (only one active at a time).
+set(RIO_SELECTOR "poll" CACHE STRING "rio I/O selector backend (poll, select)")
+set_property(CACHE RIO_SELECTOR PROPERTY STRINGS poll select)
 
 # Debug features
 option(ADVANCED_TRACE "Enable MJVM Advanced trace" OFF)

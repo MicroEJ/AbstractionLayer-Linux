@@ -21,6 +21,8 @@
 #include <LLNET_Common.h>
 #include <LLNET_SSL_configuration.h>
 
+VEEPORT_LOGGER_DEFINE_MODULE(LLNET_SSL_LOG_MODULE_NAME, LLNET_SSL_LOG_LEVEL)
+
 /**
  * @file
  * @brief LLNET_SSL_SOCKET implementation over OpenSSL.
@@ -39,9 +41,10 @@ static void LLNET_SSL_SOCKET_IMPL_initial_handshake(int32_t ssl, int32_t fd, int
                                                     int32_t relative_timeout, bool is_client);
 
 void LLNET_SSL_SOCKET_IMPL_initialize(void) {
-	LLNET_SSL_DEBUG_TRACE("\n");
+	VEEPORT_LOGGER_LOG_DBG("");
 	(void)SSL_library_init();
-#ifdef LLNET_SSL_DEBUG
+#if LLNET_SSL_LOG_LEVEL >= VEEPORT_LOGGER_LEVEL_ERR
+	// Needed by LLNET_SSL_print_errors() to name the reason of an OpenSSL error.
 	SSL_load_error_strings();
 #endif
 	return;
@@ -54,14 +57,14 @@ int32_t LLNET_SSL_SOCKET_IMPL_create(int32_t context, int32_t fd, uint8_t *host_
 	SSL *ssl;
 	SSL_CTX *ctx = (SSL_CTX *)context;
 
-	LLNET_SSL_DEBUG_TRACE("(context=%d, fd=%d)\n", context, fd);
+	VEEPORT_LOGGER_LOG_DBG("(context=%d, fd=%d)", context, fd);
 
 	/* create new SSL session */
 	ssl = SSL_new(ctx);
 	if (ssl != NULL) {
 		if (!llnet_ssl_set_transport(ssl, fd)) {
 			SSL_free(ssl);
-			(void)SNI_throwNativeIOException(J_UNKNOWN_ERROR, "Error setting SSL transport");
+			LLNET_SSL_throw_caught_exception(J_UNKNOWN_ERROR, "Error setting SSL transport");
 		} else {
 			//enable peer verification
 			if (is_client_mode || need_client_auth) {
@@ -76,7 +79,7 @@ int32_t LLNET_SSL_SOCKET_IMPL_create(int32_t context, int32_t fd, uint8_t *host_
 			ret = (int32_t)ssl;
 		}
 	} else {
-		(void)SNI_throwNativeIOException(J_UNKNOWN_ERROR, "Could not create SSL session");
+		LLNET_SSL_throw_caught_exception(J_UNKNOWN_ERROR, "Could not create SSL session");
 	}
 
 	return ret;
@@ -96,11 +99,11 @@ static void LLNET_SSL_SOCKET_IMPL_initial_handshake(int32_t ssl, int32_t fd, int
                                                     int32_t relative_timeout, bool is_client) {
 	int32_t ret;
 	SNI_callback callback = NULL;
-	LLNET_SSL_DEBUG_TRACE("(ssl=%d, fd=%d, is_client=%d)\n", ssl, fd, is_client);
+	VEEPORT_LOGGER_LOG_DBG("(ssl=%d, fd=%d, is_client=%d)", ssl, fd, is_client);
 
 	//set non-blocking mode
 	if (llnet_ssl_set_non_blocking(fd) < 0) {
-		(void)SNI_throwNativeIOException(J_SOCKET_ERROR, "Could not set socket non blocking");
+		LLNET_SSL_throw_caught_exception(J_SOCKET_ERROR, "Could not set socket non blocking");
 	}
 
 	//initiates handshake in non-blocking mode
@@ -114,7 +117,7 @@ static void LLNET_SSL_SOCKET_IMPL_initial_handshake(int32_t ssl, int32_t fd, int
 
 	//reset non-blocking mode
 	if (llnet_ssl_set_non_blocking(fd) < 0) {
-		(void)SNI_throwNativeIOException(J_SOCKET_ERROR, "Could not set socket non blocking");
+		LLNET_SSL_throw_caught_exception(J_SOCKET_ERROR, "Could not set socket non blocking");
 	}
 
 	if (ret != 1) {
@@ -129,8 +132,8 @@ static void LLNET_SSL_SOCKET_IMPL_initial_handshake(int32_t ssl, int32_t fd, int
 		} else if (ssl_error == SSL_ERROR_WANT_WRITE) {
 			LLNET_SSL_WAIT_WRITE(fd, absolute_timeout_ms, callback);
 		} else {
-			LLNET_SSL_DEBUG_PRINT_ERR();
-			(void)SNI_throwNativeIOException(LLNET_SSL_TranslateReturnCode((SSL *)ssl, ssl_error),
+			LLNET_SSL_print_errors();
+			LLNET_SSL_throw_caught_exception(LLNET_SSL_TranslateReturnCode((SSL *)ssl, ssl_error),
 			                                 "Initial handshake error");
 		}
 	}
@@ -139,10 +142,10 @@ static void LLNET_SSL_SOCKET_IMPL_initial_handshake(int32_t ssl, int32_t fd, int
 int32_t LLNET_SSL_SOCKET_IMPL_read(int32_t ssl, int32_t fd, int8_t *buffer, int32_t offset, int32_t length,
                                    int64_t absolute_java_start_time, int32_t relative_timeout) {
 	int ret = J_SSL_NO_ERROR;
-	LLNET_SSL_DEBUG_TRACE("(ssl=0x%x, fd=%d, offset=%d, length=%d)\n", ssl, fd, offset, length);
+	VEEPORT_LOGGER_LOG_DBG("(ssl=0x%x, fd=%d, offset=%d, length=%d)", ssl, fd, offset, length);
 	//set non-blocking mode
 	if (llnet_ssl_set_non_blocking(fd) < 0) {
-		(void)SNI_throwNativeIOException(LLNET_SSL_TranslateReturnCode((SSL *)ssl, ret), "Could not set blocking mode");
+		LLNET_SSL_throw_caught_exception(LLNET_SSL_TranslateReturnCode((SSL *)ssl, ret), "Could not set blocking mode");
 		ret = J_SOCKET_ERROR;
 	}
 
@@ -155,7 +158,7 @@ int32_t LLNET_SSL_SOCKET_IMPL_read(int32_t ssl, int32_t fd, int8_t *buffer, int3
 
 	//reset non-blocking mode
 	if (llnet_ssl_set_non_blocking(fd) < 0) {
-		(void)SNI_throwNativeIOException(LLNET_SSL_TranslateReturnCode((SSL *)ssl, ret), "Could not set blocking mode");
+		LLNET_SSL_throw_caught_exception(LLNET_SSL_TranslateReturnCode((SSL *)ssl, ret), "Could not set blocking mode");
 		ret = J_SOCKET_ERROR;
 	}
 
@@ -174,7 +177,7 @@ int32_t LLNET_SSL_SOCKET_IMPL_read(int32_t ssl, int32_t fd, int8_t *buffer, int3
 		} else if ((ssl_error == SSL_ERROR_ZERO_RETURN) || (ssl_error == SSL_ERROR_SSL)) {
 			ret = J_EOF;
 		} else {
-			(void)SNI_throwNativeIOException(LLNET_SSL_TranslateReturnCode((SSL *)ssl, ssl_error), "Read error");
+			LLNET_SSL_throw_caught_exception(LLNET_SSL_TranslateReturnCode((SSL *)ssl, ssl_error), "Read error");
 			ret = SNI_IGNORED_RETURNED_VALUE;
 		}
 	}
@@ -185,11 +188,11 @@ int32_t LLNET_SSL_SOCKET_IMPL_read(int32_t ssl, int32_t fd, int8_t *buffer, int3
 int32_t LLNET_SSL_SOCKET_IMPL_write(int32_t ssl, int32_t fd, int8_t *buffer, int32_t offset, int32_t length,
                                     int64_t absolute_java_start_time, int32_t relative_timeout) {
 	int ret = SNI_IGNORED_RETURNED_VALUE;
-	LLNET_SSL_DEBUG_TRACE("(ssl=0x%x, fd=%d, offset=%d, length=%d)\n", ssl, fd, offset, length);
+	VEEPORT_LOGGER_LOG_DBG("(ssl=0x%x, fd=%d, offset=%d, length=%d)", ssl, fd, offset, length);
 
 	//set non-blocking mode
 	if (llnet_ssl_set_non_blocking(fd) < 0) {
-		(void)SNI_throwNativeIOException(J_SOCKET_ERROR, "Could not set socket non blocking");
+		LLNET_SSL_throw_caught_exception(J_SOCKET_ERROR, "Could not set socket non blocking");
 	}
 
 	//non-blocking read
@@ -197,7 +200,7 @@ int32_t LLNET_SSL_SOCKET_IMPL_write(int32_t ssl, int32_t fd, int8_t *buffer, int
 
 	//reset non-blocking mode
 	if (llnet_ssl_set_non_blocking(fd) < 0) {
-		(void)SNI_throwNativeIOException(J_SOCKET_ERROR, "Could not set socket non blocking");
+		LLNET_SSL_throw_caught_exception(J_SOCKET_ERROR, "Could not set socket non blocking");
 		ret = SNI_IGNORED_RETURNED_VALUE;
 	}
 
@@ -216,10 +219,10 @@ int32_t LLNET_SSL_SOCKET_IMPL_write(int32_t ssl, int32_t fd, int8_t *buffer, int
 		} else if ((llnet_errno(fd) == ECONNRESET) || (llnet_errno(fd) == EPIPE)) {
 			//check if connection reset
 			//treat epipe as reset
-			(void)SNI_throwNativeIOException(J_CONNECTION_RESET, "Connection reset");
+			LLNET_SSL_throw_caught_exception(J_CONNECTION_RESET, "Connection reset");
 			ret = SNI_IGNORED_RETURNED_VALUE;
 		} else {
-			(void)SNI_throwNativeIOException(LLNET_SSL_TranslateReturnCode((SSL *)ssl, ssl_error), "Write error");
+			LLNET_SSL_throw_caught_exception(LLNET_SSL_TranslateReturnCode((SSL *)ssl, ssl_error), "Write error");
 			ret = SNI_IGNORED_RETURNED_VALUE;
 		}
 	}
@@ -228,7 +231,7 @@ int32_t LLNET_SSL_SOCKET_IMPL_write(int32_t ssl, int32_t fd, int8_t *buffer, int
 }
 
 int32_t LLNET_SSL_SOCKET_IMPL_available(int32_t ssl) {
-	LLNET_SSL_DEBUG_TRACE("(ssl=%d)\n", ssl);
+	VEEPORT_LOGGER_LOG_DBG("(ssl=%d)", ssl);
 	int ret = SSL_pending((SSL *)ssl);
 	if (ret < 0) {
 		ret = J_UNKNOWN_ERROR;
@@ -237,7 +240,7 @@ int32_t LLNET_SSL_SOCKET_IMPL_available(int32_t ssl) {
 }
 
 void LLNET_SSL_SOCKET_IMPL_freeSSL(int32_t ssl_id) {
-	LLNET_SSL_DEBUG_TRACE("(ssl=0x%x)\n", ssl_id);
+	VEEPORT_LOGGER_LOG_DBG("(ssl=0x%x)", ssl_id);
 	SSL *ssl = (SSL *)ssl_id;
 	(void)SSL_free(ssl);
 	return;
@@ -245,8 +248,8 @@ void LLNET_SSL_SOCKET_IMPL_freeSSL(int32_t ssl_id) {
 
 void LLNET_SSL_SOCKET_IMPL_shutdown(int32_t ssl_id, int32_t fd, bool autoclose, int64_t absolute_java_start_time,
                                     int32_t relative_timeout) {
-	LLNET_SSL_DEBUG_TRACE(" ssl=0x%x, fd=%d, autoclose=%s, java_start=%lld, timeout=%d\n", ssl_id, fd,
-	                      autoclose ? "true" : "false", absolute_java_start_time, relative_timeout);
+	VEEPORT_LOGGER_LOG_DBG("ssl=0x%x, fd=%d, autoclose=%s, java_start=%lld, timeout=%d", ssl_id, fd,
+	                       autoclose ? "true" : "false", absolute_java_start_time, relative_timeout);
 	SSL *ssl = (SSL *)ssl_id;
 
 	// Send close notify
@@ -264,13 +267,13 @@ void LLNET_SSL_SOCKET_IMPL_shutdown(int32_t ssl_id, int32_t fd, bool autoclose, 
 				}
 				LLNET_SSL_WAIT_READ(fd, absolute_timeout_ms, (SNI_callback)LLNET_SSL_SOCKET_IMPL_shutdown);
 			} else {
-				(void)SNI_throwNativeIOException(LLNET_SSL_TranslateReturnCode(ssl, ret), "Error during shutdown");
+				LLNET_SSL_throw_caught_exception(LLNET_SSL_TranslateReturnCode(ssl, ret), "Error during shutdown");
 			}
 		} else {
-			LLNET_SSL_DEBUG_TRACE("Shutdown successful\n");
+			VEEPORT_LOGGER_LOG_DBG("shutdown successful");
 		}
 	} else {
-		LLNET_SSL_DEBUG_TRACE("Shutdown successful\n");
+		VEEPORT_LOGGER_LOG_DBG("shutdown successful");
 	}
 }
 

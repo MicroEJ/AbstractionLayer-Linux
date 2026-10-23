@@ -168,11 +168,6 @@ extern "C" {
 #endif // defined(__linux__) || defined(__QNXNTO__)
 
 /**
- * Enable network debug trace
- */
-//#define LLNET_DEBUG
-
-/**
  *  Alternative implementation type of LLNET_STREAMSOCKETCHANNEL_IMPL_available() function.
  *  The default implementation of this function uses ioctl() to get available data length.
  *  In case where ioctl() cannot be used, you can switch to one of these following alternative implementations:

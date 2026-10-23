@@ -38,6 +38,7 @@
 #include "LLNET_ERRORS.h"  /* J_ETIMEDOUT */
 
 #include <sni.h>
+#include "veeport_errors.h"
 #include <stdint.h>
 
 #ifdef __cplusplus
@@ -61,7 +62,7 @@ extern "C" {
 		do {                                                                                     \
 			int32_t _rel = rio_remaining_to_deadline((absolute_timeout_ms));                     \
 			if (((absolute_timeout_ms) != 0) && (_rel <= 0)) {                                   \
-				(void)SNI_throwNativeIOException(J_ETIMEDOUT, "timeout");                        \
+				VEEPORT_ERRORS_throw_caught_exception(J_ETIMEDOUT);                              \
 			} else {                                                                             \
 				rio_wait_ready((fd),                                                             \
 							   ((operation) == SELECT_READ) ? LLNET_RIO_INTEREST_READABLE        \

@@ -5,6 +5,65 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.5.0] - 2026-10-23
+
+### Added
+
+- Add ABLA Essentials 1.1.0.
+- Add the `LLDEVICE_SERIAL_NUMBER_FILE` and `LLDEVICE_MACHINE_ID_FILE` defines to set the files that give the device ID.
+- Add the `LLNET_ASSERT` define to the Linux network configuration. Migration: copy `LLNET_linux_configuration.h` from this version to get it.
+- Document the MISRA C:2012 compliance of the Crypto Abstraction Layer.
+- Implement the crypto KeyGenerator abstraction layer, so an application can generate an AES key of 128, 192 or 256 bits on the target.
+
+### Changed
+
+- Log the abstraction layers through the ABLA Essentials logger.
+- Throw the exceptions of the abstraction layers through the ABLA Essentials error helpers.
+- Stop building the rio abstraction layer by default, because rio is experimental. Migration: set the `BUILD_RIO` CMake option to `ON` in the `project_options.cmake` of the VEE Port.
+- Update the Crypto Foundation Library to 2.3.0.
+- Take the device ID from the device tree serial number when the board publishes one.
+- Report the standard not-implemented error code from `Device.getVersion()`, `Device.reboot()` and `Device.shutdown()`.
+- Report the documented exception when a network interface native fails, instead of returning a negative error code.
+- Reject a build that enables the network without any address family, instead of building a network stack that reports no address.
+- Make the Core Abstraction Layer compliant with MISRA C:2012.
+- Crypto:
+  - Require the PKCS#11 login to succeed on the External KeyStore read paths, instead of reading with an unauthenticated session.
+  - Restrict the External KeyStore password and the PKCS#11 PIN to ASCII characters.
+  - Report the module's own error code in the crypto exceptions, instead of an OpenSSL return value or the rejected argument.
+  - Report the error codes that the Crypto Foundation Library 2.3.0 declares.
+  - Align the Crypto abstraction layer sources with the MicroEJ C coding conventions.
+- Update to KF RAM Abstraction Layer 3.0.1.
+- Update to FS Pack 6.0.5, the Event Foundation Library 3.0.7 and the Device Foundation Library 1.4.1.
+- Update to SERIAL Pack 3.0.1.
+
+### Removed
+
+- Remove the `IFADDRNAMEMAX` network configuration define. Migration: the port uses the Linux `IFNAMSIZ` constant, so no configuration is needed.
+
+### Fixed
+
+- Fix the SSL socket timeout reported as a generic `IOException` instead of a `SocketTimeoutException` when rio is not built (introduced in version 3.4.0).
+- Fix the crypto X509 certificate verification and validity check, which could return success after a failure.
+- Fix `Key.getEncoded()` throwing an exception instead of returning `null` for a private key stored on a PKCS#11 token.
+- Fix `ej.bon.Util.setCurrentTimeMillis()` ignoring a failure to set the clock: it now throws a `NativeException`.
+- Fix `ej.util.Device.getId()` failing where no MAC address is available.
+- Fix the device ID ignoring the MAC address of a network interface that has no IP address assigned.
+- Fix memory leak in `LLKERNEL_IMPL_freeFeature`. The first installed feature was not properly freed during uninstallation.
+- Fix the network interface list, where an interface could be missing and the interfaces after it reported at the wrong index.
+- Fix network interfaces whose name is longer than 9 characters, such as a predictable-name USB Ethernet adapter, reporting no IP address.
+- Fix a crash when a network interface carries no address in the enabled address families.
+- Fix the network prefix length reported for an address whose prefix is not a multiple of 8.
+- Fix the broadcast address reported for an address that has none.
+- Fix a memory corruption when an IPv6 network interface address is read.
+- Fix `java.net.NetworkInterface.isUp()` reporting an interface that is administratively up without a carrier as up.
+- Crypto:
+  - Fix the misleading package name in the error for a missing PKCS#11 header.
+  - Hardening of input/output buffers for various operations.
+  - Hardening of External keystore login, writes, alias truncations.
+  - Fix the operations that returned a wrong result and reported success.
+  - Erase the private keys, the secret keys, the keystore password/PIN from memory before they are freed.
+  - Fix various corner cases in `Mac`, `Cipher`, `KeyPairGenerator`, `Signature` operations.
+
 ## [3.4.0] - 2026-07-20
 
 ### Added
@@ -128,3 +187,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 _Markdown_  
 _Copyright 2024-2026 MicroEJ Corp. All rights reserved._  
 _Use of this source code is governed by a BSD-style license that can be found with this software._  
+_Build: 7E4D1F7C_

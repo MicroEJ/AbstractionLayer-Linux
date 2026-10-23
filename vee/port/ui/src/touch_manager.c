@@ -27,14 +27,7 @@
 
 #include "microui_constants.h"
 
-//#define LLTOUCH_DEBUG
-
-#ifdef LLTOUCH_DEBUG
-#define LLTOUCH_LOG_DEBUG printf
-#else // LLTOUCH_DEBUG
-#define LLTOUCH_LOG_DEBUG(...) ((void)0)
-#endif
-#define LLTOUCH_LOG_WARNING printf("[LLTOUCH][WARNING] "); printf
+VEEPORT_LOGGER_DEFINE_MODULE(LLTOUCH_LOG_MODULE_NAME, LLTOUCH_LOG_LEVEL)
 
 static volatile int pressed;
 
@@ -61,18 +54,18 @@ struct tsdev *TOUCH_MANAGER_ts_init() {
 		if (NULL != ts) {
 			break;
 		}
-		LLTOUCH_LOG_DEBUG("Touch initialization failed. retry in %d seconds (ts_open error %d: %m)\n",
-		                  TSDEVICE_RETRY_TIMEOUT_SEC, errno);
+		VEEPORT_LOGGER_LOG_WRN("touch initialization failed, retry in %d seconds (ts_open error %d: %m)",
+		                       TSDEVICE_RETRY_TIMEOUT_SEC, errno);
 		retries--;
 		sleep(TSDEVICE_RETRY_TIMEOUT_SEC);
 	}
 
 	if (NULL == ts) {
-		LLTOUCH_LOG_WARNING("Touch initialization failed... (ts_open error)\n");
+		VEEPORT_LOGGER_LOG_ERR("touch initialization failed (ts_open error)");
 	}
 
 	if ((NULL != ts) && (0 != ts_config(ts))) {
-		LLTOUCH_LOG_WARNING("Touch initialization failed... (ts_config error)\n");
+		VEEPORT_LOGGER_LOG_ERR("touch initialization failed (ts_config error)");
 		ts_close(ts);
 		ts = NULL;
 	}
@@ -98,7 +91,7 @@ void * TOUCH_MANAGER_work(void *p_args) {
 	while (1) {
 #ifdef TOUCH_POLLING
 		if (t0 == 0l) {
-//			LLTOUCH_LOG_DEBUG("[TOUCH] init time \n");
+//			VEEPORT_LOGGER_LOG_DBG("[TOUCH] init time");
 			t0 = posix_time_getcurrenttime(1);
 		}
 #endif
@@ -106,7 +99,7 @@ void * TOUCH_MANAGER_work(void *p_args) {
 		ret = ts_read(ts, &samp, 1);
 
 		if (ret != 1) {
-			LLTOUCH_LOG_DEBUG("Fail to Read touch event (ts_read error=%d)\n", ret);
+			VEEPORT_LOGGER_LOG_WRN("cannot read the touch event (ts_read error=%d)", ret);
 			/* error during ts_read(), reopen the ts device, and exit if it fails again  */
 			ts_close(ts);
 			ts = TOUCH_MANAGER_ts_init();
@@ -117,7 +110,8 @@ void * TOUCH_MANAGER_work(void *p_args) {
 			}
 		}
 
-//		LLTOUCH_LOG_DEBUG("%ld.%06ld: %6d %6d %6d\n", samp.tv.tv_sec, samp.tv.tv_usec, samp.x, samp.y, samp.pressure);
+//		VEEPORT_LOGGER_LOG_DBG("%ld.%06ld: %6d %6d %6d", samp.tv.tv_sec, samp.tv.tv_usec, samp.x, samp.y,
+// samp.pressure);
 		if (samp.pressure > 0) {
 			if (pressed == 0) {
 				TOUCH_HELPER_pressed(samp.x, samp.y);
@@ -125,17 +119,17 @@ void * TOUCH_MANAGER_work(void *p_args) {
 			} else {
 #ifdef TOUCH_POLLING
 				t1 = posix_time_getcurrenttime(1) - t0;
-//				LLTOUCH_LOG_DEBUG("[TOUCH] t0=%l ms, t1=%l \n", t0, t1);
-//				LLTOUCH_LOG_DEBUG("[TOUCH] test (%l ms, ret=%d)\n", t1, ret);
+//				VEEPORT_LOGGER_LOG_DBG("[TOUCH] t0=%l ms, t1=%l", t0, t1);
+//				VEEPORT_LOGGER_LOG_DBG("[TOUCH] test (%l ms, ret=%d)", t1, ret);
 				if (t1 < touch_poll_delay) {
-//					LLTOUCH_LOG_DEBUG("[TOUCH] continue (%l ms, ret=%d)\n", t1, ret);
+//					VEEPORT_LOGGER_LOG_DBG("[TOUCH] continue (%l ms, ret=%d)", t1, ret);
 					continue;
 				} else {
-//					LLTOUCH_LOG_DEBUG("[TOUCH] reset (%l ms, ret=%d)\n", t1, ret);
+//					VEEPORT_LOGGER_LOG_DBG("[TOUCH] reset (%l ms, ret=%d)", t1, ret);
 					t0 = 0;
 				}
-//				LLTOUCH_LOG_DEBUG("%ld.%06ld: %6d %6d %6d\n", samp.tv.tv_sec, samp.tv.tv_usec, samp.x, samp.y,
-// samp.pressure);
+//				VEEPORT_LOGGER_LOG_DBG("%ld.%06ld: %6d %6d %6d", samp.tv.tv_sec, samp.tv.tv_usec, samp.x, samp.y,
+//				                       samp.pressure);
 #endif
 				TOUCH_HELPER_moved(samp.x, samp.y);
 			}

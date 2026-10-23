@@ -12,6 +12,8 @@
 #include "microej_async_worker.h"
 #include "LLECOM_NETWORK_impl.h"
 
+VEEPORT_LOGGER_DEFINE_MODULE(LLECOM_NETWORK_LOG_MODULE_NAME, LLECOM_NETWORK_LOG_LEVEL)
+
 #define DNS_MAX_SERVERS (1)
 
 #ifdef __cplusplus
@@ -47,8 +49,7 @@ void LLECOM_NETWORK_IMPL_enable_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 #endif // LWIP
 	}
 
-	LLECOM_NETWORK_DEBUG_TRACE("[%s:%u] interface enabled with result : %d (err %d)\n", __func__, __LINE__,
-	                           param->result, param->error_code);
+	VEEPORT_LOGGER_LOG_DBG("interface enabled with result : %d (err %d)", param->result, param->error_code);
 }
 
 void LLECOM_NETWORK_IMPL_disable_action(MICROEJ_ASYNC_WORKER_job_t *job) {
@@ -77,8 +78,7 @@ void LLECOM_NETWORK_IMPL_disable_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 #endif // LWIP
 	}
 
-	LLECOM_NETWORK_DEBUG_TRACE("[%s:%u] interface disabled with result : %d (err %d)\n", __func__, __LINE__,
-	                           param->result, param->error_code);
+	VEEPORT_LOGGER_LOG_DBG("interface disabled with result : %d (err %d)", param->result, param->error_code);
 }
 
 void LLECOM_NETWORK_IMPL_isEnabled_action(MICROEJ_ASYNC_WORKER_job_t *job) {
@@ -106,7 +106,7 @@ void LLECOM_NETWORK_IMPL_isEnabled_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 #endif // LWIP
 	}
 
-	LLECOM_NETWORK_DEBUG_TRACE("[%s:%u] result : %d (err %d)\n", __func__, __LINE__, param->result, param->error_code);
+	VEEPORT_LOGGER_LOG_DBG("result : %d (err %d)", param->result, param->error_code);
 }
 
 void LLECOM_NETWORK_IMPL_start_action(MICROEJ_ASYNC_WORKER_job_t *job) {
@@ -129,8 +129,7 @@ void LLECOM_NETWORK_IMPL_start_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 		}
 	}
 
-	LLECOM_NETWORK_DEBUG_TRACE("[%s:%u] interface started with result : %d (err %d)\n", __func__, __LINE__,
-	                           param->result, param->error_code);
+	VEEPORT_LOGGER_LOG_DBG("interface started with result : %d (err %d)", param->result, param->error_code);
 }
 
 void LLECOM_NETWORK_IMPL_stop_action(MICROEJ_ASYNC_WORKER_job_t *job) {
@@ -153,8 +152,7 @@ void LLECOM_NETWORK_IMPL_stop_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 		}
 	}
 
-	LLECOM_NETWORK_DEBUG_TRACE("[%s:%u] interface stopped with result : %d (err %d)\n", __func__, __LINE__,
-	                           param->result, param->error_code);
+	VEEPORT_LOGGER_LOG_DBG("interface stopped with result : %d (err %d)", param->result, param->error_code);
 }
 
 void LLECOM_NETWORK_IMPL_isStarted_action(MICROEJ_ASYNC_WORKER_job_t *job) {
@@ -181,7 +179,7 @@ void LLECOM_NETWORK_IMPL_isStarted_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 #endif // LWIP
 	}
 
-	LLECOM_NETWORK_DEBUG_TRACE("[%s:%u] result : %d (err %d)\n", __func__, __LINE__, param->result, param->error_code);
+	VEEPORT_LOGGER_LOG_DBG("result : %d (err %d)", param->result, param->error_code);
 }
 
 void LLECOM_NETWORK_IMPL_getDNSCount_action(MICROEJ_ASYNC_WORKER_job_t *job) {
@@ -211,8 +209,7 @@ void LLECOM_NETWORK_IMPL_getDNSCount_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 		param->result = count;
 	}
 
-	LLECOM_NETWORK_DEBUG_TRACE("[%s:%u] DNS counted : %d (err %d)\n", __func__, __LINE__, param->result,
-	                           param->error_code);
+	VEEPORT_LOGGER_LOG_DBG("DNS counted : %d (err %d)", param->result, param->error_code);
 }
 
 void LLECOM_NETWORK_IMPL_getDNS_action(MICROEJ_ASYNC_WORKER_job_t *job) {
@@ -241,8 +238,7 @@ void LLECOM_NETWORK_IMPL_getDNS_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 #endif // LWIP
 	}
 
-	LLECOM_NETWORK_DEBUG_TRACE("[%s:%u] get DNS result : %d (err %d)\n", __func__, __LINE__, param->result,
-	                           param->error_code);
+	VEEPORT_LOGGER_LOG_DBG("get DNS result : %d (err %d)", param->result, param->error_code);
 }
 
 void LLECOM_NETWORK_IMPL_getGateway_action(MICROEJ_ASYNC_WORKER_job_t *job) {
@@ -271,8 +267,7 @@ void LLECOM_NETWORK_IMPL_getGateway_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 #endif // LWIP
 	}
 
-	LLECOM_NETWORK_DEBUG_TRACE("[%s:%u] get gateway result : %d (err %d)\n", __func__, __LINE__, param->result,
-	                           param->error_code);
+	VEEPORT_LOGGER_LOG_DBG("get gateway result : %d (err %d)", param->result, param->error_code);
 }
 
 void LLECOM_NETWORK_IMPL_getNetmask_action(MICROEJ_ASYNC_WORKER_job_t *job) {
@@ -301,8 +296,7 @@ void LLECOM_NETWORK_IMPL_getNetmask_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 #endif // LWIP
 	}
 
-	LLECOM_NETWORK_DEBUG_TRACE("[%s:%u] get netmask result : %d (err %d)\n", __func__, __LINE__, param->result,
-	                           param->error_code);
+	VEEPORT_LOGGER_LOG_DBG("get netmask result : %d (err %d)", param->result, param->error_code);
 }
 
 void LLECOM_NETWORK_IMPL_getIP_action(MICROEJ_ASYNC_WORKER_job_t *job) {
@@ -331,8 +325,7 @@ void LLECOM_NETWORK_IMPL_getIP_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 #endif // LWIP
 	}
 
-	LLECOM_NETWORK_DEBUG_TRACE("[%s:%u] get ip address result : %d (err %d)\n", __func__, __LINE__, param->result,
-	                           param->error_code);
+	VEEPORT_LOGGER_LOG_DBG("get ip address result : %d (err %d)", param->result, param->error_code);
 }
 
 void LLECOM_NETWORK_IMPL_isDNSStatic_action(MICROEJ_ASYNC_WORKER_job_t *job) {
@@ -347,8 +340,7 @@ void LLECOM_NETWORK_IMPL_isDNSStatic_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 		param->result = (ecom_network_is_static == 0) ? IF_DNS_NOT_STATIC : IF_DNS_STATIC;
 	}
 
-	LLECOM_NETWORK_DEBUG_TRACE("[%s:%u] is static DNS result : %d (err %d)\n", __func__, __LINE__, param->result,
-	                           param->error_code);
+	VEEPORT_LOGGER_LOG_DBG("is static DNS result : %d (err %d)", param->result, param->error_code);
 }
 
 void LLECOM_NETWORK_IMPL_isStatic_action(MICROEJ_ASYNC_WORKER_job_t *job) {
@@ -363,8 +355,7 @@ void LLECOM_NETWORK_IMPL_isStatic_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 		param->result = (ecom_network_is_static == 0) ? IF_IP_DYNAMIC : IF_IP_STATIC;
 	}
 
-	LLECOM_NETWORK_DEBUG_TRACE("[%s:%u] is static IP result : %d (err %d)\n", __func__, __LINE__, param->result,
-	                           param->error_code);
+	VEEPORT_LOGGER_LOG_DBG("is static IP result : %d (err %d)", param->result, param->error_code);
 }
 
 void LLECOM_NETWORK_IMPL_startConfiguration_action(MICROEJ_ASYNC_WORKER_job_t *job) {
@@ -379,8 +370,7 @@ void LLECOM_NETWORK_IMPL_startConfiguration_action(MICROEJ_ASYNC_WORKER_job_t *j
 		param->result = 0;
 	}
 
-	LLECOM_NETWORK_DEBUG_TRACE("[%s:%u] configuration started with result : %d (err %d)\n", __func__, __LINE__,
-	                           param->result, param->error_code);
+	VEEPORT_LOGGER_LOG_DBG("configuration started with result : %d (err %d)", param->result, param->error_code);
 }
 
 void LLECOM_NETWORK_IMPL_endConfiguration_action(MICROEJ_ASYNC_WORKER_job_t *job) {
@@ -416,8 +406,7 @@ void LLECOM_NETWORK_IMPL_endConfiguration_action(MICROEJ_ASYNC_WORKER_job_t *job
 #endif // LWIP
 	}
 
-	LLECOM_NETWORK_DEBUG_TRACE("[%s:%u] configuration ended with result : %d (err %d)\n", __func__, __LINE__,
-	                           param->result, param->error_code);
+	VEEPORT_LOGGER_LOG_DBG("configuration ended with result : %d (err %d)", param->result, param->error_code);
 }
 
 void LLECOM_NETWORK_IMPL_setDNS_action(MICROEJ_ASYNC_WORKER_job_t *job) {
@@ -436,8 +425,7 @@ void LLECOM_NETWORK_IMPL_setDNS_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 #endif // LWIP
 	}
 
-	LLECOM_NETWORK_DEBUG_TRACE("[%s:%u] set DNS result : %d (err %d)\n", __func__, __LINE__, param->result,
-	                           param->error_code);
+	VEEPORT_LOGGER_LOG_DBG("set DNS result : %d (err %d)", param->result, param->error_code);
 }
 
 void LLECOM_NETWORK_IMPL_setGateway_action(MICROEJ_ASYNC_WORKER_job_t *job) {
@@ -466,8 +454,7 @@ void LLECOM_NETWORK_IMPL_setGateway_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 #endif // LWIP
 	}
 
-	LLECOM_NETWORK_DEBUG_TRACE("[%s:%u] set gateway result : %d (err %d)\n", __func__, __LINE__, param->result,
-	                           param->error_code);
+	VEEPORT_LOGGER_LOG_DBG("set gateway result : %d (err %d)", param->result, param->error_code);
 }
 
 void LLECOM_NETWORK_IMPL_setIP_action(MICROEJ_ASYNC_WORKER_job_t *job) {
@@ -496,8 +483,7 @@ void LLECOM_NETWORK_IMPL_setIP_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 #endif // LWIP
 	}
 
-	LLECOM_NETWORK_DEBUG_TRACE("[%s:%u] set ip address result : %d (err %d)\n", __func__, __LINE__, param->result,
-	                           param->error_code);
+	VEEPORT_LOGGER_LOG_DBG("set ip address result : %d (err %d)", param->result, param->error_code);
 }
 
 void LLECOM_NETWORK_IMPL_setNetmask_action(MICROEJ_ASYNC_WORKER_job_t *job) {
@@ -526,8 +512,7 @@ void LLECOM_NETWORK_IMPL_setNetmask_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 #endif // LWIP
 	}
 
-	LLECOM_NETWORK_DEBUG_TRACE("[%s:%u] set netmask result : %d (err %d)\n", __func__, __LINE__, param->result,
-	                           param->error_code);
+	VEEPORT_LOGGER_LOG_DBG("set netmask result : %d (err %d)", param->result, param->error_code);
 }
 
 void LLECOM_NETWORK_IMPL_useDHCP_action(MICROEJ_ASYNC_WORKER_job_t *job) {
@@ -543,8 +528,7 @@ void LLECOM_NETWORK_IMPL_useDHCP_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 		param->result = 0;
 	}
 
-	LLECOM_NETWORK_DEBUG_TRACE("[%s:%u] use DHCP result : %d (err %d)\n", __func__, __LINE__, param->result,
-	                           param->error_code);
+	VEEPORT_LOGGER_LOG_DBG("use DHCP result : %d (err %d)", param->result, param->error_code);
 }
 
 void LLECOM_NETWORK_IMPL_useStaticDNS_action(MICROEJ_ASYNC_WORKER_job_t *job) {
@@ -565,8 +549,7 @@ void LLECOM_NETWORK_IMPL_useStaticDNS_action(MICROEJ_ASYNC_WORKER_job_t *job) {
 		param->result = 0;
 	}
 
-	LLECOM_NETWORK_DEBUG_TRACE("[%s:%u] use static DNS result : %d (err %d)\n", __func__, __LINE__, param->result,
-	                           param->error_code);
+	VEEPORT_LOGGER_LOG_DBG("use static DNS result : %d (err %d)", param->result, param->error_code);
 }
 
 void LLECOM_NETWORK_IMPL_setDefault_action(MICROEJ_ASYNC_WORKER_job_t *job) {

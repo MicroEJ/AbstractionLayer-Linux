@@ -71,6 +71,8 @@
 #include "sni.h"
 #include "osal.h"
 
+VEEPORT_LOGGER_DEFINE_MODULE(LLRIO_LOG_MODULE_NAME, LLRIO_LOG_LEVEL)
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
@@ -344,7 +346,7 @@ int rio_init(void) {
 	}
 
 	if (OSAL_mutex_create((uint8_t *)"rio_mutex", &rio_pool.mutex) != OSAL_OK) {
-		SNI_throwNativeIOException(-1, "rio: mutex create failed");
+		VEEPORT_ERRORS_throw_caught_exception_message(J_EUNKNOWN, "rio: mutex create failed");
 		return SNI_IGNORED_RETURNED_VALUE;
 	}
 
@@ -368,7 +370,7 @@ int rio_init(void) {
 	rio_pool.free_head = &rio_pool.sources[0];
 
 	if (rio_selector_init() < 0) {
-		SNI_throwNativeIOException(-1, "rio: selector init failed");
+		VEEPORT_ERRORS_throw_caught_exception_message(J_EUNKNOWN, "rio: selector init failed");
 		return SNI_IGNORED_RETURNED_VALUE;
 	}
 
@@ -377,7 +379,7 @@ int rio_init(void) {
 	if (OSAL_task_create(rio_worker, (uint8_t *)"rio_worker",
 	                     worker_stack, RIO_WORKER_PRIORITY,
 	                     NULL, &worker_handle) != OSAL_OK) {
-		SNI_throwNativeIOException(-1, "rio: worker thread create failed");
+		VEEPORT_ERRORS_throw_caught_exception_message(J_EUNKNOWN, "rio: worker thread create failed");
 		return SNI_IGNORED_RETURNED_VALUE;
 	}
 
@@ -453,7 +455,7 @@ static jint poll_callback(jint *entries, jint n, jint timeout_ms) {
 	}
 
 	if (count == 0) {
-		SNI_throwNativeIOException(J_ETIMEDOUT, "poll timeout");
+		VEEPORT_ERRORS_throw_caught_exception(J_ETIMEDOUT);
 		return SNI_IGNORED_RETURNED_VALUE;
 	}
 
@@ -470,7 +472,7 @@ static jint poll_timeout_callback(jint *entries, jint n, jint timeout_ms) {
 	(void)entries;
 	(void)n;
 	(void)timeout_ms;
-	SNI_throwNativeIOException(J_ETIMEDOUT, "poll timeout");
+	VEEPORT_ERRORS_throw_caught_exception(J_ETIMEDOUT);
 	return SNI_IGNORED_RETURNED_VALUE;
 }
 
@@ -485,7 +487,7 @@ int rio_poll(int *entries, int n, int timeout_ms) {
 		 * positive timeout to arm, so it throws at once; a negative (infinite)
 		 * timeout suspends indefinitely, as select() would with no fds. */
 		if (timeout_ms == 0) {
-			SNI_throwNativeIOException(J_ETIMEDOUT, "poll timeout");
+			VEEPORT_ERRORS_throw_caught_exception(J_ETIMEDOUT);
 			return SNI_IGNORED_RETURNED_VALUE;
 		}
 		int64_t sni_timeout = (timeout_ms < 0) ? 0 /* SNI infinite */ : (int64_t)timeout_ms;
@@ -504,8 +506,8 @@ int rio_poll(int *entries, int n, int timeout_ms) {
 	 * pool holds at most RIO_MAX_SOURCES slots, so the free count is
 	 * bounded by it). */
 	if (count_free_sources() < n) {
-		SNI_throwNativeIOException(J_ENOMEM,
-		                           "rio: source pool exhausted (RIO_MAX_SOURCES reached)");
+		VEEPORT_LOGGER_LOG_ERR("rio: source pool exhausted (RIO_MAX_SOURCES reached)");
+		VEEPORT_ERRORS_throw_caught_exception(J_ENOMEM);
 		return SNI_IGNORED_RETURNED_VALUE;
 	}
 
@@ -531,7 +533,7 @@ int rio_poll(int *entries, int n, int timeout_ms) {
 				free_source(head);
 				head = next;
 			}
-			SNI_throwNativeIOException(J_EBADF, "rio: invalid file descriptor");
+			VEEPORT_ERRORS_throw_caught_exception(J_EBADF);
 			return SNI_IGNORED_RETURNED_VALUE;
 		}
 
@@ -622,14 +624,14 @@ static jint wait_ready_callback(jint fd, jint interests, jint timeout_ms) {
 	 * ready returns "ready" and defers the error to a follow-up read — which is
 	 * racy and, on an infinite wait, re-parks and hangs. */
 	if (s != NULL && s->closed) {
-		SNI_throwNativeIOException(J_EBADF, "socket closed");
+		VEEPORT_ERRORS_throw_caught_exception(J_EBADF);
 		return 0;
 	}
 
 	bool ready = (s != NULL) && (s->revents != 0);
 
 	if (!ready) {
-		SNI_throwNativeIOException(J_ETIMEDOUT, "poll timeout");
+		VEEPORT_ERRORS_throw_caught_exception(J_ETIMEDOUT);
 		return 0;
 	}
 	return 1;
@@ -639,7 +641,7 @@ int rio_wait_ready(int fd, int interests, int timeout_ms,
                    SNI_callback callback, void *suspend_arg) {
 	/* fd validity is the VM C task's responsibility; the worker assumes valid. */
 	if (fd < 0) {
-		SNI_throwNativeIOException(J_EBADF, "rio: invalid file descriptor");
+		VEEPORT_ERRORS_throw_caught_exception(J_EBADF);
 		return SNI_IGNORED_RETURNED_VALUE;
 	}
 
@@ -669,8 +671,8 @@ int rio_wait_ready(int fd, int interests, int timeout_ms,
 	if (!reuse) {
 		/* First wait in this scope: allocate and register the scoped resource. */
 		if (count_free_sources() < 1) {
-			SNI_throwNativeIOException(J_ENOMEM,
-			                           "rio: source pool exhausted (RIO_MAX_SOURCES reached)");
+			VEEPORT_LOGGER_LOG_ERR("rio: source pool exhausted (RIO_MAX_SOURCES reached)");
+			VEEPORT_ERRORS_throw_caught_exception(J_ENOMEM);
 			return SNI_IGNORED_RETURNED_VALUE;
 		}
 		s = alloc_source();

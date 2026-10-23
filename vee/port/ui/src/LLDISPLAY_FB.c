@@ -26,6 +26,8 @@
 #include "LLDISPLAY_FB_fbdev.h"
 #include "LLDISPLAY_FB_drm.h"
 
+VEEPORT_LOGGER_DEFINE_MODULE(LLDISPLAY_LOG_MODULE_NAME, LLDISPLAY_LOG_LEVEL)
+
 //#define DEBUG_SYNC
 
 static struct {
@@ -134,11 +136,11 @@ static void * lldisplay_copy_task(void *p_args) {
 	(void)p_args;
 	while (1) {
 #ifdef DEBUG_SYNC
-		LLDISPLAY_LOG_DEBUG("[TASK] wait copy signal\n");
+		VEEPORT_LOGGER_LOG_DBG("wait for the copy signal");
 #endif
 		lldisplay_binary_semaphore_take(&copy_semaphore);
 #ifdef DEBUG_SYNC
-		LLDISPLAY_LOG_DEBUG("[TASK] copy signal got\n");
+		VEEPORT_LOGGER_LOG_DBG("copy signal received");
 #endif
 #ifdef FRAMERATE_ENABLED
 		framerate_increment();
@@ -153,11 +155,11 @@ static void * lldisplay_copy_task(void *p_args) {
 		}
 
 #ifdef DEBUG_SYNC
-		LLDISPLAY_LOG_DEBUG("[TASK] give done signal\n");
+		VEEPORT_LOGGER_LOG_DBG("give the done signal");
 #endif
 		LLUI_DISPLAY_setBackBuffer(flush_data.flush_identifier, flush_data.buffer, false);
 #ifdef DEBUG_SYNC
-		LLDISPLAY_LOG_DEBUG("[TASK] done signal given\n");
+		VEEPORT_LOGGER_LOG_DBG("done signal given");
 #endif
 	}
 	return NULL;
@@ -170,7 +172,7 @@ void LLUI_DISPLAY_IMPL_initialize(LLUI_DISPLAY_SInitData *init_data) {
 	int screensize = 0;
 	int ret;
 
-	LLDISPLAY_LOG_DEBUG("Screen initialization...\n");
+	VEEPORT_LOGGER_LOG_DBG("screen initialization...");
 
 #ifdef LLDISPLAY_FBDEVICE
 	/* open the project-configured fb-device, map video-memory and more */
@@ -192,7 +194,7 @@ void LLUI_DISPLAY_IMPL_initialize(LLUI_DISPLAY_SInitData *init_data) {
 #endif
 
 	if (fd < 0) {
-		LLDISPLAY_LOG_WARNING("Frame buffer not available, skipping display setup\n");
+		VEEPORT_LOGGER_LOG_WRN("Frame buffer not available, skipping display setup");
 		return;
 	}
 
@@ -203,14 +205,14 @@ void LLUI_DISPLAY_IMPL_initialize(LLUI_DISPLAY_SInitData *init_data) {
 	ret = lldisplay_fb_drm_getscreeninfo(fd, &display_screeninfo);
 #endif
 	if (ret < 0) {
-		LLDISPLAY_LOG_WARNING("Screen info not detected, skipping display setup\n");
+		VEEPORT_LOGGER_LOG_ERR("Screen info not detected, skipping display setup");
 		return;
 	}
 
 #ifdef LLDISPLAY_CONVERT_32_TO_16_BPP
 	if (display_screeninfo.bpp != 16) {
-		LLDISPLAY_LOG_WARNING("Wrong screen format (%dx%d - %d bpp) to make convertion of 32 bpp to 16 bpp\n",
-		                      display_screeninfo.width, display_screeninfo.height, display_screeninfo.bpp);
+		VEEPORT_LOGGER_LOG_ERR("Wrong screen format (%dx%d - %d bpp) to make convertion of 32 bpp to 16 bpp",
+		                       display_screeninfo.width, display_screeninfo.height, display_screeninfo.bpp);
 		return;
 	}
 	display_convert_32_to_16_bpp = 1;
@@ -228,7 +230,7 @@ void LLUI_DISPLAY_IMPL_initialize(LLUI_DISPLAY_SInitData *init_data) {
 	ret = lldisplay_fb_drm_create_fb(fd, screensize, display_screeninfo, &fb_base);
 #endif
 	if (ret != 0) {
-		LLDISPLAY_LOG_WARNING("Failed to create framebuffer\n");
+		VEEPORT_LOGGER_LOG_ERR("cannot create the framebuffer");
 		return;
 	}
 
@@ -241,12 +243,12 @@ void LLUI_DISPLAY_IMPL_initialize(LLUI_DISPLAY_SInitData *init_data) {
 			back_buffer = malloc(display_screeninfo.width * display_screeninfo.height * display_screeninfo.bpp / 8);
 		}
 	} else {
-		LLDISPLAY_LOG_WARNING("Screen format not handled (%dx%d - %d bpp)\n", display_screeninfo.width,
-		                      display_screeninfo.height, display_screeninfo.bpp);
+		VEEPORT_LOGGER_LOG_ERR("Screen format not handled (%dx%d - %d bpp)", display_screeninfo.width,
+		                       display_screeninfo.height, display_screeninfo.bpp);
 		return;
 	}
 	if (back_buffer == NULL) {
-		LLDISPLAY_LOG_WARNING("An error occurred during back buffer allocation\n");
+		VEEPORT_LOGGER_LOG_ERR("An error occurred during back buffer allocation");
 		return;
 	}
 
@@ -259,7 +261,7 @@ void LLUI_DISPLAY_IMPL_initialize(LLUI_DISPLAY_SInitData *init_data) {
 #ifdef LLDISPLAY_FBDRM
 	ret = lldisplay_fb_drm_set_crtc(fd);
 	if (ret != 0) {
-		LLDISPLAY_LOG_DEBUG("Failed to set CRTC\n");
+		VEEPORT_LOGGER_LOG_DBG("cannot set the CRTC");
 		return;
 	}
 #endif
@@ -291,7 +293,7 @@ void LLUI_DISPLAY_IMPL_initialize(LLUI_DISPLAY_SInitData *init_data) {
 	init_data->lcd_width = display_screeninfo.width;
 	init_data->lcd_height = display_screeninfo.height;
 	init_data->back_buffer_address = (uint8_t *)back_buffer;
-	LLDISPLAY_LOG_DEBUG("Screen initialization...	OK\n");
+	VEEPORT_LOGGER_LOG_DBG("Screen initialization...	OK");
 }
 
 void LLUI_DISPLAY_IMPL_flush(MICROUI_GraphicsContext *gc, uint8_t flush_identifier, const ui_rect_t regions[],
@@ -307,11 +309,11 @@ void LLUI_DISPLAY_IMPL_flush(MICROUI_GraphicsContext *gc, uint8_t flush_identifi
 
 	if (display_is_available == 1) {
 #ifdef DEBUG_SYNC
-		LLDISPLAY_LOG_DEBUG("[FLUSH] give copy signal\n");
+		VEEPORT_LOGGER_LOG_DBG("give the copy signal");
 #endif
 		lldisplay_binary_semaphore_give(&copy_semaphore);
 #ifdef DEBUG_SYNC
-		LLDISPLAY_LOG_DEBUG("[FLUSH] copy signal given\n");
+		VEEPORT_LOGGER_LOG_DBG("copy signal given");
 #endif
 
 #ifdef FRAMERATE_ENABLED

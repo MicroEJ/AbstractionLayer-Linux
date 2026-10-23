@@ -11,6 +11,8 @@
 #include <stdio.h>
 #include <pthread.h>
 
+VEEPORT_LOGGER_DEFINE_MODULE(LLAUDIO_LOG_MODULE_NAME, LLAUDIO_LOG_LEVEL)
+
 extern void const _audio_heap_start;
 extern void const _audio_heap_end;
 
@@ -18,7 +20,7 @@ BESTFIT_ALLOCATOR audio_heap_allocator;
 
 static void _init_audio_routine() {
 	if (SDL_Init(SDL_INIT_AUDIO) < 0) {
-		fprintf(stderr, "Could not initialize the SDL audio subsystem: %s\n", SDL_GetError());
+		VEEPORT_LOGGER_LOG_ERR("cannot initialize the SDL audio subsystem: %s", SDL_GetError());
 		exit(1);
 	}
 
@@ -49,7 +51,7 @@ SDL_AudioFormat AUDIO_get_pcm_format(const LLAUDIO_pcm_format_parameters_t *form
 
 	case 32:
 		if (format_parameters->is_signed == 0) {
-			fprintf(stderr, "32-bit unsigned audio format is not supported\n");
+			VEEPORT_LOGGER_LOG_ERR("32-bit unsigned audio format is not supported");
 			break;
 		} else {
 			result = (format_parameters->byte_order != 0) ? AUDIO_S32MSB : AUDIO_S32LSB;
@@ -57,7 +59,7 @@ SDL_AudioFormat AUDIO_get_pcm_format(const LLAUDIO_pcm_format_parameters_t *form
 		break;
 
 	default:
-		fprintf(stderr, "Invalid audio bit depth: %d\n", format_parameters->bit_depth);
+		VEEPORT_LOGGER_LOG_ERR("invalid audio bit depth: %d", format_parameters->bit_depth);
 		break;
 	}
 
@@ -67,7 +69,7 @@ SDL_AudioFormat AUDIO_get_pcm_format(const LLAUDIO_pcm_format_parameters_t *form
 void * AUDIO_malloc(size_t size) {
 	void *result = BESTFIT_ALLOCATOR_allocate(&audio_heap_allocator, size);
 	if (result == NULL) {
-		fprintf(stderr, "%s: Failed allocating %u bytes\n", __FUNCTION__, size);
+		VEEPORT_LOGGER_LOG_ERR("cannot allocate %u bytes", size);
 	}
 	return result;
 }

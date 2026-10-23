@@ -26,6 +26,8 @@
 #include "async_select.h"
 #include "LLNET_ERRORS.h"
 #include "LLNET_Common.h"
+
+VEEPORT_LOGGER_DEFINE_MODULE(LLNET_LOG_MODULE_NAME, LLNET_LOG_LEVEL)
 #if LLNET_AF & LLNET_AF_IPV6
 #include <ifaddrs.h>
 #include <arpa/inet.h>
@@ -61,27 +63,27 @@ extern "C" {
 #endif
 
 void LLNET_CHANNEL_IMPL_close(int32_t fd) {
-	LLNET_DEBUG_TRACE("%s[thread %d](fd=0x%X)\n", __func__, SNI_getCurrentJavaThreadID(), fd);
+	VEEPORT_LOGGER_LOG_DBG("[thread %d](fd=0x%X)", SNI_getCurrentJavaThreadID(), fd);
 
 	int32_t fd_errno;
 
 	if (llnet_is_ready() == false) {
-		SNI_throwNativeIOException(J_NETWORK_NOT_INITIALIZED, "network not initialized");
+		VEEPORT_ERRORS_throw_caught_exception(J_NETWORK_NOT_INITIALIZED);
 		return;
 	}
 
 	if (llnet_close(fd) == -1) {
 		fd_errno = llnet_errno(fd);
-		SNI_throwNativeIOException(LLNET_map_to_java_exception(fd_errno), LLNET_get_socket_error_msg(fd_errno));
-		LLNET_DEBUG_TRACE("%s[thread %d](fd=0x%X) close error (errno=%d)\n", __func__, SNI_getCurrentJavaThreadID(), fd,
-		                  fd_errno);
+		LLNET_throw_socket_error(fd_errno);
+		VEEPORT_LOGGER_LOG_DBG("[thread %d](fd=0x%X) close error (errno=%d)", SNI_getCurrentJavaThreadID(), fd,
+		                       fd_errno);
 		return;
 	}
 	LLNET_NOTIFY_CLOSED_FD(fd);
 }
 
 void LLNET_CHANNEL_IMPL_initialize(void) {
-	LLNET_DEBUG_TRACE("%s\n", __func__);
+	VEEPORT_LOGGER_LOG_DBG("");
 	int32_t res;
 #ifdef LLNET_IGNORE_SIGPIPE
 	// Ignore SIGPIPE signal that is sent when a connection is closed by the remote host.
@@ -90,32 +92,32 @@ void LLNET_CHANNEL_IMPL_initialize(void) {
 	llnet_init();
 	res = LLNET_INIT_WAIT_MECHANISM();
 	if (res != 0) {
-		SNI_throwNativeIOException(J_EUNKNOWN, "init error");
+		VEEPORT_ERRORS_throw_caught_exception_message(J_EUNKNOWN, "wait mechanism init error %d", res);
 	}
 }
 
 void LLNET_CHANNEL_IMPL_shutdown(int32_t fd) {
-	LLNET_DEBUG_TRACE("%s[thread %d](fd=0x%X)\n", __func__, SNI_getCurrentJavaThreadID(), fd);
+	VEEPORT_LOGGER_LOG_DBG("[thread %d](fd=0x%X)", SNI_getCurrentJavaThreadID(), fd);
 
 	if (llnet_is_ready() == false) {
-		SNI_throwNativeIOException(J_NETWORK_NOT_INITIALIZED, "network not initialized");
+		VEEPORT_ERRORS_throw_caught_exception(J_NETWORK_NOT_INITIALIZED);
 		return;
 	}
 
 	int32_t ret = llnet_shutdown(fd, SHUT_RDWR); //shutdown
 
 	if (0 != ret) {
-		LLNET_DEBUG_TRACE("%s[thread %d](fd=0x%X) ret=%d errno=%d\n", __func__, SNI_getCurrentJavaThreadID(), fd,
-		                  ret, llnet_errno(fd));
+		VEEPORT_LOGGER_LOG_DBG("[thread %d](fd=0x%X) ret=%d errno=%d", SNI_getCurrentJavaThreadID(), fd, ret,
+		                       llnet_errno(fd));
 	}
 }
 
 void LLNET_CHANNEL_IMPL_bind(int32_t fd, int8_t *addr, int32_t length, int32_t port) {
-	LLNET_DEBUG_TRACE("%s[thread %d](fd=0x%X, port=%d, addrLength=%d,...)\n", __func__, SNI_getCurrentJavaThreadID(),
-	                  fd, port, length);
+	VEEPORT_LOGGER_LOG_DBG("[thread %d](fd=0x%X, port=%d, addrLength=%d,...)", SNI_getCurrentJavaThreadID(), fd, port,
+	                       length);
 
 	if (llnet_is_ready() == false) {
-		SNI_throwNativeIOException(J_NETWORK_NOT_INITIALIZED, "network not initialized");
+		VEEPORT_ERRORS_throw_caught_exception(J_NETWORK_NOT_INITIALIZED);
 		return;
 	}
 
@@ -154,9 +156,9 @@ void LLNET_CHANNEL_IMPL_bind(int32_t fd, int8_t *addr, int32_t length, int32_t p
 			sockaddr.in6.sin6_scope_id = LLNET_getScopeForIp(ipAddress);
 		} else {
 			fd_errno = llnet_errno(fd);
-			SNI_throwNativeIOException(LLNET_map_to_java_exception(fd_errno), LLNET_get_socket_error_msg(fd_errno));
-			LLNET_DEBUG_TRACE("%s[thread %d](fd=0x%X, inet_ntop failed, errno=%d, ...)\n", __func__,
-			                  SNI_getCurrentJavaThreadID(), fd, fd_errno);
+			LLNET_throw_socket_error(fd_errno);
+			VEEPORT_LOGGER_LOG_DBG("[thread %d](fd=0x%X, inet_ntop failed, errno=%d, ...)",
+			                       SNI_getCurrentJavaThreadID(), fd, fd_errno);
 			return;
 		}
 		// Skip copy if in6_addr struct already contains the IPv6 address
@@ -168,24 +170,25 @@ void LLNET_CHANNEL_IMPL_bind(int32_t fd, int8_t *addr, int32_t length, int32_t p
 #endif /* if LLNET_AF & LLNET_AF_IPV6 */
 
 	if (sockaddr_sizeof == 0) {
-		SNI_throwNativeIOException(J_EINVAL, "invalid address length");
+		VEEPORT_LOGGER_LOG_DBG("invalid address length");
+		VEEPORT_ERRORS_throw_caught_exception(J_EINVAL);
 		return;
 	}
 
 	int32_t ret = llnet_bind(fd, &sockaddr.addr, sockaddr_sizeof);
-	LLNET_DEBUG_TRACE("%s[thread %d](fd=0x%X, ret=%d, errno=%d, ...)\n", __func__, SNI_getCurrentJavaThreadID(), fd,
-	                  ret, llnet_errno(fd));
+	VEEPORT_LOGGER_LOG_DBG("[thread %d](fd=0x%X, ret=%d, errno=%d, ...)", SNI_getCurrentJavaThreadID(), fd, ret,
+	                       llnet_errno(fd));
 	if (ret == -1) {
 		fd_errno = llnet_errno(fd);
-		SNI_throwNativeIOException(LLNET_map_to_java_exception(fd_errno), LLNET_get_socket_error_msg(fd_errno));
+		LLNET_throw_socket_error(fd_errno);
 	}
 }
 
 int32_t LLNET_CHANNEL_IMPL_getOption(int32_t fd, int32_t option) {
-	LLNET_DEBUG_TRACE("%s[thread %d](fd=0x%X, option=%d)\n", __func__, SNI_getCurrentJavaThreadID(), fd, option);
+	VEEPORT_LOGGER_LOG_DBG("[thread %d](fd=0x%X, option=%d)", SNI_getCurrentJavaThreadID(), fd, option);
 
 	if (llnet_is_ready() == false) {
-		SNI_throwNativeIOException(J_NETWORK_NOT_INITIALIZED, "network not initialized");
+		VEEPORT_ERRORS_throw_caught_exception(J_NETWORK_NOT_INITIALIZED);
 		return SNI_IGNORED_RETURNED_VALUE;
 	}
 
@@ -247,16 +250,16 @@ int32_t LLNET_CHANNEL_IMPL_getOption(int32_t fd, int32_t option) {
 		break;
 	default:
 		//option not available
-		SNI_throwNativeIOException(J_ENOPROTOOPT, "socket option not supported");
+		VEEPORT_ERRORS_throw_caught_exception(J_ENOPROTOOPT);
 		return SNI_IGNORED_RETURNED_VALUE;
 	}
 
 	int32_t res = llnet_getsockopt(fd, level, optname, p_optVal, (socklen_t *)&optlen);
-	LLNET_DEBUG_TRACE("%s[thread %d](fd=0x%X, option=%d) res=%d errno=%d\n", __func__, SNI_getCurrentJavaThreadID(), fd,
-	                  option, res, llnet_errno(fd));
+	VEEPORT_LOGGER_LOG_DBG("[thread %d](fd=0x%X, option=%d) res=%d errno=%d", SNI_getCurrentJavaThreadID(), fd, option,
+	                       res, llnet_errno(fd));
 	if (res == -1) {
 		fd_errno = llnet_errno(fd);
-		SNI_throwNativeIOException(LLNET_map_to_java_exception(fd_errno), LLNET_get_socket_error_msg(fd_errno));
+		LLNET_throw_socket_error(fd_errno);
 		return SNI_IGNORED_RETURNED_VALUE;
 	}
 
@@ -283,11 +286,11 @@ void LLNET_CHANNEL_setOption_multicast_loopback(int32_t fd, int32_t value) {
 	optname = IP_MULTICAST_LOOP;
 	level = IPPROTO_IP;
 	res = llnet_setsockopt(fd, level, optname, p_optval, optlen);
-	LLNET_DEBUG_TRACE("%s[thread %d](fd=0x%X, value=%d), res=%d, errno=%d\n", __func__, SNI_getCurrentJavaThreadID(),
-	                  fd, value, res, llnet_errno(fd));
+	VEEPORT_LOGGER_LOG_DBG("[thread %d](fd=0x%X, value=%d), res=%d, errno=%d", SNI_getCurrentJavaThreadID(), fd, value,
+	                       res, llnet_errno(fd));
 	if (res == -1) {
 		fd_errno = llnet_errno(fd);
-		SNI_throwNativeIOException(LLNET_map_to_java_exception(fd_errno), LLNET_get_socket_error_msg(fd_errno));
+		LLNET_throw_socket_error(fd_errno);
 		return;
 	}
 #endif /* if LLNET_AF & LLNET_AF_IPV4 */
@@ -296,21 +299,21 @@ void LLNET_CHANNEL_setOption_multicast_loopback(int32_t fd, int32_t value) {
 	optname = IPV6_MULTICAST_LOOP;
 	level = IPPROTO_IPV6;
 	res = llnet_setsockopt(fd, level, optname, p_optval, optlen);
-	LLNET_DEBUG_TRACE("%s[thread %d](fd=0x%X, value=%d), res=%d, errno=%d\n", __func__, SNI_getCurrentJavaThreadID(),
-	                  fd, value, res, llnet_errno(fd));
+	VEEPORT_LOGGER_LOG_DBG("[thread %d](fd=0x%X, value=%d), res=%d, errno=%d", SNI_getCurrentJavaThreadID(), fd, value,
+	                       res, llnet_errno(fd));
 	if (res == -1) {
 		fd_errno = llnet_errno(fd);
-		SNI_throwNativeIOException(LLNET_map_to_java_exception(fd_errno), LLNET_get_socket_error_msg(fd_errno));
+		LLNET_throw_socket_error(fd_errno);
 	}
 #endif /* if LLNET_AF & LLNET_AF_IPV6 */
 }
 
 void LLNET_CHANNEL_IMPL_setOption(int32_t fd, int32_t option, int32_t value) {
-	LLNET_DEBUG_TRACE("%s[thread %d](fd=0x%X, option=%d, value=%d)\n", __func__, SNI_getCurrentJavaThreadID(), fd,
-	                  option, value);
+	VEEPORT_LOGGER_LOG_DBG("[thread %d](fd=0x%X, option=%d, value=%d)", SNI_getCurrentJavaThreadID(), fd, option,
+	                       value);
 
 	if (llnet_is_ready() == false) {
-		SNI_throwNativeIOException(J_NETWORK_NOT_INITIALIZED, "network not initialized");
+		VEEPORT_ERRORS_throw_caught_exception(J_NETWORK_NOT_INITIALIZED);
 		return;
 	}
 
@@ -375,16 +378,16 @@ void LLNET_CHANNEL_IMPL_setOption(int32_t fd, int32_t option, int32_t value) {
 		break;
 	default:
 		/* option not available */
-		LLNET_DEBUG_TRACE("option not supported %d\n", option);
-		SNI_throwNativeIOException(J_ENOPROTOOPT, "socket option not supported");
+		VEEPORT_LOGGER_LOG_WRN("option not supported %d", option);
+		VEEPORT_ERRORS_throw_caught_exception(J_ENOPROTOOPT);
 		return;
 	}
 	int32_t res = llnet_setsockopt(fd, level, optname, p_optval, optlen);
-	LLNET_DEBUG_TRACE("%s[thread %d](fd=0x%X, option=%d, value=%d), res=%d, errno=%d\n", __func__,
-	                  SNI_getCurrentJavaThreadID(), fd, option, value, res, llnet_errno(fd));
+	VEEPORT_LOGGER_LOG_DBG("[thread %d](fd=0x%X, option=%d, value=%d), res=%d, errno=%d", SNI_getCurrentJavaThreadID(),
+	                       fd, option, value, res, llnet_errno(fd));
 	if (res == -1) {
 		fd_errno = llnet_errno(fd);
-		SNI_throwNativeIOException(LLNET_map_to_java_exception(fd_errno), LLNET_get_socket_error_msg(fd_errno));
+		LLNET_throw_socket_error(fd_errno);
 		return;
 	}
 
@@ -399,8 +402,8 @@ void LLNET_CHANNEL_IMPL_setOption(int32_t fd, int32_t option, int32_t value) {
 }
 
 int32_t LLNET_CHANNEL_IMPL_getOptionAsByteArray(int32_t fd, int32_t option, int8_t *dst, int32_t dstLength) {
-	LLNET_DEBUG_TRACE("%s[thread %d](fd=0x%X, option=%d, dstLength=%d)\n", __func__, SNI_getCurrentJavaThreadID(), fd,
-	                  option, dstLength);
+	VEEPORT_LOGGER_LOG_DBG("[thread %d](fd=0x%X, option=%d, dstLength=%d)", SNI_getCurrentJavaThreadID(), fd, option,
+	                       dstLength);
 
 	int32_t fd_errno;
 	switch (option) {
@@ -413,17 +416,18 @@ int32_t LLNET_CHANNEL_IMPL_getOptionAsByteArray(int32_t fd, int32_t option, int8
 			socklen_t option_length = sizeof(struct in_addr);
 
 			int32_t res = llnet_getsockopt(fd, IPPROTO_IP, IP_MULTICAST_IF, dst, &option_length);
-			LLNET_DEBUG_TRACE("%s[thread %d](fd=0x%X, option=%d) res=%d errno=%d\n", __func__,
-			                  SNI_getCurrentJavaThreadID(), fd, option, res, llnet_errno(fd));
+			VEEPORT_LOGGER_LOG_DBG("[thread %d](fd=0x%X, option=%d) res=%d errno=%d", SNI_getCurrentJavaThreadID(), fd,
+			                       option, res, llnet_errno(fd));
 			if (res == -1) {
 				fd_errno = llnet_errno(fd);
-				SNI_throwNativeIOException(LLNET_map_to_java_exception(fd_errno), LLNET_get_socket_error_msg(fd_errno));
+				LLNET_throw_socket_error(fd_errno);
 				return SNI_IGNORED_RETURNED_VALUE;
 			}
 
 			return option_length;
 		} else {
-			SNI_throwNativeIOException(J_EINVAL, "wrong option length");
+			VEEPORT_LOGGER_LOG_DBG("wrong option length");
+			VEEPORT_ERRORS_throw_caught_exception(J_EINVAL);
 			return SNI_IGNORED_RETURNED_VALUE;
 		}
 #else //Only IPv6
@@ -432,20 +436,21 @@ int32_t LLNET_CHANNEL_IMPL_getOptionAsByteArray(int32_t fd, int32_t option, int8
 		(void)dst;
 		(void)dstLength;
 		// Not managed
-		SNI_throwNativeIOException(J_ENOPROTOOPT, "socket option not supported for ipv6");
+		VEEPORT_LOGGER_LOG_DBG("socket option not supported for ipv6");
+		VEEPORT_ERRORS_throw_caught_exception(J_ENOPROTOOPT);
 		return SNI_IGNORED_RETURNED_VALUE;
 #endif /* if LLNET_AF & LLNET_AF_IPV4 */
 	}
 	default:
 		//option not available
-		SNI_throwNativeIOException(J_ENOPROTOOPT, "socket option not supported");
+		VEEPORT_ERRORS_throw_caught_exception(J_ENOPROTOOPT);
 		return SNI_IGNORED_RETURNED_VALUE;
 	}
 }
 
 void LLNET_CHANNEL_IMPL_setOptionAsByteArray(int32_t fd, int32_t option, int8_t *value, int32_t valueLength) {
-	LLNET_DEBUG_TRACE("%s[thread %d](fd=0x%X, option=%d, valueLength=%d)\n", __func__, SNI_getCurrentJavaThreadID(), fd,
-	                  option, valueLength);
+	VEEPORT_LOGGER_LOG_DBG("[thread %d](fd=0x%X, option=%d, valueLength=%d)", SNI_getCurrentJavaThreadID(), fd, option,
+	                       valueLength);
 
 	int32_t fd_errno;
 
@@ -458,11 +463,11 @@ void LLNET_CHANNEL_IMPL_setOptionAsByteArray(int32_t fd, int32_t option, int8_t 
 		if (valueLength == sizeof(struct in_addr)) {
 			int32_t res;
 			res = llnet_setsockopt(fd, IPPROTO_IP, IP_MULTICAST_IF, value, sizeof(struct in_addr));
-			LLNET_DEBUG_TRACE("%s[thread %d](fd=0x%X, option=%d) res=%d errno=%d\n", __func__,
-			                  SNI_getCurrentJavaThreadID(), fd, option, res, llnet_errno(fd));
+			VEEPORT_LOGGER_LOG_DBG("[thread %d](fd=0x%X, option=%d) res=%d errno=%d", SNI_getCurrentJavaThreadID(), fd,
+			                       option, res, llnet_errno(fd));
 			if (res == -1) {
 				fd_errno = llnet_errno(fd);
-				SNI_throwNativeIOException(LLNET_map_to_java_exception(fd_errno), LLNET_get_socket_error_msg(fd_errno));
+				LLNET_throw_socket_error(fd_errno);
 			}
 			return;
 		}
@@ -475,7 +480,7 @@ void LLNET_CHANNEL_IMPL_setOptionAsByteArray(int32_t fd, int32_t option, int8_t 
 			struct ifaddrs *i;
 			if (getifaddrs(&ifaddrs) != 0) {
 				fd_errno = llnet_errno(fd);
-				SNI_throwNativeIOException(LLNET_map_to_java_exception(fd_errno), LLNET_get_socket_error_msg(fd_errno));
+				LLNET_throw_socket_error(fd_errno);
 				return;
 			}
 			uint32_t ifindex = 0;
@@ -490,42 +495,44 @@ void LLNET_CHANNEL_IMPL_setOptionAsByteArray(int32_t fd, int32_t option, int8_t 
 			}
 			freeifaddrs(ifaddrs);
 			if (ifindex == 0) {
-				SNI_throwNativeIOException(J_EINVAL, "No interface index found");
+				VEEPORT_LOGGER_LOG_DBG("No interface index found");
+				VEEPORT_ERRORS_throw_caught_exception(J_EINVAL);
 				return;
 			}
 			int32_t res = llnet_setsockopt(fd, IPPROTO_IPV6, IPV6_MULTICAST_IF, (void *)&ifindex, sizeof(ifindex));
-			LLNET_DEBUG_TRACE("%s[thread %d](fd=0x%X, option=%d) res=%d errno=%d\n", __func__,
-			                  SNI_getCurrentJavaThreadID(), fd, option, res, llnet_errno(fd));
+			VEEPORT_LOGGER_LOG_DBG("[thread %d](fd=0x%X, option=%d) res=%d errno=%d", SNI_getCurrentJavaThreadID(), fd,
+			                       option, res, llnet_errno(fd));
 			if (res == -1) {
 				fd_errno = llnet_errno(fd);
-				SNI_throwNativeIOException(LLNET_map_to_java_exception(fd_errno), LLNET_get_socket_error_msg(fd_errno));
+				LLNET_throw_socket_error(fd_errno);
 			}
 			return;
 		}
 #endif /* if LLNET_AF & LLNET_AF_IPV6 */
-		SNI_throwNativeIOException(J_EINVAL, "wrong option length");
+		VEEPORT_LOGGER_LOG_DBG("wrong option length");
+		VEEPORT_ERRORS_throw_caught_exception(J_EINVAL);
 		return;
 	}
 	default:
 		/* option not available */
-		SNI_throwNativeIOException(J_ENOPROTOOPT, "socket option not supported");
+		VEEPORT_ERRORS_throw_caught_exception(J_ENOPROTOOPT);
 	}
 }
 
 void LLNET_CHANNEL_IMPL_listen(int32_t fd, int32_t backlog) {
-	LLNET_DEBUG_TRACE("%s[thread %d](fd=0x%X, backlog=%d)\n", __func__, SNI_getCurrentJavaThreadID(), fd, backlog);
+	VEEPORT_LOGGER_LOG_DBG("[thread %d](fd=0x%X, backlog=%d)", SNI_getCurrentJavaThreadID(), fd, backlog);
 
 	int32_t fd_errno;
 
 	if (llnet_is_ready() == false) {
-		SNI_throwNativeIOException(J_NETWORK_NOT_INITIALIZED, "network not initialized");
+		VEEPORT_ERRORS_throw_caught_exception(J_NETWORK_NOT_INITIALIZED);
 		return;
 	}
 
 	int32_t res = llnet_listen(fd, backlog);
 	if (res == -1) {
 		fd_errno = llnet_errno(fd);
-		SNI_throwNativeIOException(LLNET_map_to_java_exception(fd_errno), LLNET_get_socket_error_msg(fd_errno));
+		LLNET_throw_socket_error(fd_errno);
 		return;
 	}
 }

@@ -20,12 +20,11 @@ This Abstraction Layer is compliant with Architecture `8.x` and the following Pa
 | ------------ | -------- |
 | AUDIO        | 2.1.0    |
 | CRYPTO       | 2.0.1    |
-| DEVICE       | 1.4.0    |
+| DEVICE       | 1.4.1    |
 | ECOM-NETWORK | 1.0.0    |
-| EVENT        | 3.0.3    |
-| FS           | 6.0.4    |
+| EVENT        | 3.0.7    |
+| FS           | 6.0.5    |
 | NET          | 15.0.1   |
-| RIO          | 0.1.0    |
 | SERIAL       | 3.0.0    |
 | UI           | 14.5.2   |
 
@@ -35,11 +34,24 @@ The Multi-Sandbox Application download implementation is based on malloc/free in
 
 ### Device Pack
 
-The Device UID is based on the Ethernet HWAddr.
+The Device UID comes from the first of these sources that answers, in this order:
+
+- The serial number of the board, read from the device tree
+- The MAC address of the first non-loopback network interface
+- An identifier derived from the machine ID of the host
+
+The Device UID holds at most 64 bytes.
+The identifier derived from the machine ID never exposes the machine ID itself.
+
+A machine ID identifies an installation, not a hardware unit.
+An image that ships a populated `/etc/machine-id` gives the same Device UID to every unit flashed from it.
+Where the Device UID must be unique per unit, and the board publishes no device tree serial number and holds no MAC address, the provisioning must regenerate the machine ID on each unit, with `systemd-machine-id-setup` or by shipping the file empty so systemd populates it on first boot.
 
 ### Networking Pack
 
-Both IPv4 a IPv6 are supported.
+Both IPv4 and IPv6 are supported.
+`ENABLE_NET_AF_IPV4_SUPPORT` and `ENABLE_NET_AF_IPV6_SUPPORT` select which of the two the port reports, and enabling both gives a dual stack.
+See [Module Specific Configurations](#module-specific-configurations).
 
 SSL supports TLSv1, TLSv1.1, TLSv1.2, DTLS1.2.
 
@@ -343,6 +355,7 @@ option(BUILD_ECOM_NETWORK "Build Embedded COMmunication Abstraction Layer" ON)
 option(BUILD_FS           "Build File System Abstraction Layer"            ON)
 option(BUILD_KF           "Build Kernel Feature Abstraction Layer"         ON)
 option(BUILD_NET          "Build Network Abstraction Layer"                ON)
+option(BUILD_RIO          "Build rio Event-Driven I/O Abstraction Layer"   OFF)
 option(BUILD_CRYPTO       "Build Security Abstraction Layer"               ON)
 option(BUILD_SERIAL       "Build Serial Abstraction Layer"                 ON)
 option(BUILD_SSL          "Build SSL Abstraction Layer"                    ON)
@@ -379,6 +392,17 @@ if (BUILD_NET)
 endif()
 ```
 
+* ENABLE_NET_AF_IPV4_SUPPORT and ENABLE_NET_AF_IPV6_SUPPORT are not mutually exclusive.
+
+  * Enable both for a dual stack, which is what most ports want.
+  * Enable one to report the addresses of that family only.
+    An interface whose addresses are all outside the enabled family is still listed, and reports no address.
+  * Disabling both is rejected at CMake configure time, because the network would then report no address at all.
+    Set BUILD_NET to OFF instead.
+
+* BUILD_NET requires BUILD_UTIL, which provides `sni_extras.h`.
+  Leaving BUILD_UTIL off with BUILD_NET on is rejected at CMake configure time.
+
 * BUILD_UI_TOUCHSCREEN is based on tslib API (https://github.com/libts/tslib).
 * BUILD_UI_FBDEV and BUILD_UI_DRM are mutually exclusive.
 
@@ -391,9 +415,14 @@ endif()
 ```
 # Debug features
 option(ADVANCED_TRACE "Enable MJVM Advanced trace" OFF)
+
+if (BUILD_ESSENTIALS)
+  option(USE_VEEPORT_LOGGER "Use the VEE Port Essentials logger for the abstraction layer traces" ON)
+endif()
 ```
 
 * ADVANCED_TRACE is used for [Advanced Event Tracing](https://docs.microej.com/en/latest/VEEPortingGuide/advanceTrace.html)
+* USE_VEEPORT_LOGGER routes the `VEEPORT_LOGGER_LOG_*` traces of the abstraction layers to the VEE Port Essentials logger, which filters each layer with its `<LAYER>_LOG_LEVEL` (set in `vee/port/config/inc/veeport_configuration.h`). When it is OFF, the traces fall back to `VEEPORT_PRINTF` and every message is printed, whatever its level. The default log level is error and the default format of the logging messages is the following: `[module name][function name][line number][log level][log message]`.
 
 
 # Requirements
@@ -428,7 +457,44 @@ N/A
 
 None.
 
+# MISRA Compliance
+
+This Abstraction Layer has a list of components that are MISRA-compliant (MISRA C:2012) with some noted exceptions.
+Below is the list of directories and files that have been verified:
+
+- `vee/port/core/src`
+- `vee/port/crypto`
+- `vee/port/util/inc/sni_extras.h`
+
+It has been verified with Cppcheck v2.21.
+Here is the list of deviations from MISRA standard:
+
+| Deviation | Category | Justification |
+|-----------|----------|---------------|
+| Rule 2.3 | Advisory | The type declared by the static assertion is unused on purpose, because only its array size carries the check |
+| Rule 2.5 | Advisory | The analysis pins a single configuration, so a macro used only by the other keystore configuration is reported as unused |
+| Rule 5.5 | Required | The LLMJVM header that the architecture generates defines a macro for each LLAPI function, and some of these macros expand to their own name. The Core Engine links to these names |
+| Rule 5.9 | Advisory | The logger module macro gives its two internal-linkage objects the same names in every file, because the logging macros read those names |
+| Rule 8.7 | Advisory | LLAPI functions require external linkage but invocation cannot be detected by cppcheck |
+| Rule 8.9 | Advisory | The logger requires the module definition at the top of the file, also in a file where only `main()` logs |
+| Rule 11.1 | Required | Abstract data type for SNI usage. The LLAPI fixes the return type at `int32_t`, so the close function crosses the boundary as an integer |
+| Rule 11.3 | Required | Abstract data type for SNI usage. The array length accessor reads the length word that precedes the array data |
+| Rule 11.4 | Advisory | Abstract data type for SNI usage. The SNI ABI carries each native resource handle as a `jint`, and the LLAPI header that the pack delivers fixes this signature |
+| Rule 11.5 | Advisory | Abstract data type for SNI usage. SNI stores each native resource as a `void*`, and the allocators return a `void*`. POSIX gives a signal handler the context of the interrupted thread as a `void*` |
+| Rule 11.6 | Required | Abstract data type for SNI usage. The random native registers a synthetic handle, because the OpenSSL random generator is global state with no object to point at. The crash handler reads the saved instruction pointer as an integer, and prints it as a pointer |
+| Rule 11.8 | Required | The OpenSSL and PKCS#11 functions declare an input buffer without `const`, and only read it |
+| Rule 15.1 | Advisory | A forward `goto` to a single cleanup label releases the acquired OpenSSL objects. An exit path that does not release them leaks memory |
+| Rule 15.2 | Required | Cppcheck false positive. The `goto` does jump forward, to a label declared later in the same function |
+| Rule 15.5 | Advisory | Guard clauses reject invalid arguments with an early return, before any resource is acquired |
+| Rule 18.4 | Advisory | Abstract data type for SNI usage. The array length accessor offsets a pointer to reach the length word |
+| Rule 19.2 | Advisory | A tagged union holds the key backends, which are mutually exclusive for a given key. A structure that holds all of them wastes RAM. The POSIX thread types are unions in the C library |
+| Rule 21.3 | Required | Managed Code asks the port for crypto resources whose size is known only at run time, so the allocation is dynamic by nature |
+| Rule 21.5 | Required | The port installs a crash handler and a dump handler, which requires `<signal.h>` |
+| Rule 21.8 | Required | The port ends the process when the Core Engine timer fails, because a supervisor can restart a process that ends, but not a process that hangs |
+| Rule 21.10 | Required | POSIX declares its clock API only in `<time.h>`. No ISO C time and date function is used |
+
 ---
 _Markdown_\
 _Copyright 2024-2026 MicroEJ Corp. All rights reserved._\
-_Use of this source code is governed by a BSD-style license that can be found with this software._
+_Use of this source code is governed by a BSD-style license that can be found with this software._\
+_Build: 7E4D1F7C_

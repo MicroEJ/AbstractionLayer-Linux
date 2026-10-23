@@ -5,11 +5,16 @@
 #
 # Build: 7E4D1F7C
 
+if(NOT BUILD_UTIL)
+    message(FATAL_ERROR "BUILD_CRYPTO requires BUILD_UTIL (port/util provides sni_extras.h).")
+endif()
+
 target_include_directories(${target} PUBLIC ${CMAKE_CURRENT_LIST_DIR}/inc)
 target_sources(${target}
     PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}/src/LLCRYPTO_impl.c
     ${CMAKE_CURRENT_LIST_DIR}/src/LLCRYPTO_key.c
+    ${CMAKE_CURRENT_LIST_DIR}/src/LLCRYPTO_utils.c
     ${CMAKE_CURRENT_LIST_DIR}/src/LLCRYPTO_AES_KEY_WRAP_impl.c
     ${CMAKE_CURRENT_LIST_DIR}/src/LLCRYPTO_CERT_PATH_VALIDATOR_impl.c
     ${CMAKE_CURRENT_LIST_DIR}/src/LLCRYPTO_CIPHER_impl.c
@@ -17,6 +22,7 @@ target_sources(${target}
     ${CMAKE_CURRENT_LIST_DIR}/src/LLCRYPTO_EXTERNAL_KEYSTORE_common.c
     ${CMAKE_CURRENT_LIST_DIR}/src/LLCRYPTO_KEY_AGREEMENT_impl.c
     ${CMAKE_CURRENT_LIST_DIR}/src/LLCRYPTO_KEY_FACTORY_impl.c
+    ${CMAKE_CURRENT_LIST_DIR}/src/LLCRYPTO_KEY_GENERATOR_impl.c
     ${CMAKE_CURRENT_LIST_DIR}/src/LLCRYPTO_KEY_PAIR_GENERATOR_impl.c
     ${CMAKE_CURRENT_LIST_DIR}/src/LLCRYPTO_MAC_impl.c
     ${CMAKE_CURRENT_LIST_DIR}/src/LLCRYPTO_PRIVATE_KEY_impl.c
@@ -34,7 +40,7 @@ if(LLCRYPTO_KEYSTORE_PKCS11)
 
     # Lets backend-agnostic modules (e.g. key agreement) compile the direct
     # PKCS#11 C API fallback that bypasses pkcs11-provider's DER-wrapped ECDH
-    # peer point, which the OP-TEE TA mis-parses (P0326IMX93EVK-164).
+    # peer point, which the OP-TEE TA mis-parses.
     target_compile_definitions(${target} PRIVATE LLCRYPTO_KEYSTORE_PKCS11=1)
 
     # Non-extractable key import (HSM-grade): when ON, keys created by
@@ -54,11 +60,14 @@ if(LLCRYPTO_KEYSTORE_PKCS11)
 
     # Compiled-in PKCS#11 paths so application.out runs with no runtime
     # environment (no OPENSSL_CONF / OPENSSL_MODULES / LLCRYPTO_PKCS11_* needed).
-    # A project sets these from project_options.cmake; when unset, the C
-    # #ifndef fallbacks apply. The application reads no env vars at runtime.
-    if(DEFINED LLCRYPTO_PKCS11_MODULE)
-        target_compile_definitions(${target} PRIVATE LLCRYPTO_PKCS11_MODULE="${LLCRYPTO_PKCS11_MODULE}")
+    # A project sets these from project_options.cmake. The module path is
+    # mandatory: it differs per backend, so there is no default worth guessing.
+    # The others fall back to the C #ifndef defaults when unset. The application
+    # reads no env vars at runtime.
+    if(NOT LLCRYPTO_PKCS11_MODULE)
+        message(FATAL_ERROR "LLCRYPTO_PKCS11_MODULE must be set in project_options.cmake: absolute path to the PKCS#11 module (.so) of the target token.")
     endif()
+    target_compile_definitions(${target} PRIVATE LLCRYPTO_PKCS11_MODULE="${LLCRYPTO_PKCS11_MODULE}")
     if(DEFINED LLCRYPTO_OSSL_MODULES_DIR)
         target_compile_definitions(${target} PRIVATE LLCRYPTO_OSSL_MODULES_DIR="${LLCRYPTO_OSSL_MODULES_DIR}")
     endif()
@@ -89,7 +98,7 @@ if(LLCRYPTO_KEYSTORE_PKCS11)
         )
     endif()
     if(NOT LLCRYPTO_PKCS11_INCLUDE_DIR)
-        message(FATAL_ERROR "PKCS#11 header (pkcs11.h) not found. On Ubuntu/Debian install libsofthsm2-dev or libp11-kit-dev. On Yocto add a recipe that provides /usr/include/pkcs11.h to the SDK.")
+        message(FATAL_ERROR "PKCS#11 header (pkcs11.h) not found. On Ubuntu/Debian install libsofthsm2-dev. On Yocto add a recipe that provides /usr/include/pkcs11.h to the SDK.")
     endif()
     message(STATUS "Using PKCS#11 headers from ${LLCRYPTO_PKCS11_INCLUDE_DIR}")
     target_include_directories(${target} PRIVATE ${LLCRYPTO_PKCS11_INCLUDE_DIR})
